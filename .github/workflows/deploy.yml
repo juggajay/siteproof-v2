@@ -149,7 +149,7 @@ jobs:
           TRIGGER_API_URL: ${{ secrets.TRIGGER_API_URL }}
       
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-output
           path: apps/web/.next
