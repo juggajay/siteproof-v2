@@ -1,8 +1,8 @@
 {
   "framework": "nextjs",
-  "buildCommand": "cd ../.. && pnpm build",
-  "installCommand": "cd ../.. && pnpm install",
-  "outputDirectory": ".next",
+  "buildCommand": "pnpm --filter web build",
+  "installCommand": "pnpm install",
+  "outputDirectory": "apps/web/.next",
   "headers": [
     {
       "source": "/(.*)",
@@ -66,7 +66,7 @@
       "schedule": "0 2 * * *"
     },
     {
-      "path": "/api/cron/cleanup-failed-reports", 
+      "path": "/api/cron/cleanup-failed-reports",
       "schedule": "0 3 * * *"
     }
   ]
