@@ -8,16 +8,7 @@
   "arrowParens": "always",
   "endOfLine": "lf",
   "bracketSpacing": true,
-  "jsxBracketSameLine": false,
+  "bracketSameLine": false,
   "jsxSingleQuote": false,
-  "quoteProps": "as-needed",
-  "overrides": [
-    {
-      "files": "*.sql",
-      "options": {
-        "parser": "sql",
-        "keywordCase": "upper"
-      }
-    }
-  ]
+  "quoteProps": "as-needed"
 }

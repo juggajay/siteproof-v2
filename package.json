@@ -34,9 +34,6 @@
     ],
     "*.{json,css,md}": [
       "prettier --write"
-    ],
-    "packages/database/migrations/*.sql": [
-      "prettier --write --parser sql"
     ]
   }
 }
