@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Env files
+.env*
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+
+# Cache
+.turbo/
+.cache/
+
+# IDE
+.vscode/
+.idea/
+
+# Generated files
+*.generated.*
+
+# Public assets
+public/
+
+# Supabase
+supabase/.branches/
+supabase/.temp/
