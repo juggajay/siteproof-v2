@@ -12,6 +12,7 @@ interface Trade {
   trade: string;
   company: string;
   workers: number;
+  activities: string[];
   start_time?: string;
   end_time?: string;
   total_hours?: number;
@@ -76,6 +77,7 @@ export function WorkforceEntry({
         trade: '',
         company: '',
         workers: 1,
+        activities: [],
         start_time: '07:00',
         end_time: '15:30',
         total_hours: 8.5,
