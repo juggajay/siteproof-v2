@@ -275,7 +275,7 @@ export async function DELETE(
       .from('lots')
       .select(`
         created_by,
-        project:projects (
+        project:projects!inner (
           organization_id,
           created_by
         )
@@ -291,11 +291,20 @@ export async function DELETE(
       );
     }
 
+    // Type assertion for the joined data
+    const lotWithProject = lot as any as {
+      created_by: string;
+      project: {
+        organization_id: string;
+        created_by: string;
+      };
+    };
+
     // Check permissions
     const { data: membership } = await supabase
       .from('organization_members')
       .select('role')
-      .eq('organization_id', lot.project.organization_id)
+      .eq('organization_id', lotWithProject.project.organization_id)
       .eq('user_id', user.id)
       .single();
 
@@ -308,8 +317,8 @@ export async function DELETE(
 
     // Only lot creator, project creator, admins, and owners can delete
     const canDelete = 
-      lot.created_by === user.id ||
-      lot.project.created_by === user.id ||
+      lotWithProject.created_by === user.id ||
+      lotWithProject.project.created_by === user.id ||
       ['admin', 'owner'].includes(membership.role);
 
     if (!canDelete) {
