@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { useFieldArray } from 'react-hook-form';
 import { Truck, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 
