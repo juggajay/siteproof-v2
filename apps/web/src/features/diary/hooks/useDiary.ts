@@ -1,6 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { DailyDiary } from '@siteproof/database';
+import type { DailyDiary, Project, User } from '@siteproof/database';
+
+// Extended diary type that includes joined data from the API
+export interface DiaryWithRelations extends DailyDiary {
+  project?: Project;
+  createdBy?: Pick<User, 'id' | 'email' | 'full_name'>;
+  approvedBy?: Pick<User, 'id' | 'email' | 'full_name'>;
+  workforce_costs?: any;
+  total_daily_cost?: number;
+}
 
 interface UseDiariesOptions {
   projectId?: string;
@@ -39,7 +48,7 @@ export function useDiary(diaryId: string) {
       }
 
       const data = await response.json();
-      return data.diary as DailyDiary;
+      return data.diary as DiaryWithRelations;
     },
     enabled: !!diaryId,
   });
@@ -120,7 +129,7 @@ export function useDiaryForDate(projectId: string, date: Date) {
       }
 
       const data = await response.json();
-      return data.diary as DailyDiary | null;
+      return data.diary as DiaryWithRelations | null;
     },
     enabled: !!projectId,
   });
