@@ -108,12 +108,6 @@ export default function DiaryDetailPage() {
                   <span className="text-sm text-gray-600">Client</span>
                   <p className="font-semibold text-gray-900">{diary.project?.client_name}</p>
                 </div>
-                <div>
-                  <span className="text-sm text-gray-600">Location</span>
-                  <p className="font-semibold text-gray-900">
-                    {diary.project?.address || 'Not specified'}
-                  </p>
-                </div>
               </div>
             </div>
 
