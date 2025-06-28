@@ -8,8 +8,10 @@ import { NcrWorkflowCard } from '@/features/ncr/components/NcrWorkflowCard';
 import { NcrStatusBadge } from '@/features/ncr/components/NcrStatusBadge';
 import { NcrSeverityBadge } from '@/features/ncr/components/NcrSeverityBadge';
 import type { NCRStatus, NCRSeverity } from '@siteproof/database';
+import { useRouter } from 'next/navigation';
 
 export default function NcrsPage() {
+  const router = useRouter();
   const [statusFilter, setStatusFilter] = useState<NCRStatus | ''>('');
   const [severityFilter, setSeverityFilter] = useState<NCRSeverity | ''>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -44,7 +46,7 @@ export default function NcrsPage() {
               Track and resolve quality issues across your projects
             </p>
           </div>
-          <Button href="/dashboard/ncrs/new">
+          <Button onClick={() => router.push('/dashboard/ncrs/new')}>
             <Plus className="w-4 h-4 mr-2" />
             Raise NCR
           </Button>
@@ -222,7 +224,7 @@ export default function NcrsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        href={`/dashboard/ncrs/${ncr.id}`}
+                        onClick={() => router.push(`/dashboard/ncrs/${ncr.id}`)}
                       >
                         View
                       </Button>
