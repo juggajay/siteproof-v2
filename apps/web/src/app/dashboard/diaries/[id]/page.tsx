@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Edit, Download, Calendar, Clock, Users, DollarSign } from 'lucide-react';
+import { ArrowLeft, Edit, Download, Calendar, Users, DollarSign } from 'lucide-react';
 import { Button, StateDisplay } from '@siteproof/design-system';
 import { useDiary } from '@/features/diary/hooks/useDiary';
 import { useOrganizationRole } from '@/features/organizations/hooks/useOrganization';

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Plus, Building2, DollarSign, Search, Filter } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { Button, StateDisplay } from '@siteproof/design-system';
 import { useQuery } from '@tanstack/react-query';
 import { useOrganizationRole } from '@/features/organizations/hooks/useOrganization';

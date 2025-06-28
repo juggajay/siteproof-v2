@@ -6,25 +6,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Calendar,
   Cloud,
   Users,
-  Truck,
-  AlertTriangle,
-  Shield,
-  Eye,
-  Camera,
-  Plus,
-  Trash2,
   Save,
   Loader2,
-  MapPin,
-  Clock,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { Button, Input, StateDisplay } from '@siteproof/design-system';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { Button, Input } from '@siteproof/design-system';
+import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { weatherService } from '../services/weatherService';
 import type { Project, DailyDiary } from '@siteproof/database';
@@ -113,20 +103,6 @@ interface DiaryFormProps {
   onCancel?: () => void;
 }
 
-const commonTrades = [
-  'General Contractor',
-  'Concrete',
-  'Steel/Structural',
-  'Electrical',
-  'Plumbing',
-  'HVAC',
-  'Carpentry',
-  'Masonry',
-  'Roofing',
-  'Flooring',
-  'Painting',
-  'Landscaping',
-];
 
 export function DiaryForm({
   project,
@@ -173,14 +149,7 @@ export function DiaryForm({
     },
   });
 
-  const tradesField = useFieldArray({ control, name: 'trades_on_site' });
-  const personnelField = useFieldArray({ control, name: 'key_personnel' });
-  const equipmentField = useFieldArray({ control, name: 'equipment_on_site' });
-  const deliveriesField = useFieldArray({ control, name: 'material_deliveries' });
-  const delaysField = useFieldArray({ control, name: 'delays' });
-  const incidentsField = useFieldArray({ control, name: 'safety_incidents' });
-  const inspectionsField = useFieldArray({ control, name: 'inspections' });
-  const visitorsField = useFieldArray({ control, name: 'visitors' });
+  // Field arrays are managed by child components
 
   // Auto-calculate total workers
   const trades = watch('trades_on_site');

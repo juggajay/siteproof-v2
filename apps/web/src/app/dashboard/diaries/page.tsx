@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Calendar, Plus, Download, Filter, FileText } from 'lucide-react';
+import { Plus, Download } from 'lucide-react';
 import { Button, StateDisplay } from '@siteproof/design-system';
 import { useDiaries } from '@/features/diary/hooks/useDiary';
 import { WeatherDisplay } from '@/features/diary/components/WeatherDisplay';

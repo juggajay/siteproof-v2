@@ -10,7 +10,7 @@ const MAX_ATTEMPTS = 3;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
 const ATTEMPT_WINDOW = 15 * 60 * 1000; // 15 minutes
 
-function getClientIdentifier(request: Request): string {
+function getClientIdentifier(_request: Request): string {
   const headersList = headers();
   const forwarded = headersList.get('x-forwarded-for');
   const ip = forwarded ? forwarded.split(',')[0] : 'unknown';
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   try {
     // Check rate limiting for this specific client
     const clientId = getClientIdentifier(request);
-    const { allowed, remainingAttempts, blockedUntil } = checkFailedAttempts(clientId);
+    const { allowed, blockedUntil } = checkFailedAttempts(clientId);
 
     if (!allowed) {
       const retryAfter = Math.ceil((blockedUntil! - Date.now()) / 1000);
@@ -146,6 +146,9 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    // Clear failed attempts on successful login
+    clearFailedAttempts(clientId);
 
     // Update last seen
     await supabase.rpc('update_user_last_seen', {

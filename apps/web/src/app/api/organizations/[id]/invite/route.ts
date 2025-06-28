@@ -172,7 +172,7 @@ export async function POST(
 
 // Get pending invitations for an organization
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: { id: string } }
 ) {
   try {

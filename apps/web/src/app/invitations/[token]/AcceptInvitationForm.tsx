@@ -63,7 +63,7 @@ export function AcceptInvitationForm({ invitation }: AcceptInvitationFormProps) 
 
     setIsAccepting(true);
     try {
-      const { data, error } = await supabase.rpc('accept_invitation', {
+      const { error } = await supabase.rpc('accept_invitation', {
         invitation_token: invitation.token,
       });
 

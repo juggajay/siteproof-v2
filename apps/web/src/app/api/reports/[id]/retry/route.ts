@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { client } from '@/trigger';
 
 export async function POST(
-  request: Request,
+  _request: Request,
   { params }: { params: { id: string } }
 ) {
   try {

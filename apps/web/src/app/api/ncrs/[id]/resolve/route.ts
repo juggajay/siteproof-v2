@@ -144,7 +144,7 @@ async function queueNotifications(
   supabase: any,
   ncr: any,
   performedBy: string,
-  action: string
+  _action: string
 ) {
   const notifications = [];
 

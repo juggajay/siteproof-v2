@@ -106,7 +106,7 @@ export default function ReportsPage() {
                 
                 <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
                   <ReportGenerationForm
-                    onSuccess={(reportId) => {
+                    onSuccess={(_reportId) => {
                       setShowGenerateForm(false);
                       // Optionally navigate to the report or refresh the list
                     }}

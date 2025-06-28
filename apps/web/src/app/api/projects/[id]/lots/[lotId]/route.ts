@@ -19,7 +19,7 @@ const updateLotSchema = z.object({
 
 // GET /api/projects/[id]/lots/[lotId] - Get a single lot
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: { id: string; lotId: string } }
 ) {
   try {
@@ -254,7 +254,7 @@ export async function PUT(
 
 // DELETE /api/projects/[id]/lots/[lotId] - Delete a lot
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: { id: string; lotId: string } }
 ) {
   try {
