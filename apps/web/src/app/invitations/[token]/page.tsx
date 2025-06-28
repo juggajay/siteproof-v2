@@ -26,12 +26,12 @@ export default async function InvitationPage({ params }: PageProps) {
       role,
       status,
       expires_at,
-      organization:organizations (
+      organization:organization_id (
         id,
         name,
         slug
       ),
-      inviter:invited_by (
+      inviter:users!invited_by (
         id,
         full_name,
         email
