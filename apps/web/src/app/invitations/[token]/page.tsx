@@ -20,29 +20,31 @@ export default async function InvitationPage({ params }: PageProps) {
   // Fetch invitation details
   const { data: invitation, error } = await supabase
     .from('invitations')
-    .select(`
-      id,
-      email,
-      role,
-      status,
-      expires_at,
-      organization:organization_id (
-        id,
-        name,
-        slug
-      ),
-      inviter:users!invited_by (
-        id,
-        full_name,
-        email
-      )
-    `)
+    .select('*')
     .eq('token', params.token)
     .single();
 
   if (error || !invitation) {
     notFound();
   }
+
+  // Fetch organization details
+  const { data: organization } = await supabase
+    .from('organizations')
+    .select('id, name, slug')
+    .eq('id', invitation.organization_id)
+    .single();
+
+  // Fetch inviter details
+  const { data: inviter } = await supabase
+    .from('users')
+    .select('id, full_name, email')
+    .eq('id', invitation.invited_by)
+    .single();
+
+  // Add the joined data to invitation
+  invitation.organization = organization;
+  invitation.inviter = inviter;
 
   // Check if invitation is expired
   const isExpired = new Date(invitation.expires_at) < new Date();
