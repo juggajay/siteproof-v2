@@ -144,7 +144,14 @@ export function DiaryForm({
       inspections: [],
       visitors: [],
       milestones_achieved: [],
-      ...diary,
+      ...(diary ? {
+        ...diary,
+        // Convert null values to undefined for form compatibility
+        site_conditions: diary.site_conditions || undefined,
+        access_issues: diary.access_issues || undefined,
+        general_notes: diary.general_notes || undefined,
+        tomorrow_planned_work: diary.tomorrow_planned_work || undefined,
+      } : {}),
     },
   });
 
