@@ -21,7 +21,7 @@ export default function DiaryDetailPage() {
   const { data: diary, isLoading, error, refetch } = useDiary(diaryId);
   
   const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(role?.role || '');
-  const canEdit = ['owner', 'admin', 'project_manager'].includes(role?.role || '') && !diary?.is_locked;
+  const canEdit = ['owner', 'admin', 'project_manager'].includes(role?.role || '');
 
   const handleExport = () => {
     toast.info('Export functionality coming soon');
