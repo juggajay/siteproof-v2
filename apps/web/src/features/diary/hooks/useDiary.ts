@@ -9,6 +9,7 @@ export interface DiaryWithRelations extends DailyDiary {
   approvedBy?: Pick<User, 'id' | 'email' | 'full_name'>;
   workforce_costs?: any;
   total_daily_cost?: number;
+  notes?: string | null; // Some RPC functions might return 'notes' instead of 'general_notes'
 }
 
 interface UseDiariesOptions {

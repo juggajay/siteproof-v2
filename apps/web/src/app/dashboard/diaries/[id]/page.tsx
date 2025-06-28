@@ -212,10 +212,10 @@ export default function DiaryDetailPage() {
             )}
 
             {/* Notes Section */}
-            {diary.notes && (
+            {diary.general_notes && (
               <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Additional Notes</h2>
-                <p className="text-gray-700 whitespace-pre-wrap">{diary.notes}</p>
+                <p className="text-gray-700 whitespace-pre-wrap">{diary.general_notes}</p>
               </div>
             )}
 
