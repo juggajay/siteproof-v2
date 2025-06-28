@@ -299,7 +299,7 @@ export function RateHistoryModal({ companyId, onClose }: RateHistoryModalProps) 
             error={error}
             empty={!rates?.length}
             onRetry={refetch}
-            emptyMessage="No rates found"
+            emptyTitle="No rates found"
             emptyDescription="Add the first rate for this company"
           >
             <div className="space-y-3">

@@ -107,7 +107,7 @@ export default function DiariesPage() {
         error={error}
         empty={!diaries?.length}
         onRetry={refetch}
-        emptyMessage="No diary entries found"
+        emptyTitle="No diary entries found"
         emptyDescription="Create your first daily diary to track site activities"
       >
         <div className="space-y-4">

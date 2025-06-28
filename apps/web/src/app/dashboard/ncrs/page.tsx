@@ -148,7 +148,7 @@ export default function NcrsPage() {
         error={error}
         empty={!ncrs?.length}
         onRetry={refetch}
-        emptyMessage="No NCRs found"
+        emptyTitle="No NCRs found"
         emptyDescription="Raise your first NCR to track quality issues"
       >
         {viewMode === 'grid' ? (

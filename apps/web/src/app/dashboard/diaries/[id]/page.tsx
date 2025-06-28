@@ -48,7 +48,7 @@ export default function DiaryDetailPage() {
         error={error}
         empty={!diary}
         onRetry={refetch}
-        emptyMessage="Diary not found"
+        emptyTitle="Diary not found"
       >
         {diary && (
           <>

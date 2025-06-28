@@ -264,7 +264,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
         error={error}
         empty={!reports?.length}
         onRetry={refetch}
-        emptyMessage="No reports found"
+        emptyTitle="No reports found"
         emptyDescription="Generate your first report to see it here"
       >
         <div className="space-y-3">

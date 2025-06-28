@@ -110,7 +110,7 @@ export default function CompaniesPage() {
         error={error}
         empty={!filteredCompanies?.length}
         onRetry={refetch}
-        emptyMessage="No companies found"
+        emptyTitle="No companies found"
         emptyDescription="Add your first company to start tracking workforce and costs"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
