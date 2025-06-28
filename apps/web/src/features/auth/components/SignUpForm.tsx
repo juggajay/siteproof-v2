@@ -25,7 +25,6 @@ export function SignUpForm() {
     resolver: zodResolver(signUpSchema),
     defaultValues: {
       acceptTerms: false,
-      rememberMe: true,
     },
   });
 
