@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import type { DailyDiary, Project, User } from '@siteproof/database';
 
 const createDiarySchema = z.object({
   project_id: z.string().uuid(),
@@ -58,15 +59,25 @@ export async function GET(request: NextRequest) {
     // Check if user has financial access
     const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(member.role);
 
-    let query = supabase
-      .from('daily_diaries')
-      .select(`
+    // Build query based on financial access
+    const selectString = hasFinancialAccess
+      ? `
+        *,
+        project:projects(id, name, client_name),
+        createdBy:users!daily_diaries_created_by_fkey(id, email, full_name),
+        approvedBy:users!daily_diaries_approved_by_fkey(id, email, full_name),
+        daily_workforce_costs!inner(workforce_costs, total_daily_cost)
+      `
+      : `
         *,
         project:projects(id, name, client_name),
         createdBy:users!daily_diaries_created_by_fkey(id, email, full_name),
         approvedBy:users!daily_diaries_approved_by_fkey(id, email, full_name)
-        ${hasFinancialAccess ? ', daily_workforce_costs!inner(workforce_costs, total_daily_cost)' : ''}
-      `)
+      `;
+
+    let query = supabase
+      .from('daily_diaries')
+      .select(selectString)
       .eq('organization_id', member.organization_id)
       .order('diary_date', { ascending: false });
 
@@ -82,14 +93,25 @@ export async function GET(request: NextRequest) {
       query = query.lte('diary_date', endDate);
     }
 
-    const { data: diaries, error } = await query;
+    // Type definition for the diary with joined data
+    type DiaryWithRelations = DailyDiary & {
+      project?: Pick<Project, 'id' | 'name' | 'client_name'>;
+      createdBy?: Pick<User, 'id' | 'email' | 'full_name'>;
+      approvedBy?: Pick<User, 'id' | 'email' | 'full_name'>;
+      daily_workforce_costs?: Array<{
+        workforce_costs: any;
+        total_daily_cost: number;
+      }>;
+    };
+
+    const { data: diaries, error } = await query as { data: DiaryWithRelations[] | null, error: any };
 
     if (error) {
       throw error;
     }
 
     // Filter out financial data from trades if user doesn't have access
-    const processedDiaries = diaries?.map(diary => {
+    const processedDiaries = diaries?.map((diary) => {
       if (!hasFinancialAccess && diary.trades_on_site) {
         return {
           ...diary,
