@@ -144,7 +144,7 @@ class InspectionDatabase extends Dexie {
       obj._syncStatus = 'pending';
     });
 
-    this.inspections.hook('updating', (modifications, _primKey, obj) => {
+    this.inspections.hook('updating', (modifications: any, _primKey, obj: any) => {
       modifications._isDirty = true;
       modifications._lastModified = Date.now();
       if (obj._syncStatus === 'synced') {

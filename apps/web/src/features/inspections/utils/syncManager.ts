@@ -80,20 +80,22 @@ export class SyncManager {
         await this.processSyncItem(item);
         
         // Remove from queue on success
-        await db.syncQueue.delete(item.id);
+        if (item.id) await db.syncQueue.delete(item.id);
       } catch (error) {
         console.error(`[SyncManager] Failed to sync item ${item.id}:`, error);
         
         // Update retry count
-        await db.syncQueue.update(item.id!, {
-          attempts: item.attempts + 1,
-          lastAttempt: Date.now(),
-          error: error instanceof Error ? error.message : 'Unknown error',
-        });
+        if (item.id) {
+          await db.syncQueue.update(item.id, {
+            attempts: item.attempts + 1,
+            lastAttempt: Date.now(),
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
         
         // Delete if too many attempts
         if (item.attempts >= 5) {
-          await db.syncQueue.delete(item.id);
+          if (item.id) await db.syncQueue.delete(item.id);
         }
       }
     }

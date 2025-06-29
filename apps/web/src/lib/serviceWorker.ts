@@ -28,8 +28,10 @@ export async function registerServiceWorker() {
       return registration;
     } catch (error) {
       console.error('Service Worker registration failed:', error);
+      return undefined;
     }
   }
+  return undefined;
 }
 
 export async function unregisterServiceWorker() {

@@ -58,7 +58,7 @@ export function SyncStatusIndicator() {
       const pendingUploads = await db.getPendingUploads();
       const conflicts = await db.conflicts
         .where('resolved')
-        .equals(false)
+        .equals(0)  // Use 0 for false in Dexie
         .count();
 
       setStatus(prev => ({

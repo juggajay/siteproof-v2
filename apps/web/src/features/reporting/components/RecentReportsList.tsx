@@ -108,9 +108,9 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
       const data = await response.json();
       return data.reports as Report[];
     },
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Refetch every 5 seconds if any reports are processing
-      const hasProcessing = data?.some(r => r.status === 'processing');
+      const hasProcessing = query.data?.some((r: Report) => r.status === 'processing');
       return hasProcessing ? 5000 : false;
     },
   });
@@ -128,7 +128,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
           event: '*',
           schema: 'public',
           table: 'report_queue',
-          filter: `organization_id=eq.${user.organization_id}`,
+          filter: `organization_id=eq.${organizationId}`,
         },
         (payload) => {
           console.log('Report status change:', payload);

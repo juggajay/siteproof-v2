@@ -48,6 +48,12 @@ export function useInspectionSync() {
           conflict_type: 'version_conflict',
           detected_at: new Date().toISOString(),
           resolved: false,
+          resolved_at: null,
+          resolved_by: null,
+          resolution: null,
+          merged_data: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         });
 
         // Update inspection status

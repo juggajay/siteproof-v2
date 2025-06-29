@@ -318,7 +318,6 @@ export function NcrForm({
           label="Location"
           {...register('location')}
           placeholder="e.g., Level 2, Grid B-4"
-          icon={<MapPin className="w-4 h-4" />}
           fullWidth
         />
 
@@ -327,7 +326,6 @@ export function NcrForm({
           type="date"
           label="Due Date"
           {...register('due_date')}
-          icon={<Calendar className="w-4 h-4" />}
           fullWidth
         />
       </div>

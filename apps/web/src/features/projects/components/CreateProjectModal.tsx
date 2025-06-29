@@ -69,6 +69,7 @@ export function CreateProjectModal({ isOpen, onClose, organizationId }: CreatePr
         focusTrapRef.current?.removeEventListener('focustrap:escape', handleEscape);
       };
     }
+    return undefined;
   }, [isOpen, onClose, focusTrapRef]);
 
   const onSubmit = async (data: FormData) => {

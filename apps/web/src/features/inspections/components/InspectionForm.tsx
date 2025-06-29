@@ -123,6 +123,11 @@ export function InspectionForm({
           started_at: new Date().toISOString(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
+          submitted_at: null,
+          reviewed_at: null,
+          reviewed_by: null,
+          review_notes: null,
+          last_synced_at: null,
         });
       }
 
@@ -317,7 +322,7 @@ export function InspectionForm({
                               field={field}
                               value={controllerField.value}
                               onChange={controllerField.onChange}
-                              error={errors.data?.[field.id]?.message}
+                              error={typeof errors.data?.[field.id]?.message === 'string' ? errors.data?.[field.id]?.message : undefined}
                             />
                           )}
                         />
