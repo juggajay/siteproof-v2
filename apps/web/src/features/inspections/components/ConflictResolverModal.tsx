@@ -32,7 +32,7 @@ export function ConflictResolverModal({
   const [selectedResolution, setSelectedResolution] = useState<
     'server_wins' | 'client_wins' | 'merged' | null
   >(null);
-  const [mergedData, setMergedData] = useState<any>(null);
+  const [mergedData] = useState<any>(null); // TODO: Add merge functionality
   const [isResolving, setIsResolving] = useState(false);
 
   if (!isOpen || !conflict) return null;
