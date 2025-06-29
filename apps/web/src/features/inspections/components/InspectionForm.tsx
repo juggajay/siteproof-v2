@@ -6,13 +6,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Save,
   Send,
-  Camera,
-  Trash2,
   ChevronRight,
   ChevronLeft,
-  AlertCircle,
   CheckCircle,
   Loader2,
   AlertTriangle,
