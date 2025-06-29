@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Truck, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 
 interface EquipmentSectionProps {
