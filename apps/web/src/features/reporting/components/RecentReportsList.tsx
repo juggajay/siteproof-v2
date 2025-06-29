@@ -108,9 +108,9 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
       const data = await response.json();
       return data.reports as Report[];
     },
-    refetchInterval: (data) => {
+    refetchInterval: ({ state }) => {
       // Refetch every 5 seconds if any reports are processing
-      const hasProcessing = data?.some((r: Report) => r.status === 'processing');
+      const hasProcessing = state.data?.some((r: Report) => r.status === 'processing');
       return hasProcessing ? 5000 : false;
     },
   });
