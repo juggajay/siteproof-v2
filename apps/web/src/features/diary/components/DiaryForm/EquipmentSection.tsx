@@ -5,14 +5,12 @@ import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 
 interface EquipmentSectionProps {
-  control: any;
   register: any;
   deliveriesField: any;
   equipmentField: any;
 }
 
 export function EquipmentSection({
-  control,
   register,
   deliveriesField,
   equipmentField,
