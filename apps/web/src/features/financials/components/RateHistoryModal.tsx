@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Plus, DollarSign, Calendar, TrendingUp, Edit2 } from 'lucide-react';
+import { X, Plus, Calendar, TrendingUp } from 'lucide-react';
 import { Button, StateDisplay } from '@siteproof/design-system';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow } from 'date-fns';
