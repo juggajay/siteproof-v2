@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, DollarSign, Users, Clock, Calculator } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plus, Trash2, DollarSign, Users, Calculator } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 import { useSession } from '@/features/auth/hooks/useSession';
 import { useOrganizationRole } from '@/features/organizations/hooks/useOrganization';
