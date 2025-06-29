@@ -3,7 +3,7 @@ import { toast } from 'sonner';
 import type { DailyDiary, Project, User } from '@siteproof/database';
 
 // Extended diary type that includes joined data from the API
-export interface DiaryWithRelations extends DailyDiary {
+export interface DiaryWithRelations extends Omit<DailyDiary, 'createdBy' | 'approvedBy'> {
   project?: Project;
   createdBy?: Pick<User, 'id' | 'email' | 'full_name'>;
   approvedBy?: Pick<User, 'id' | 'email' | 'full_name'>;
