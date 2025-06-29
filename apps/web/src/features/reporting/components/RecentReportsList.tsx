@@ -128,7 +128,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
           event: '*',
           schema: 'public',
           table: 'report_queue',
-          filter: `organization_id=eq.${organizationId}`,
+          filter: user?.id ? `requested_by=eq.${user.id}` : undefined,
         },
         (payload) => {
           console.log('Report status change:', payload);
