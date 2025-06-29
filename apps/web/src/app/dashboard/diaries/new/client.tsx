@@ -16,7 +16,7 @@ export default function NewDiaryClient() {
   const date = dateParam ? new Date(dateParam) : new Date();
 
   // Fetch project data
-  const { data: project, isLoading } = useQuery({
+  const { isLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: async () => {
       if (!projectId) return null;
