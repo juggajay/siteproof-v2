@@ -6,9 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import {
   AlertTriangle,
-  MapPin,
   Tag,
-  Calendar,
   Upload,
   X,
 } from 'lucide-react';
