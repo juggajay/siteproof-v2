@@ -52,8 +52,6 @@ export function useInspectionSync() {
           resolved_by: null,
           resolution: null,
           merged_data: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         });
 
         // Update inspection status
