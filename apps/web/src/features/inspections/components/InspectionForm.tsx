@@ -13,14 +13,14 @@ import {
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
-import { Button, Input, StateDisplay } from '@siteproof/design-system';
+import { Button } from '@siteproof/design-system';
 import type { ITPTemplate, Inspection } from '@siteproof/database';
 import { db } from '../offline/db';
 import { useInspectionSync } from '../hooks/useInspectionSync';
 import { PhotoCapture } from './PhotoCapture';
 import { SignaturePad } from './SignaturePad';
 import { FieldRenderer } from './FieldRenderer';
-import type { TemplateField, TemplateSection } from '@/features/templates/types/template.types';
+import type { TemplateSection } from '@/features/templates/types/template.types';
 import { RaiseNcrModal } from '@/features/ncr/components/RaiseNcrModal';
 import { useQuery } from '@tanstack/react-query';
 
@@ -247,7 +247,7 @@ export function InspectionForm({
             transition={{ duration: 0.2 }}
             className="space-y-6"
           >
-            {currentSection.items.map((item, itemIndex) => (
+            {currentSection.items.map((item) => (
               <div
                 key={item.id}
                 className="bg-white rounded-lg border border-gray-200 p-6"

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   AlertTriangle,
   Clock,
@@ -10,16 +10,13 @@ import {
   MessageSquare,
   User,
   Calendar,
-  Building,
   MapPin,
   Tag,
   ChevronRight,
   MoreVertical,
   FileText,
   Camera,
-  Download,
   Edit,
-  Trash2,
 } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 import { useMutation, useQueryClient } from '@tanstack/react-query';

@@ -167,21 +167,7 @@ export function TemplateBuilder({
 
   const activeItem = activeId ? structure.find((item) => item.id === activeId) : null;
 
-  // Flatten sections and items for display
-  const flattenedItems = structure.reduce<(TemplateStructureItem & { parentId?: string })[]>(
-    (acc, item) => {
-      if (item.type === 'section') {
-        acc.push(item);
-        item.items.forEach((subItem) => {
-          acc.push({ ...subItem, parentId: item.id });
-        });
-      } else {
-        acc.push(item);
-      }
-      return acc;
-    },
-    []
-  );
+  // TODO: Implement flattened items display if needed
 
   return (
     <div className="max-w-4xl mx-auto">

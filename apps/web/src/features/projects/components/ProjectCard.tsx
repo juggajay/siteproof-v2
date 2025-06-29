@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Calendar, Users, MessageSquare, CheckCircle, Clock, Building } from 'lucide-react';
+import { Calendar, MessageSquare, CheckCircle, Clock, Building } from 'lucide-react';
 import type { Project } from '../hooks/useProjects';
 
 interface ProjectCardProps {

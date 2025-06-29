@@ -3,7 +3,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertTriangle } from 'lucide-react';
-import { Button } from '@siteproof/design-system';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { NcrForm } from './NcrForm';
 import type { Inspection, Project } from '@siteproof/database';

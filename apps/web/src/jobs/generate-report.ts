@@ -36,7 +36,7 @@ export const generateReportJob = client.defineJob({
     name: "report.generate",
     schema: reportGenerationEvent,
   }),
-  run: async (payload, io, ctx) => {
+  run: async (payload, io) => {
     const { reportId, reportType, format, parameters, organizationId, requestedBy } = payload;
 
     // Initialize Supabase client
@@ -60,8 +60,8 @@ export const generateReportJob = client.defineJob({
         format,
       });
 
-      let fileUrl: string;
-      let fileSize: number;
+      let fileUrl: string = '';
+      let fileSize: number = 0;
 
       // Generate report based on type
       switch (reportType) {
@@ -234,13 +234,3 @@ export const generateReportJob = client.defineJob({
   },
 });
 
-// Helper function to simulate report generation (replace with actual implementation)
-async function generateMockReport(type: string): Promise<{ fileUrl: string; fileSize: number }> {
-  // Simulate processing time
-  await new Promise(resolve => setTimeout(resolve, 5000));
-  
-  return {
-    fileUrl: `https://storage.example.com/reports/${type}-${Date.now()}.pdf`,
-    fileSize: Math.floor(Math.random() * 5000000) + 100000, // Random size between 100KB and 5MB
-  };
-}

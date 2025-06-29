@@ -16,7 +16,6 @@ interface PhotoCaptureProps {
 export function PhotoCapture({
   label,
   required = false,
-  value,
   onChange,
   onDelete,
 }: PhotoCaptureProps) {

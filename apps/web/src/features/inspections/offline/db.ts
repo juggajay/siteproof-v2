@@ -137,14 +137,14 @@ class InspectionDatabase extends Dexie {
     });
 
     // Hooks for automatic sync queue management
-    this.inspections.hook('creating', (primKey, obj) => {
+    this.inspections.hook('creating', (_primKey, obj) => {
       obj._localId = obj._localId || `local-${Date.now()}-${Math.random()}`;
       obj._isDirty = true;
       obj._lastModified = Date.now();
       obj._syncStatus = 'pending';
     });
 
-    this.inspections.hook('updating', (modifications, primKey, obj) => {
+    this.inspections.hook('updating', (modifications, _primKey, obj) => {
       modifications._isDirty = true;
       modifications._lastModified = Date.now();
       if (obj._syncStatus === 'synced') {
@@ -152,7 +152,7 @@ class InspectionDatabase extends Dexie {
       }
     });
 
-    this.attachments.hook('creating', (primKey, obj) => {
+    this.attachments.hook('creating', (_primKey, obj) => {
       obj._localId = obj._localId || `local-${Date.now()}-${Math.random()}`;
       obj._uploadStatus = 'pending';
     });

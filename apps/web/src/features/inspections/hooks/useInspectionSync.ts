@@ -23,20 +23,8 @@ export function useInspectionSync() {
       }
 
       // Prepare data for server
-      const serverData = {
-        assignment_id: inspection.assignment_id,
-        template_id: inspection.template_id,
-        project_id: inspection.project_id,
-        lot_id: inspection.lot_id,
-        inspector_id: inspection.inspector_id,
-        data: inspection.data,
-        status: inspection.status,
-        completion_percentage: inspection.completion_percentage,
-        started_at: inspection.started_at,
-        submitted_at: inspection.submitted_at,
-        client_id: inspection.client_id,
-        sync_version: inspection.sync_version,
-      };
+      // Note: serverData was prepared but not used in the current implementation
+      // The sync function only uses specific fields directly from inspection
 
       // Call server sync function
       const { data, error } = await supabase.rpc('sync_inspection', {
@@ -78,7 +66,7 @@ export function useInspectionSync() {
       setSyncError(error as Error);
       
       // Add to sync queue for retry
-      await db.addToSyncQueue('inspection', 'update', inspectionId, inspection);
+      await db.addToSyncQueue('inspection', 'update', inspectionId, error);
     } finally {
       setIsSyncing(false);
     }
@@ -102,7 +90,7 @@ export function useInspectionSync() {
 
         // Upload to storage
         const fileName = `inspections/${inspectionId}/${attachment.field_id}-${Date.now()}.jpg`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
           .from('inspection-photos')
           .upload(fileName, photo.blob);
 

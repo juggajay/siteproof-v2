@@ -10,10 +10,7 @@ interface GenerateReportOptions {
 }
 
 export async function generateDailyDiaryExport({
-  supabase,
-  parameters,
   format,
-  organizationId,
   io,
 }: GenerateReportOptions): Promise<{ fileUrl: string; fileSize: number }> {
   await io.wait("simulate-processing", 3);

@@ -4,7 +4,6 @@ import {
   AlertTriangle,
   Clock,
   CheckCircle,
-  XCircle,
   AlertCircle,
   GitBranch,
 } from 'lucide-react';

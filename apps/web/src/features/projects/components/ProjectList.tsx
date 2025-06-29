@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { StateDisplay, Button, Input, Skeleton } from '@siteproof/design-system';
 import { useProjects } from '../hooks/useProjects';
 import { ProjectCard } from './ProjectCard';

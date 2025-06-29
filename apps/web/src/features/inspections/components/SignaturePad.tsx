@@ -19,7 +19,6 @@ export function SignaturePad({
   required = false,
   value,
   onChange,
-  width = 400,
   height = 200,
 }: SignaturePadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -113,14 +112,6 @@ export function SignaturePad({
     context.clearRect(0, 0, canvas.width, canvas.height);
     setIsEmpty(true);
     onChange('');
-  };
-
-  const handleSave = () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const dataUrl = canvas.toDataURL('image/png');
-    onChange(dataUrl);
   };
 
   return (

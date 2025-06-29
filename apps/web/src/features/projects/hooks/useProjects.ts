@@ -111,7 +111,7 @@ export function useCreateProject() {
 
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       // Invalidate and refetch projects list
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Project created successfully');

@@ -31,7 +31,9 @@ export async function generateProjectSummaryReport({
   }
 
   // Fetch project statistics
-  const [diariesResult, inspectionsResult, ncrsResult] = await Promise.all([
+  // TODO: Use these results in the actual report generation
+  // const [diariesResult, inspectionsResult, ncrsResult] = 
+  await Promise.all([
     // Daily diaries count
     supabase
       .from('daily_diaries')

@@ -173,7 +173,7 @@ export function ItemEditorModal({ item, isOpen, onClose, onSave }: ItemEditorMod
                         No fields added yet. Click "Add Field" to create inspection fields.
                       </p>
                     ) : (
-                      formData.fields.map((field, index) => (
+                      formData.fields.map((field) => (
                         <motion.div
                           key={field.id}
                           initial={{ opacity: 0, y: 10 }}

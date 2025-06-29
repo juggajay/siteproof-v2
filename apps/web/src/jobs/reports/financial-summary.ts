@@ -10,10 +10,7 @@ interface GenerateReportOptions {
 }
 
 export async function generateFinancialSummary({
-  supabase,
-  parameters,
   format,
-  organizationId,
   io,
 }: GenerateReportOptions): Promise<{ fileUrl: string; fileSize: number }> {
   await io.wait("simulate-processing", 5); // Longer processing for financial reports

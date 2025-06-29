@@ -3,7 +3,7 @@
 import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   GripVertical, 
   ChevronUp, 
@@ -19,7 +19,7 @@ import {
   ToggleLeft
 } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
-import type { TemplateItem as TemplateItemType, TemplateField } from '../../types/template.types';
+import type { TemplateItem as TemplateItemType } from '../../types/template.types';
 
 interface TemplateItemProps {
   item: TemplateItemType;
@@ -28,7 +28,6 @@ interface TemplateItemProps {
   onEdit: (item: TemplateItemType) => void;
   onDelete: (id: string) => void;
   onMove: (id: string, direction: 'up' | 'down') => void;
-  isDragging?: boolean;
 }
 
 const fieldIcons: Record<string, React.ElementType> = {
@@ -48,8 +47,7 @@ export function TemplateItem({
   totalItems, 
   onEdit, 
   onDelete, 
-  onMove,
-  isDragging = false 
+  onMove
 }: TemplateItemProps) {
   const {
     attributes,

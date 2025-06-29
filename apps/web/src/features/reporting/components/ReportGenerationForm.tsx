@@ -97,7 +97,7 @@ const formatOptions = [
 ];
 
 export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFormProps) {
-  const { user } = useSession();
+  useSession(); // For auth state
   const { data: role } = useOrganizationRole();
   const [showAdvanced, setShowAdvanced] = useState(false);
 

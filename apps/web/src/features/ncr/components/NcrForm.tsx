@@ -4,21 +4,18 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion } from 'framer-motion';
 import {
   AlertTriangle,
   MapPin,
   Tag,
   Calendar,
-  User,
-  Building,
   Upload,
   X,
 } from 'lucide-react';
-import { Button, Input, StateDisplay } from '@siteproof/design-system';
+import { Button, Input } from '@siteproof/design-system';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import type { Inspection, Project, User as UserType } from '@siteproof/database';
+import type { Inspection, Project } from '@siteproof/database';
 
 const ncrSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
