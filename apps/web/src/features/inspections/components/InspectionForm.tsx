@@ -322,7 +322,13 @@ export function InspectionForm({
                               field={field}
                               value={controllerField.value}
                               onChange={controllerField.onChange}
-                              error={typeof errors.data?.[field.id]?.message === 'string' ? errors.data?.[field.id]?.message : undefined}
+                              error={(() => {
+                                const fieldError = errors.data?.[field.id];
+                                if (fieldError && typeof fieldError.message === 'string') {
+                                  return fieldError.message;
+                                }
+                                return undefined;
+                              })()}
                             />
                           )}
                         />
