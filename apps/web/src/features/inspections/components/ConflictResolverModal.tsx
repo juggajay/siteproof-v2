@@ -194,7 +194,7 @@ export function ConflictResolverModal({
                     name="resolution"
                     value="server_wins"
                     checked={selectedResolution === 'server_wins'}
-                    onChange={(e) => setSelectedResolution('server_wins')}
+                    onChange={() => setSelectedResolution('server_wins')}
                     className="mt-1"
                   />
                   <div>
@@ -214,7 +214,7 @@ export function ConflictResolverModal({
                     name="resolution"
                     value="client_wins"
                     checked={selectedResolution === 'client_wins'}
-                    onChange={(e) => setSelectedResolution('client_wins')}
+                    onChange={() => setSelectedResolution('client_wins')}
                     className="mt-1"
                   />
                   <div>
