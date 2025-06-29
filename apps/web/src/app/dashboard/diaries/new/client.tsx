@@ -16,7 +16,7 @@ export default function NewDiaryClient() {
   const date = dateParam ? new Date(dateParam) : new Date();
 
   // Fetch project data
-  const { isLoading } = useQuery({
+  const { data: project, isLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: async () => {
       if (!projectId) return null;
@@ -64,14 +64,34 @@ export default function NewDiaryClient() {
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
-        <DiaryForm
-          projectId={projectId || undefined}
-          initialDate={date}
-          projects={projects}
-          isLoadingProject={isLoading}
-          onSuccess={handleSuccess}
-          onCancel={() => router.push('/dashboard/diaries')}
-        />
+        {project ? (
+          <DiaryForm
+            project={project}
+            date={date}
+            onSuccess={handleSuccess}
+            onCancel={() => router.push('/dashboard/diaries')}
+          />
+        ) : !isLoading && !projectId ? (
+          <div className="p-8 text-center">
+            <p className="text-gray-500 mb-4">Please select a project to create a diary entry</p>
+            {projects && projects.length > 0 && (
+              <select 
+                className="border rounded px-4 py-2"
+                onChange={(e) => router.push(`/dashboard/diaries/new?project_id=${e.target.value}&date=${date.toISOString()}`)}
+              >
+                <option value="">Select a project</option>
+                {projects.map((p: any) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        ) : (
+          <div className="p-8 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
+            <p className="mt-2 text-gray-500">Loading project...</p>
+          </div>
+        )}
       </div>
     </div>
   );
