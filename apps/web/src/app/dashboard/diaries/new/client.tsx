@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 import { DiaryForm } from '@/features/diary/components/DiaryForm';
 import { useQuery } from '@tanstack/react-query';
