@@ -6,7 +6,6 @@ import { Button } from '@siteproof/design-system';
 import { useSession } from '@/features/auth/hooks/useSession';
 import { useOrganizationRole } from '@/features/organizations/hooks/useOrganization';
 import { useQuery } from '@tanstack/react-query';
-import { cn } from '@/lib/utils';
 
 interface Trade {
   trade: string;
