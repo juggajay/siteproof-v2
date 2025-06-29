@@ -36,7 +36,7 @@ export function WorkforceEntry({
   projectId,
   readOnly = false 
 }: WorkforceEntryProps) {
-  const { user } = useSession();
+  useSession(); // For auth state management
   const { data: role } = useOrganizationRole();
   const [showRates, setShowRates] = useState(false);
 
