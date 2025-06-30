@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['@siteproof/database', '@siteproof/design-system', '@siteproof/config'],
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
 }
 
-module.exports = nextConfig
+export default nextConfig
