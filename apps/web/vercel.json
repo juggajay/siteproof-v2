@@ -1,4 +1,12 @@
 {
   "framework": "nextjs",
-  "outputDirectory": ".next"
+  "buildCommand": "next build",
+  "devCommand": "next dev",
+  "installCommand": "pnpm install",
+  "startCommand": "next start",
+  "outputDirectory": ".next",
+  "public": false,
+  "github": {
+    "enabled": true
+  }
 }
