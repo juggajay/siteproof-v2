@@ -7,10 +7,10 @@ const securityHeaders = {
   'Content-Security-Policy': [
     "default-src 'self'",
     "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.supabase.co https://vercel.live",
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "img-src 'self' data: blob: https:",
-    "font-src 'self' data:",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openweathermap.org https://vercel.live",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openweathermap.org https://vercel.live https://fonts.googleapis.com https://fonts.gstatic.com",
     "media-src 'self'",
     "object-src 'none'",
     "frame-src 'self'",

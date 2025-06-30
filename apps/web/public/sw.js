@@ -44,6 +44,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Skip chrome-extension and non-http(s) requests
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
   // Skip non-GET requests
   if (request.method !== 'GET') {
     return;
@@ -81,10 +86,14 @@ self.addEventListener('fetch', (event) => {
             return cachedResponse;
           }
           return fetch(request).then((response) => {
-            return caches.open(DYNAMIC_CACHE).then((cache) => {
-              cache.put(request, response.clone());
-              return response;
-            });
+            // Only cache http/https requests
+            if (request.url.startsWith('http')) {
+              return caches.open(DYNAMIC_CACHE).then((cache) => {
+                cache.put(request, response.clone());
+                return response;
+              });
+            }
+            return response;
           });
         })
     );
