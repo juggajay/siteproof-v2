@@ -1,0 +1,2 @@
+Deployment trigger: 2025-06-30T13:52:00Z
+Force Next.js framework detection
