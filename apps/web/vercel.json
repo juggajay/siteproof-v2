@@ -1,12 +1,34 @@
 {
+  "name": "siteproof-web",
+  "version": 2,
   "framework": "nextjs",
-  "buildCommand": "next build",
-  "devCommand": "next dev",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "buildCommand": "pnpm build",
+  "devCommand": "pnpm dev",
   "installCommand": "pnpm install",
-  "startCommand": "next start",
   "outputDirectory": ".next",
   "public": false,
   "github": {
-    "enabled": true
-  }
+    "enabled": true,
+    "autoAlias": true
+  },
+  "functions": {
+    "app/**/*.{js,jsx,ts,tsx}": {
+      "runtime": "nodejs20.x"
+    },
+    "pages/api/**/*.{js,ts}": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ]
 }
