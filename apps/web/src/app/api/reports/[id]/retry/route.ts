@@ -18,7 +18,7 @@ export async function POST(
     const { data: report, error: reportError } = await supabase
       .from('report_queue')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', params?.id)
       .single();
 
     if (reportError || !report) {
@@ -68,7 +68,7 @@ export async function POST(
         completed_at: null,
         failed_at: null,
       })
-      .eq('id', params.id);
+      .eq('id', params?.id);
 
     if (updateError) {
       console.error('Error updating report:', updateError);

@@ -132,7 +132,7 @@ export function AcceptInvitationForm({ invitation }: AcceptInvitationFormProps) 
         <div className="space-y-6">
           <div className="rounded-lg bg-blue-50 p-4">
             <p className="text-sm text-blue-800">
-              You're logged in as <strong>{invitation.userEmail}</strong>
+              You&apos;re logged in as <strong>{invitation.userEmail}</strong>
             </p>
           </div>
           
@@ -155,7 +155,7 @@ export function AcceptInvitationForm({ invitation }: AcceptInvitationFormProps) 
         <div className="space-y-6">
           <div className="rounded-lg bg-amber-50 p-4">
             <p className="text-sm text-amber-800">
-              You're logged in as <strong>{invitation.userEmail}</strong>, but this invitation is for <strong>{invitation.email}</strong>.
+              You&apos;re logged in as <strong>{invitation.userEmail}</strong>, but this invitation is for <strong>{invitation.email}</strong>.
             </p>
           </div>
           

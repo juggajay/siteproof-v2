@@ -36,7 +36,7 @@ export const InvitationEmail = ({
       <Preview>{previewText}</Preview>
       <Body style={main}>
         <Container style={container}>
-          <Heading style={h1}>You're invited to join {organizationName}</Heading>
+          <Heading style={h1}>You&apos;re invited to join {organizationName}</Heading>
           
           <Text style={text}>
             Hi there,
@@ -57,20 +57,20 @@ export const InvitationEmail = ({
           </Section>
 
           <Text style={text}>
-            This invitation will expire in 7 days. If you don't want to accept this invitation, you can ignore this email.
+            This invitation will expire in 7 days. If you don&apos;t want to accept this invitation, you can ignore this email.
           </Text>
 
           <Hr style={hr} />
 
           <Text style={footer}>
-            If the button above doesn't work, you can also click this link:
+            If the button above doesn&apos;t work, you can also click this link:
           </Text>
           <Link href={invitationUrl} style={link}>
             {invitationUrl}
           </Link>
 
           <Text style={footer}>
-            This invitation was sent to {recipientEmail}. If you weren't expecting this invitation, you can safely ignore this email.
+            This invitation was sent to {recipientEmail}. If you weren&apos;t expecting this invitation, you can safely ignore this email.
           </Text>
         </Container>
       </Body>

@@ -5,8 +5,8 @@ export async function GET(request: Request) {
   try {
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
-    const active = searchParams.get('active');
-    const companyType = searchParams.get('type');
+    const active = searchParams?.get('active');
+    const companyType = searchParams?.get('type');
     
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {

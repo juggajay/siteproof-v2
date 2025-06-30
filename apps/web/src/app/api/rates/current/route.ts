@@ -5,8 +5,8 @@ export async function GET(request: Request) {
   try {
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
-    const date = searchParams.get('date') || new Date().toISOString().split('T')[0];
-    const projectId = searchParams.get('project_id');
+    const date = searchParams?.get('date') || new Date().toISOString().split('T')[0];
+    const projectId = searchParams?.get('project_id');
     
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {

@@ -28,7 +28,7 @@ export async function GET(
     const { data: company, error } = await supabase
       .from('company_profiles')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', params?.id)
       .eq('organization_id', member.organization_id)
       .single();
 
@@ -92,7 +92,7 @@ export async function PUT(
         ...body,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', params.id)
+      .eq('id', params?.id)
       .eq('organization_id', member.organization_id)
       .select()
       .single();
@@ -148,7 +148,7 @@ export async function DELETE(
         is_active: false,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', params.id)
+      .eq('id', params?.id)
       .eq('organization_id', member.organization_id);
 
     if (error) {

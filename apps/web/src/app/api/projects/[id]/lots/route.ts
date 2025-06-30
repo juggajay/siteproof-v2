@@ -22,11 +22,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
+    const projectId = params?.id;
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status') as Lot['status'] | null;
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const status = searchParams?.get('status') as Lot['status'] | null;
+    const page = parseInt(searchParams?.get('page') || '1');
+    const limit = parseInt(searchParams?.get('limit') || '20');
     const offset = (page - 1) * limit;
 
     const supabase = await createClient();

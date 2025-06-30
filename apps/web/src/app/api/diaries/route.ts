@@ -52,9 +52,9 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const projectId = searchParams.get('project_id');
-    const startDate = searchParams.get('start_date');
-    const endDate = searchParams.get('end_date');
+    const projectId = searchParams?.get('project_id');
+    const startDate = searchParams?.get('start_date');
+    const endDate = searchParams?.get('end_date');
 
     // Check if user has financial access
     const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(member.role);

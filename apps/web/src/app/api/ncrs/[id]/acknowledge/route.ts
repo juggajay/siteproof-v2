@@ -16,7 +16,7 @@ export async function POST(
       );
     }
 
-    const ncrId = params.id;
+    const ncrId = params?.id;
 
     // Check NCR exists and user has permission
     const { data: ncr, error: ncrError } = await supabase

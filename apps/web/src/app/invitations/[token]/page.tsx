@@ -21,7 +21,7 @@ export default async function InvitationPage({ params }: PageProps) {
   const { data: invitation, error } = await supabase
     .from('invitations')
     .select('*')
-    .eq('token', params.token)
+    .eq('token', params?.token)
     .single();
 
   if (error || !invitation) {
@@ -81,7 +81,7 @@ export default async function InvitationPage({ params }: PageProps) {
         ) : (
           <>
             <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
-              You're invited to join {invitation.organization?.name}
+              You&apos;re invited to join {invitation.organization?.name}
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
               {invitation.inviter?.full_name || invitation.inviter?.email} has invited you to join as {invitation.role}
@@ -95,7 +95,7 @@ export default async function InvitationPage({ params }: PageProps) {
           <div className="bg-white px-6 py-12 shadow sm:rounded-lg sm:px-12">
             <AcceptInvitationForm 
               invitation={{
-                token: params.token,
+                token: params?.token,
                 email: invitation.email,
                 organizationName: invitation.organization?.name || '',
                 role: invitation.role,

@@ -354,7 +354,7 @@ export function WorkforceEntry({
             <div>
               <p className="text-sm font-medium text-blue-900">Financial data available</p>
               <p className="text-sm text-blue-700 mt-1">
-                Click "Show Rates" to view hourly rates and calculate workforce costs.
+                Click &quot;Show Rates&quot; to view hourly rates and calculate workforce costs.
               </p>
             </div>
           </div>

@@ -5,9 +5,9 @@ export async function GET(request: Request) {
   try {
     const supabase = await createClient();
     const { searchParams } = new URL(request.url);
-    const entityType = searchParams.get('entity_type');
-    const entityId = searchParams.get('entity_id');
-    const projectId = searchParams.get('project_id');
+    const entityType = searchParams?.get('entity_type');
+    const entityId = searchParams?.get('entity_id');
+    const projectId = searchParams?.get('project_id');
     
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {

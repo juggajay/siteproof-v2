@@ -14,7 +14,7 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const organizationId = params.id;
+    const organizationId = params?.id;
     const body = await request.json();
     
     // Validate request body

@@ -32,10 +32,10 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const projectId = searchParams.get('project_id');
-    const status = searchParams.get('status');
-    const assignedTo = searchParams.get('assigned_to');
-    const severity = searchParams.get('severity');
+    const projectId = searchParams?.get('project_id');
+    const status = searchParams?.get('status');
+    const assignedTo = searchParams?.get('assigned_to');
+    const severity = searchParams?.get('severity');
 
     let query = supabase
       .from('ncrs')

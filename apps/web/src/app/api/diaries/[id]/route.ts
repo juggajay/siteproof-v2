@@ -46,7 +46,7 @@ export async function GET(
     // Use the database function to get diary with financial data based on role
     const { data: diary, error } = await supabase
       .rpc('get_diary_with_financial_data', {
-        p_diary_id: params.id,
+        p_diary_id: params?.id,
         p_user_id: user.id
       })
       .single<DiaryWithFinancialData>();
@@ -80,7 +80,7 @@ export async function GET(
     // Use the database function to get filtered trades data
     const { data: filteredTrades } = await supabase
       .rpc('get_trades_for_diary', {
-        p_diary_id: params.id,
+        p_diary_id: params?.id,
         p_user_id: user.id
       });
 

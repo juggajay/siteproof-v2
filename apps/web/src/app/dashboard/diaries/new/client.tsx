@@ -11,8 +11,8 @@ import Link from 'next/link';
 export default function NewDiaryClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const projectId = searchParams.get('project_id');
-  const dateParam = searchParams.get('date');
+  const projectId = searchParams?.get('project_id');
+  const dateParam = searchParams?.get('date');
   const date = dateParam ? new Date(dateParam) : new Date();
 
   // Fetch project data

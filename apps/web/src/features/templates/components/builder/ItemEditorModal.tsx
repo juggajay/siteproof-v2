@@ -170,7 +170,7 @@ export function ItemEditorModal({ item, isOpen, onClose, onSave }: ItemEditorMod
                   <div className="space-y-3">
                     {formData.fields.length === 0 ? (
                       <p className="text-sm text-gray-500 text-center py-4">
-                        No fields added yet. Click "Add Field" to create inspection fields.
+                        No fields added yet. Click &quot;Add Field&quot; to create inspection fields.
                       </p>
                     ) : (
                       formData.fields.map((field) => (

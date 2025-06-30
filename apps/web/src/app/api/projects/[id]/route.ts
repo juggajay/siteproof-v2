@@ -23,7 +23,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
+    const projectId = params?.id;
     const supabase = await createClient();
 
     // Get current user
@@ -135,7 +135,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
+    const projectId = params?.id;
     const body = await request.json();
     
     // Validate request body
@@ -263,7 +263,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const projectId = params.id;
+    const projectId = params?.id;
     const supabase = await createClient();
 
     // Get current user

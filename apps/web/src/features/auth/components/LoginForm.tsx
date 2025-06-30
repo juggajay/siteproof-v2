@@ -16,8 +16,8 @@ export function LoginForm() {
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
   
-  const isRegistered = searchParams.get('registered') === 'true';
-  const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+  const isRegistered = searchParams?.get('registered') === 'true';
+  const redirectTo = searchParams?.get('redirectTo') || '/dashboard';
 
   const {
     register,
@@ -154,7 +154,7 @@ export function LoginForm() {
         </Button>
 
         <div className="text-center text-sm">
-          <span className="text-gray-600">Don't have an account?</span>{' '}
+          <span className="text-gray-600">Don&apos;t have an account?</span>{' '}
           <Link
             href="/auth/signup"
             className="font-medium text-blue-600 hover:text-blue-700"

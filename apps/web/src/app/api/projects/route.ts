@@ -22,13 +22,13 @@ const createProjectSchema = z.object({
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const organizationId = searchParams.get('organizationId');
-    const status = searchParams.get('status') as 'active' | 'completed' | 'archived' | null;
-    const search = searchParams.get('search');
-    const sortBy = searchParams.get('sortBy') || 'last_activity_at';
-    const sortOrder = searchParams.get('sortOrder') || 'desc';
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const organizationId = searchParams?.get('organizationId');
+    const status = searchParams?.get('status') as 'active' | 'completed' | 'archived' | null;
+    const search = searchParams?.get('search');
+    const sortBy = searchParams?.get('sortBy') || 'last_activity_at';
+    const sortOrder = searchParams?.get('sortOrder') || 'desc';
+    const page = parseInt(searchParams?.get('page') || '1');
+    const limit = parseInt(searchParams?.get('limit') || '20');
     const offset = (page - 1) * limit;
 
     const supabase = await createClient();

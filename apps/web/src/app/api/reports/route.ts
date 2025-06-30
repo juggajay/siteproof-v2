@@ -23,10 +23,10 @@ export async function GET(request: Request) {
     }
 
     // Parse query parameters
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const requested_by = searchParams.get('requested_by');
-    const status = searchParams.get('status');
-    const report_type = searchParams.get('report_type');
+    const limit = parseInt(searchParams?.get('limit') || '10');
+    const requested_by = searchParams?.get('requested_by');
+    const status = searchParams?.get('status');
+    const report_type = searchParams?.get('report_type');
 
     // Build query
     let query = supabase

@@ -173,7 +173,7 @@ export function InviteMemberForm({ organizationId, onSuccess, onCancel }: Invite
           <div className="ml-3">
             <p className="text-sm text-blue-800">
               The invited user will receive an email with a link to join your organization.
-              They'll need to create an account or sign in to accept the invitation.
+              They&apos;ll need to create an account or sign in to accept the invitation.
             </p>
           </div>
         </div>

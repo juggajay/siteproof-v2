@@ -17,7 +17,7 @@ export async function POST(
     const { data: report, error: reportError } = await supabase
       .from('report_queue')
       .select('requested_by, status, organization_id')
-      .eq('id', params.id)
+      .eq('id', params?.id)
       .single();
 
     if (reportError || !report) {
@@ -48,7 +48,7 @@ export async function POST(
 
     // Update report status
     await supabase.rpc('update_report_status', {
-      p_report_id: params.id,
+      p_report_id: params?.id,
       p_status: 'cancelled',
       p_error_message: 'Cancelled by user',
     });

@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 export default function DiaryDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const diaryId = params.id as string;
+  const diaryId = params?.id as string;
   
   const { data: role } = useOrganizationRole();
   const { data: diary, isLoading, error, refetch } = useDiary(diaryId);

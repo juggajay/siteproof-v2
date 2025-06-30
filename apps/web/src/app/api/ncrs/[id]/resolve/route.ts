@@ -27,7 +27,7 @@ export async function POST(
       );
     }
 
-    const ncrId = params.id;
+    const ncrId = params?.id;
     const body = await request.json();
 
     // Validate input
