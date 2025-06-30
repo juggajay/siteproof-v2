@@ -8,6 +8,7 @@
   "outputDirectory": "apps/web/.next",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": "nextjs",
+  "regions": ["iad1"],
   "rewrites": [
     {
       "source": "/:path*",
