@@ -62,7 +62,9 @@ self.addEventListener('fetch', (event) => {
           // Clone the response before caching
           const responseToCache = response.clone();
           caches.open(DYNAMIC_CACHE).then((cache) => {
-            cache.put(request, responseToCache);
+            cache.put(request, responseToCache).catch(err => {
+              console.warn('[SW] Failed to cache API response:', request.url, err);
+            });
           });
           return response;
         })
@@ -89,7 +91,9 @@ self.addEventListener('fetch', (event) => {
             // Only cache http/https requests
             if (request.url.startsWith('http')) {
               return caches.open(DYNAMIC_CACHE).then((cache) => {
-                cache.put(request, response.clone());
+                cache.put(request, response.clone()).catch(err => {
+                  console.warn('[SW] Failed to cache:', request.url, err);
+                });
                 return response;
               });
             }
