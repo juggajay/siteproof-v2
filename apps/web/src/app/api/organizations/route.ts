@@ -3,11 +3,19 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
   try {
+    console.log('[Organizations API] Creating client...');
     const supabase = await createClient();
-    const { name, description } = await request.json();
     
+    console.log('[Organizations API] Parsing request body...');
+    const { name, description } = await request.json();
+    console.log('[Organizations API] Request data:', { name, description });
+    
+    console.log('[Organizations API] Getting user...');
     const { data: { user }, error: userError } = await supabase.auth.getUser();
+    console.log('[Organizations API] User data:', { user: user?.id, error: userError });
+    
     if (userError || !user) {
+      console.log('[Organizations API] Unauthorized - no user');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -69,7 +77,11 @@ export async function POST(request: Request) {
     });
 
   } catch (error) {
-    console.error('Error in organization creation:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[Organizations API] Caught error:', error);
+    console.error('[Organizations API] Error stack:', error instanceof Error ? error.stack : 'No stack');
+    return NextResponse.json({ 
+      error: 'Internal server error',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
