@@ -5,7 +5,7 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Cloud, Users, Save, Loader2, ChevronDown, ChevronUp, Truck, Settings } from 'lucide-react';
+import { Cloud, Users, Save, Loader2, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 import { Button, Input } from '@siteproof/design-system';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';

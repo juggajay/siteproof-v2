@@ -78,6 +78,11 @@ export async function POST(request: NextRequest) {
 
     const accessibleProjectIds = projects?.map((p) => p.id) || [];
 
+    // Filter out sensitive response data if user doesn't have access
+    const canViewResponses =
+      include_responses &&
+      ['owner', 'admin', 'project_manager', 'quality_manager'].includes(membership.role);
+
     if (accessibleProjectIds.length > 0) {
       // Get lots for the projects
       const { data: lots } = await supabase
@@ -105,11 +110,6 @@ export async function POST(request: NextRequest) {
       }
 
       const { data: inspections } = await inspectionQuery;
-
-      // Filter out sensitive response data if user doesn't have access
-      const canViewResponses =
-        include_responses &&
-        ['owner', 'admin', 'project_manager', 'quality_manager'].includes(membership.role);
 
       bulkData.inspections = (inspections || []).map((inspection: any) => ({
         ...inspection,

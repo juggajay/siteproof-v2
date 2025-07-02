@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { createActivityLog } from '@/lib/activity-logger';
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
-    const supabase = createSupabaseServerClient();
+    const supabase = await createClient();
 
     // Get the current user before signing out
     const {

@@ -1,10 +1,13 @@
 import { getRedisClient, isRedisAvailable } from '@/lib/redis/client';
 
-interface RateLimitResult {
+export interface RateLimitResult {
   allowed: boolean;
   remainingAttempts?: number;
   blockedUntil?: number;
   retryAfter?: number;
+  limit?: number;
+  remaining?: number;
+  resetAt?: number;
 }
 
 interface RateLimitOptions {
@@ -90,6 +93,9 @@ export class RateLimiter {
           allowed: false,
           blockedUntil: blockedUntilMs,
           retryAfter,
+          limit: this.options.maxAttempts,
+          remaining: 0,
+          resetAt: blockedUntilMs,
         };
       } else {
         // Block expired, remove it
@@ -114,12 +120,19 @@ export class RateLimiter {
         allowed: false,
         blockedUntil: blockedUntilMs,
         retryAfter,
+        limit: this.options.maxAttempts,
+        remaining: 0,
+        resetAt: blockedUntilMs,
       };
     }
 
+    const resetAt = now + this.options.windowMs;
     return {
       allowed: true,
       remainingAttempts: this.options.maxAttempts - attemptCount,
+      limit: this.options.maxAttempts,
+      remaining: this.options.maxAttempts - attemptCount,
+      resetAt,
     };
   }
 
@@ -147,7 +160,14 @@ export class RateLimiter {
     const now = Date.now();
 
     if (!record) {
-      return { allowed: true, remainingAttempts: this.options.maxAttempts };
+      const resetAt = now + this.options.windowMs;
+      return {
+        allowed: true,
+        remainingAttempts: this.options.maxAttempts,
+        limit: this.options.maxAttempts,
+        remaining: this.options.maxAttempts,
+        resetAt,
+      };
     }
 
     // Check if blocked
@@ -157,13 +177,23 @@ export class RateLimiter {
         allowed: false,
         blockedUntil: record.blockedUntil,
         retryAfter,
+        limit: this.options.maxAttempts,
+        remaining: 0,
+        resetAt: record.blockedUntil,
       };
     }
 
     // Reset if outside attempt window
     if (now - record.lastAttempt > this.options.windowMs) {
       inMemoryStore.delete(identifier);
-      return { allowed: true, remainingAttempts: this.options.maxAttempts };
+      const resetAt = now + this.options.windowMs;
+      return {
+        allowed: true,
+        remainingAttempts: this.options.maxAttempts,
+        limit: this.options.maxAttempts,
+        remaining: this.options.maxAttempts,
+        resetAt,
+      };
     }
 
     // Check if already at max attempts
@@ -174,12 +204,19 @@ export class RateLimiter {
         allowed: false,
         blockedUntil: record.blockedUntil,
         retryAfter,
+        limit: this.options.maxAttempts,
+        remaining: 0,
+        resetAt: record.blockedUntil,
       };
     }
 
+    const resetAt = record.lastAttempt + this.options.windowMs;
     return {
       allowed: true,
       remainingAttempts: this.options.maxAttempts - record.count,
+      limit: this.options.maxAttempts,
+      remaining: this.options.maxAttempts - record.count,
+      resetAt,
     };
   }
 

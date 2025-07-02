@@ -160,15 +160,15 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json(
         {
           message: 'Too many lots created. Please try again later.',
-          retryAfter: rateLimitResult.retryAfter,
+          retryAfter: rateLimitResult.retryAfter || 0,
         },
         {
           status: 429,
           headers: {
-            'Retry-After': rateLimitResult.retryAfter.toString(),
-            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
-            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString(),
+            'Retry-After': (rateLimitResult.retryAfter || 0).toString(),
+            'X-RateLimit-Limit': (rateLimitResult.limit || 0).toString(),
+            'X-RateLimit-Remaining': (rateLimitResult.remaining || 0).toString(),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt || Date.now()).toISOString(),
           },
         }
       );

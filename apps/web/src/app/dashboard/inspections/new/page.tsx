@@ -15,11 +15,21 @@ import {
   Input,
   Textarea,
   Select,
-  Label,
-  FormError,
 } from '@siteproof/design-system';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+
+// Simple Label component
+const Label = ({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) => (
+  <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700 mb-1">
+    {children}
+  </label>
+);
+
+// Simple FormError component
+const FormError = ({ children }: { children: React.ReactNode }) => (
+  <p className="mt-1 text-sm text-red-600">{children}</p>
+);
 
 const createInspectionSchema = z.object({
   template_id: z.string().min(1, 'Please select a template'),
@@ -186,28 +196,40 @@ export default function NewInspectionPage() {
             {/* Template Selection */}
             <div>
               <Label htmlFor="template_id">Template *</Label>
-              <Select id="template_id" {...register('template_id')} className="mt-1">
-                <option value="">Select a template</option>
-                {templates.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.name} {template.category && `(${template.category})`}
-                  </option>
-                ))}
-              </Select>
+              <Select
+                id="template_id"
+                value={watch('template_id')}
+                onChange={(value) => setValue('template_id', value)}
+                placeholder="Select a template"
+                className="mt-1"
+                options={[
+                  { value: '', label: 'Select a template' },
+                  ...templates.map((template) => ({
+                    value: template.id,
+                    label: `${template.name}${template.category ? ` (${template.category})` : ''}`,
+                  })),
+                ]}
+              />
               {errors.template_id && <FormError>{errors.template_id.message}</FormError>}
             </div>
 
             {/* Project Selection */}
             <div>
               <Label htmlFor="project_id">Project *</Label>
-              <Select id="project_id" {...register('project_id')} className="mt-1">
-                <option value="">Select a project</option>
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </Select>
+              <Select
+                id="project_id"
+                value={watch('project_id')}
+                onChange={(value) => setValue('project_id', value)}
+                placeholder="Select a project"
+                className="mt-1"
+                options={[
+                  { value: '', label: 'Select a project' },
+                  ...projects.map((project) => ({
+                    value: project.id,
+                    label: project.name,
+                  })),
+                ]}
+              />
               {errors.project_id && <FormError>{errors.project_id.message}</FormError>}
             </div>
 
@@ -215,14 +237,20 @@ export default function NewInspectionPage() {
             {lots.length > 0 && (
               <div>
                 <Label htmlFor="lot_id">Lot (optional)</Label>
-                <Select id="lot_id" {...register('lot_id')} className="mt-1">
-                  <option value="">No specific lot</option>
-                  {lots.map((lot) => (
-                    <option key={lot.id} value={lot.id}>
-                      Lot #{lot.lot_number} - {lot.name || 'Unnamed'}
-                    </option>
-                  ))}
-                </Select>
+                <Select
+                  id="lot_id"
+                  value={watch('lot_id')}
+                  onChange={(value) => setValue('lot_id', value)}
+                  placeholder="No specific lot"
+                  className="mt-1"
+                  options={[
+                    { value: '', label: 'No specific lot' },
+                    ...lots.map((lot) => ({
+                      value: lot.id,
+                      label: `Lot #${lot.lot_number} - ${lot.name || 'Unnamed'}`,
+                    })),
+                  ]}
+                />
               </div>
             )}
 
@@ -253,14 +281,20 @@ export default function NewInspectionPage() {
             {/* Assign To */}
             <div>
               <Label htmlFor="assigned_to">Assign To (optional)</Label>
-              <Select id="assigned_to" {...register('assigned_to')} className="mt-1">
-                <option value="">Assign to myself</option>
-                {users.map((user) => (
-                  <option key={user.user_id} value={user.user_id}>
-                    {user.user?.full_name || user.user?.email}
-                  </option>
-                ))}
-              </Select>
+              <Select
+                id="assigned_to"
+                value={watch('assigned_to')}
+                onChange={(value) => setValue('assigned_to', value)}
+                placeholder="Assign to myself"
+                className="mt-1"
+                options={[
+                  { value: '', label: 'Assign to myself' },
+                  ...users.map((user) => ({
+                    value: user.user_id,
+                    label: user.user?.full_name || user.user?.email,
+                  })),
+                ]}
+              />
             </div>
 
             {/* Due Date */}
@@ -278,19 +312,27 @@ export default function NewInspectionPage() {
             {/* Priority */}
             <div>
               <Label htmlFor="priority">Priority</Label>
-              <Select id="priority" {...register('priority')} className="mt-1">
-                <option value="low">Low</option>
-                <option value="normal">Normal</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </Select>
+              <Select
+                id="priority"
+                value={watch('priority')}
+                onChange={(value) =>
+                  setValue('priority', value as 'low' | 'normal' | 'high' | 'urgent')
+                }
+                className="mt-1"
+                options={[
+                  { value: 'low', label: 'Low' },
+                  { value: 'normal', label: 'Normal' },
+                  { value: 'high', label: 'High' },
+                  { value: 'urgent', label: 'Urgent' },
+                ]}
+              />
             </div>
           </CardContent>
         </Card>
 
         <div className="mt-6 flex gap-3 justify-end">
           <Link href="/dashboard/inspections">
-            <Button variant="outline" type="button">
+            <Button variant="secondary" type="button">
               Cancel
             </Button>
           </Link>
