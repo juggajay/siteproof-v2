@@ -3,19 +3,12 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
   try {
-    console.log('[Organizations API] Creating client...');
     const supabase = await createClient();
-    
-    console.log('[Organizations API] Parsing request body...');
     const { name, description } = await request.json();
-    console.log('[Organizations API] Request data:', { name, description });
     
-    console.log('[Organizations API] Getting user...');
     const { data: { user }, error: userError } = await supabase.auth.getUser();
-    console.log('[Organizations API] User data:', { user: user?.id, error: userError });
     
     if (userError || !user) {
-      console.log('[Organizations API] Unauthorized - no user');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -42,8 +35,12 @@ export async function POST(request: Request) {
       .single();
 
     if (orgError) {
-      console.error('Error creating organization:', orgError);
-      return NextResponse.json({ error: 'Failed to create organization' }, { status: 500 });
+      console.error('[Organizations API] Error creating organization:', orgError);
+      return NextResponse.json({ 
+        error: 'Failed to create organization',
+        details: orgError.message,
+        code: orgError.code
+      }, { status: 500 });
     }
 
     // Add user as owner of the organization
@@ -57,14 +54,18 @@ export async function POST(request: Request) {
       });
 
     if (memberError) {
-      console.error('Error adding user to organization:', memberError);
+      console.error('[Organizations API] Error adding user to organization:', memberError);
       // Clean up the organization if member creation fails
       await supabase
         .from('organizations')
         .delete()
         .eq('id', organization.id);
       
-      return NextResponse.json({ error: 'Failed to set up organization membership' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'Failed to set up organization membership',
+        details: memberError.message,
+        code: memberError.code
+      }, { status: 500 });
     }
 
     return NextResponse.json({
