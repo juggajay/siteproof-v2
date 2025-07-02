@@ -22,7 +22,7 @@ export function ClientWrapper() {
 
     setIsCreating(true);
     try {
-      const response = await fetch('/api/organizations/debug', {
+      const response = await fetch('/api/organizations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -2,14 +2,15 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
-  const debug = {
+  const debug: any = {
     step: 'start',
     envCheck: {
       publicUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       anonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       serviceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
     },
-    error: null as any,
+    error: null,
+    requestData: null,
   };
 
   try {
