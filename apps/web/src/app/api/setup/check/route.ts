@@ -26,7 +26,7 @@ export async function GET() {
     const supabase = await createClient();
     
     // Check database connection
-    const { data: orgData, error: orgError } = await supabase
+    const { error: orgError } = await supabase
       .from('organizations')
       .select('count')
       .limit(1);
