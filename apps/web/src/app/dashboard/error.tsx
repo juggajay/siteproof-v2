@@ -43,7 +43,7 @@ export default function DashboardError({
           <Button
             onClick={reset}
             fullWidth
-            variant="default"
+            variant="primary"
           >
             <RefreshCw className="mr-2 h-4 w-4" />
             Try again
@@ -52,7 +52,7 @@ export default function DashboardError({
           <Button
             onClick={() => window.location.href = '/auth/login'}
             fullWidth
-            variant="outline"
+            variant="secondary"
           >
             Go to login
           </Button>
