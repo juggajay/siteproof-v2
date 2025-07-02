@@ -10,8 +10,13 @@ export const metadata: Metadata = {
   title: 'SiteProof - Construction Site Documentation',
   description: 'Professional construction site proof management and documentation',
   manifest: '/manifest.json',
+}
+
+export const viewport = {
   themeColor: '#3b82f6',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
 }
 
 export default function RootLayout({
