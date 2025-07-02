@@ -24,10 +24,17 @@ export async function POST(request: Request) {
     }
 
     // Create organization
+    // Generate slug from name
+    const slug = name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+    
     const { data: organization, error: orgError } = await supabase
       .from('organizations')
       .insert({
         name,
+        slug,
         description,
         created_by: user.id,
       })
