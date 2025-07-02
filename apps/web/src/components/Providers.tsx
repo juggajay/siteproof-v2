@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ServiceWorkerProvider } from './ServiceWorkerProvider';
+import { ToastProvider } from '@siteproof/design-system';
 import { useState } from 'react';
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -20,9 +21,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ServiceWorkerProvider>
-        {children}
-      </ServiceWorkerProvider>
+      <ToastProvider>
+        <ServiceWorkerProvider>
+          {children}
+        </ServiceWorkerProvider>
+      </ToastProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

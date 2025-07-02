@@ -168,6 +168,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  // Allow design-system page without authentication
+  if (request.nextUrl.pathname === '/design-system') {
+    return response;
+  }
+
   // Auth routes (login, signup) - redirect to dashboard if already authenticated
   if (request.nextUrl.pathname.startsWith('/auth/')) {
     if (user && !request.nextUrl.pathname.includes('/logout')) {
