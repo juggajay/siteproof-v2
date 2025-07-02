@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { Button, StateDisplay } from '@siteproof/design-system';
 import { DiaryForm } from '@/features/diary/components/DiaryForm';
 import { useDiary } from '@/features/diary/hooks/useDiary';

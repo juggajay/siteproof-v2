@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { z } from 'zod';
 import type { DailyDiary, Project, User } from '@siteproof/database';
 
 // Type for the diary data returned by the RPC function
