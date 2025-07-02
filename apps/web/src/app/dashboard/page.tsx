@@ -6,7 +6,6 @@ import {
   Calendar, 
   ClipboardList, 
   FileText, 
-  Plus,
   ArrowRight,
   Users,
   BarChart3
