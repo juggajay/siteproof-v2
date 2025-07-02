@@ -2,7 +2,15 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
 export async function createClient() {
-  const cookieStore = await cookies();
+  console.log('[Supabase Server] Creating client...');
+  let cookieStore;
+  try {
+    cookieStore = await cookies();
+    console.log('[Supabase Server] Cookie store obtained');
+  } catch (error) {
+    console.error('[Supabase Server] Error getting cookies:', error);
+    throw error;
+  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
