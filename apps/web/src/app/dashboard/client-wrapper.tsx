@@ -38,9 +38,11 @@ export function ClientWrapper() {
         router.refresh(); // Refresh the page to show the dashboard
       } else {
         const error = await response.json();
+        console.error('Organization creation failed:', error);
         showError(error.error || 'Failed to create organization');
       }
     } catch (error) {
+      console.error('Network error:', error);
       showError('An error occurred while creating the organization');
     } finally {
       setIsCreating(false);
