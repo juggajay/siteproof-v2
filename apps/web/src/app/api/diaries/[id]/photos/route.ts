@@ -215,11 +215,11 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     const currentPhotos = diary.photos || [];
-    const photosToDelete = currentPhotos.filter((photo) => photoIds.includes(photo.id));
-    const remainingPhotos = currentPhotos.filter((photo) => !photoIds.includes(photo.id));
+    const photosToDelete = currentPhotos.filter((photo: any) => photoIds.includes(photo.id));
+    const remainingPhotos = currentPhotos.filter((photo: any) => !photoIds.includes(photo.id));
 
     // Delete files from storage
-    const filesToDelete = photosToDelete.map((photo) => {
+    const filesToDelete = photosToDelete.map((photo: any) => {
       const urlParts = photo.url.split('/');
       return urlParts.slice(-3).join('/');
     });

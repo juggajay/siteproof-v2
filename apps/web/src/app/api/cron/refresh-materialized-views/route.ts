@@ -5,7 +5,7 @@ import { headers } from 'next/headers';
 // This endpoint should be called by a cron job service like Vercel Cron or similar
 // It refreshes all materialized views to keep them up to date
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Verify the request is authorized
     // In production, you should use a proper authorization method
