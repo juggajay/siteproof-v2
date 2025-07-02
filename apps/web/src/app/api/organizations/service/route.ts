@@ -13,6 +13,7 @@ export async function POST(request: Request) {
     }
 
     const { name, description } = await request.json();
+    console.log('[Service API] Request data:', { name, description });
 
     // Use service role client to bypass RLS
     const serviceClient = createServiceClient(
