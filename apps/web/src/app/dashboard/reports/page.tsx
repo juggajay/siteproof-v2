@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useState } from 'react';
 import { Plus, FileText, History, Calendar, TrendingUp } from 'lucide-react';
 import { Button } from '@siteproof/design-system';

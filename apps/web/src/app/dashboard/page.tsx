@@ -13,6 +13,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 
+// Force dynamic rendering for pages that use authentication
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   try {
     const supabase = await createClient();

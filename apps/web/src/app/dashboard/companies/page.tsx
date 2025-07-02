@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import React, { useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { Button, StateDisplay } from '@siteproof/design-system';
