@@ -37,6 +37,38 @@ export default async function DashboardPage() {
     redirect('/auth/login');
   }
 
+  // Check if user has an organization
+  const { data: membership } = await supabase
+    .from('organization_members')
+    .select('organization_id, organizations(name)')
+    .eq('user_id', user.id)
+    .single();
+
+  // If no organization, show setup message
+  if (!membership?.organization_id) {
+    return (
+      <PageLayout hasTopNav={false} hasBottomNav={false}>
+        <div className="min-h-screen flex items-center justify-center">
+          <Card className="max-w-md text-center p-huge">
+            <CardContent>
+              <Building2 className="mx-auto w-16 h-16 text-secondary-gray mb-medium" />
+              <h1 className="text-h3 text-primary-charcoal mb-2">Organization Setup Required</h1>
+              <p className="text-body text-secondary-gray mb-medium">
+                You need to be part of an organization to use SiteProof. You can either create a new organization or wait to be invited to an existing one.
+              </p>
+              <div className="space-y-3">
+                <ClientWrapper />
+                <p className="text-body-small text-secondary-gray">
+                  Need help? Contact your project manager or system administrator.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </PageLayout>
+    );
+  }
+
   // Quick action cards
   const quickActions = [
     {

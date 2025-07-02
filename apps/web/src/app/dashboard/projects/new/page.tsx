@@ -20,16 +20,17 @@ export default async function NewProjectPage() {
   }
 
   // Check if user has an organization
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('organization_id')
-    .eq('id', user.id)
+  const { data: membership } = await supabase
+    .from('organization_members')
+    .select('organization_id, organizations(name)')
+    .eq('user_id', user.id)
     .single();
 
-  if (!profile?.organization_id) {
-    // User needs to set up organization first
-    redirect('/dashboard/organization/setup');
+  if (!membership?.organization_id) {
+    // User needs to create or join an organization first
+    // For now, redirect to dashboard with a message
+    redirect('/dashboard?setup=organization');
   }
 
-  return <NewProjectForm organizationId={profile.organization_id} />;
+  return <NewProjectForm organizationId={membership.organization_id} />;
 }
