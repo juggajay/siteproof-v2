@@ -12,6 +12,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Ensure user exists in public.users table
+    // First check if user exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (!existingUser) {
+      // Create user if doesn't exist
+      const { error: createUserError } = await supabase
+        .from('users')
+        .insert({ 
+          id: user.id, 
+          email: user.email || '',
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+        });
+
+      if (createUserError) {
+        console.error('[Organizations API] Error creating user:', createUserError);
+        return NextResponse.json({ 
+          error: 'Failed to create user profile',
+          details: createUserError.message
+        }, { status: 500 });
+      }
+    }
+
     // Check if user already has an organization
     const { data: existingMembership } = await supabase
       .from('organization_members')
@@ -57,7 +84,6 @@ export async function POST(request: Request) {
         organization_id: organization.id,
         user_id: user.id,
         role: 'owner',
-        status: 'active',
       });
 
     if (memberError) {
