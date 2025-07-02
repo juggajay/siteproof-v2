@@ -6,7 +6,7 @@ export default async function TestDashboardPage() {
     // Test 1: Can we import the module?
     let importError = null;
     try {
-      const { createClient } = await import('@/lib/supabase/server');
+      await import('@/lib/supabase/server');
     } catch (e: any) {
       importError = e.message;
     }
