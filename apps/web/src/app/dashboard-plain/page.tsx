@@ -34,7 +34,7 @@ export default async function PlainDashboardPage() {
             className="rounded-lg bg-white p-6 shadow-sm hover:shadow-md"
           >
             <h3 className="font-semibold">Daily Diary</h3>
-            <p className="mt-1 text-sm text-gray-600">Record today's site activities</p>
+            <p className="mt-1 text-sm text-gray-600">Record today&apos;s site activities</p>
           </Link>
           
           <Link
