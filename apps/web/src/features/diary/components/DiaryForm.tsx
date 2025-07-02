@@ -1,24 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Cloud,
-  Users,
-  Save,
-  Loader2,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
+import { Cloud, Users, Save, Loader2, ChevronDown, ChevronUp, Truck, Settings } from 'lucide-react';
 import { Button, Input } from '@siteproof/design-system';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { weatherService } from '../services/weatherService';
 import type { Project, DailyDiary } from '@siteproof/database';
 import { WorkforceEntry } from '@/features/financials/components/WorkforceEntry';
+import { EquipmentSection } from './DiaryForm/EquipmentSection';
 
 const diarySchema = z.object({
   diary_date: z.string().min(1, 'Date is required'),
@@ -26,68 +20,100 @@ const diarySchema = z.object({
   work_areas: z.array(z.string()).default([]),
   access_issues: z.string().optional(),
   work_summary: z.string().min(10, 'Work summary must be at least 10 characters'),
-  trades_on_site: z.array(z.object({
-    trade: z.string().min(1, 'Trade is required'),
-    company: z.string().min(1, 'Company is required'),
-    workers: z.number().min(1),
-    start_time: z.string().optional(),
-    end_time: z.string().optional(),
-    total_hours: z.number().optional(),
-    hourly_rate: z.number().optional(),
-    daily_rate: z.number().optional(),
-    total_cost: z.number().optional(),
-    notes: z.string().optional(),
-    activities: z.array(z.string()).default([]),
-  })).default([]),
+  trades_on_site: z
+    .array(
+      z.object({
+        trade: z.string().min(1, 'Trade is required'),
+        company: z.string().min(1, 'Company is required'),
+        workers: z.number().min(1),
+        start_time: z.string().optional(),
+        end_time: z.string().optional(),
+        total_hours: z.number().optional(),
+        hourly_rate: z.number().optional(),
+        daily_rate: z.number().optional(),
+        total_cost: z.number().optional(),
+        notes: z.string().optional(),
+        activities: z.array(z.string()).default([]),
+      })
+    )
+    .default([]),
   total_workers: z.number().min(0),
-  key_personnel: z.array(z.object({
-    name: z.string().min(1, 'Name is required'),
-    role: z.string().min(1, 'Role is required'),
-    company: z.string(),
-    hours: z.object({
-      start: z.string(),
-      end: z.string(),
-    }),
-  })).default([]),
-  equipment_on_site: z.array(z.object({
-    type: z.string(),
-    description: z.string(),
-    supplier: z.string(),
-    hours_used: z.number(),
-  })).default([]),
-  material_deliveries: z.array(z.object({
-    material: z.string(),
-    quantity: z.string(),
-    supplier: z.string(),
-    time: z.string(),
-    location: z.string(),
-  })).default([]),
-  delays: z.array(z.object({
-    type: z.enum(['Weather', 'Equipment', 'Material', 'Labor', 'Other']),
-    description: z.string(),
-    duration_hours: z.number(),
-    impact: z.enum(['Low', 'Medium', 'High']),
-  })).default([]),
-  safety_incidents: z.array(z.object({
-    type: z.enum(['Near Miss', 'Minor Injury', 'Major Injury']),
-    description: z.string(),
-    action_taken: z.string(),
-    reported_to: z.string(),
-  })).default([]),
-  inspections: z.array(z.object({
-    type: z.enum(['Safety', 'Quality', 'Client', 'Authority']),
-    inspector: z.string(),
-    organization: z.string(),
-    findings: z.string(),
-    time: z.string(),
-  })).default([]),
-  visitors: z.array(z.object({
-    name: z.string(),
-    company: z.string(),
-    purpose: z.string(),
-    time_in: z.string(),
-    time_out: z.string(),
-  })).default([]),
+  key_personnel: z
+    .array(
+      z.object({
+        name: z.string().min(1, 'Name is required'),
+        role: z.string().min(1, 'Role is required'),
+        company: z.string(),
+        hours: z.object({
+          start: z.string(),
+          end: z.string(),
+        }),
+      })
+    )
+    .default([]),
+  equipment_on_site: z
+    .array(
+      z.object({
+        type: z.string(),
+        description: z.string(),
+        supplier: z.string(),
+        hours_used: z.number(),
+      })
+    )
+    .default([]),
+  material_deliveries: z
+    .array(
+      z.object({
+        material: z.string(),
+        quantity: z.string(),
+        supplier: z.string(),
+        time: z.string(),
+        location: z.string(),
+      })
+    )
+    .default([]),
+  delays: z
+    .array(
+      z.object({
+        type: z.enum(['Weather', 'Equipment', 'Material', 'Labor', 'Other']),
+        description: z.string(),
+        duration_hours: z.number(),
+        impact: z.enum(['Low', 'Medium', 'High']),
+      })
+    )
+    .default([]),
+  safety_incidents: z
+    .array(
+      z.object({
+        type: z.enum(['Near Miss', 'Minor Injury', 'Major Injury']),
+        description: z.string(),
+        action_taken: z.string(),
+        reported_to: z.string(),
+      })
+    )
+    .default([]),
+  inspections: z
+    .array(
+      z.object({
+        type: z.enum(['Safety', 'Quality', 'Client', 'Authority']),
+        inspector: z.string(),
+        organization: z.string(),
+        findings: z.string(),
+        time: z.string(),
+      })
+    )
+    .default([]),
+  visitors: z
+    .array(
+      z.object({
+        name: z.string(),
+        company: z.string(),
+        purpose: z.string(),
+        time_in: z.string(),
+        time_out: z.string(),
+      })
+    )
+    .default([]),
   milestones_achieved: z.array(z.string()).default([]),
   general_notes: z.string().optional(),
   tomorrow_planned_work: z.string().optional(),
@@ -103,7 +129,6 @@ interface DiaryFormProps {
   onCancel?: () => void;
 }
 
-
 export function DiaryForm({
   project,
   diary,
@@ -115,7 +140,8 @@ export function DiaryForm({
     weather: true,
     work: true,
     personnel: false,
-    equipment: false,
+    equipment: true,
+    materials: true,
     issues: false,
     inspections: false,
     progress: false,
@@ -128,6 +154,7 @@ export function DiaryForm({
     handleSubmit,
     watch,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<DiaryFormData>({
     resolver: zodResolver(diarySchema),
@@ -144,18 +171,29 @@ export function DiaryForm({
       inspections: [],
       visitors: [],
       milestones_achieved: [],
-      ...(diary ? {
-        ...diary,
-        // Convert null values to undefined for form compatibility
-        site_conditions: diary.site_conditions || undefined,
-        access_issues: diary.access_issues || undefined,
-        general_notes: diary.general_notes || undefined,
-        tomorrow_planned_work: diary.tomorrow_planned_work || undefined,
-      } : {}),
+      ...(diary
+        ? {
+            ...diary,
+            // Convert null values to undefined for form compatibility
+            site_conditions: diary.site_conditions || undefined,
+            access_issues: diary.access_issues || undefined,
+            general_notes: diary.general_notes || undefined,
+            tomorrow_planned_work: diary.tomorrow_planned_work || undefined,
+          }
+        : {}),
     },
   });
 
-  // Field arrays are managed by child components
+  // Field arrays for equipment and materials
+  const equipmentField = useFieldArray({
+    control,
+    name: 'equipment_on_site',
+  });
+
+  const deliveriesField = useFieldArray({
+    control,
+    name: 'material_deliveries',
+  });
 
   // Auto-calculate total workers
   const trades = watch('trades_on_site');
@@ -172,7 +210,7 @@ export function DiaryForm({
         // Get project location - in real app, this would come from project data
         const location = project.client_company || 'London, UK';
         const weather = await weatherService.getWeatherByLocation(location, date);
-        
+
         if (weather) {
           setWeatherData(weather);
         }
@@ -214,12 +252,43 @@ export function DiaryForm({
     },
   });
 
+  const updateDiary = useMutation({
+    mutationFn: async (data: DiaryFormData) => {
+      const response = await fetch(`/api/diaries/${diary?.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...data,
+          weather: weatherData,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to update diary');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success('Daily diary updated successfully');
+      onSuccess?.(diary!.id);
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
   const onSubmit = (data: DiaryFormData) => {
-    createDiary.mutate(data);
+    if (diary) {
+      updateDiary.mutate(data);
+    } else {
+      createDiary.mutate(data);
+    }
   };
 
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   return (
@@ -243,9 +312,15 @@ export function DiaryForm({
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-2">Project Details</h4>
             <div className="space-y-2 text-sm text-gray-600">
-              <p><strong>Client:</strong> {project.client_name || 'N/A'}</p>
-              <p><strong>Location:</strong> {project.client_company || 'N/A'}</p>
-              <p><strong>Project Manager:</strong> John Smith</p>
+              <p>
+                <strong>Client:</strong> {project.client_name || 'N/A'}
+              </p>
+              <p>
+                <strong>Location:</strong> {project.client_company || 'N/A'}
+              </p>
+              <p>
+                <strong>Project Manager:</strong> John Smith
+              </p>
             </div>
           </div>
         </div>
@@ -263,13 +338,14 @@ export function DiaryForm({
             <h3 className="text-lg font-medium text-gray-900">Weather Conditions</h3>
             {weatherData && (
               <span className="text-sm text-gray-500">
-                {weatherData.conditions} • {weatherData.temperature.max}°{weatherData.temperature.unit}
+                {weatherData.conditions} • {weatherData.temperature.max}°
+                {weatherData.temperature.unit}
               </span>
             )}
           </div>
           {expandedSections.weather ? <ChevronUp /> : <ChevronDown />}
         </button>
-        
+
         <AnimatePresence>
           {expandedSections.weather && (
             <motion.div
@@ -289,7 +365,8 @@ export function DiaryForm({
                     <div className="bg-gray-50 rounded-lg p-3">
                       <p className="text-xs text-gray-500">Temperature</p>
                       <p className="text-lg font-semibold">
-                        {weatherData.temperature.min}° - {weatherData.temperature.max}°{weatherData.temperature.unit}
+                        {weatherData.temperature.min}° - {weatherData.temperature.max}°
+                        {weatherData.temperature.unit}
                       </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-3">
@@ -300,7 +377,8 @@ export function DiaryForm({
                     <div className="bg-gray-50 rounded-lg p-3">
                       <p className="text-xs text-gray-500">Wind</p>
                       <p className="text-lg font-semibold">
-                        {weatherData.wind.speed} {weatherData.wind.unit} {weatherData.wind.direction}
+                        {weatherData.wind.speed} {weatherData.wind.unit}{' '}
+                        {weatherData.wind.direction}
                       </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-3">
@@ -309,7 +387,9 @@ export function DiaryForm({
                     </div>
                     <div className="bg-gray-50 rounded-lg p-3">
                       <p className="text-xs text-gray-500">Precipitation</p>
-                      <p className="text-lg font-semibold">{weatherData.precipitation.probability}%</p>
+                      <p className="text-lg font-semibold">
+                        {weatherData.precipitation.probability}%
+                      </p>
                     </div>
                     <div className="bg-gray-50 rounded-lg p-3">
                       <p className="text-xs text-gray-500">UV Index</p>
@@ -325,11 +405,9 @@ export function DiaryForm({
                     </div>
                   </div>
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    Weather data not available
-                  </div>
+                  <div className="text-center py-8 text-gray-500">Weather data not available</div>
                 )}
-                
+
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -376,7 +454,7 @@ export function DiaryForm({
           </div>
           {expandedSections.work ? <ChevronUp /> : <ChevronDown />}
         </button>
-        
+
         <AnimatePresence>
           {expandedSections.work && (
             <motion.div
@@ -419,8 +497,49 @@ export function DiaryForm({
                 {/* Total Workers (auto-calculated) */}
                 <div className="mt-4 p-4 bg-blue-50 rounded-lg">
                   <p className="text-sm font-medium text-blue-900">
-                    Total Workers on Site: <span className="text-2xl">{watch('total_workers')}</span>
+                    Total Workers on Site:{' '}
+                    <span className="text-2xl">{watch('total_workers')}</span>
                   </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Equipment and Materials Section */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection('equipment')}
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Settings className="w-5 h-5 text-orange-600" />
+            <h3 className="text-lg font-medium text-gray-900">Equipment & Materials</h3>
+            <span className="text-sm text-gray-500">
+              {watch('equipment_on_site')?.length || 0} equipment •{' '}
+              {watch('material_deliveries')?.length || 0} deliveries
+            </span>
+          </div>
+          {expandedSections.equipment ? <ChevronUp /> : <ChevronDown />}
+        </button>
+
+        <AnimatePresence>
+          {expandedSections.equipment && (
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: 'auto' }}
+              exit={{ height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="px-6 pb-6 border-t">
+                <div className="mt-6">
+                  <EquipmentSection
+                    register={register}
+                    deliveriesField={deliveriesField}
+                    equipmentField={equipmentField}
+                  />
                 </div>
               </div>
             </motion.div>
@@ -437,11 +556,11 @@ export function DiaryForm({
         )}
         <Button
           type="submit"
-          loading={isSubmitting}
-          disabled={isSubmitting}
+          loading={isSubmitting || createDiary.isPending || updateDiary.isPending}
+          disabled={isSubmitting || createDiary.isPending || updateDiary.isPending}
         >
           <Save className="w-4 h-4 mr-2" />
-          Save Daily Diary
+          {diary ? 'Update' : 'Save'} Daily Diary
         </Button>
       </div>
     </form>

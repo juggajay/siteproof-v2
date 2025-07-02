@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { z } from 'zod';
 import type { DailyDiary, Project, User } from '@siteproof/database';
 
 // Type for the diary data returned by the RPC function
@@ -20,14 +21,14 @@ interface DiaryWithFinancialData extends DailyDiary {
   notes?: string | null;
 }
 
-export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_request: Request, { params }: { params: { id: string } }) {
   try {
     const supabase = await createClient();
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -47,7 +48,7 @@ export async function GET(
     const { data: diary, error } = await supabase
       .rpc('get_diary_with_financial_data', {
         p_diary_id: params?.id,
-        p_user_id: user.id
+        p_user_id: user.id,
       })
       .single<DiaryWithFinancialData>();
 
@@ -78,11 +79,10 @@ export async function GET(
       : { data: null };
 
     // Use the database function to get filtered trades data
-    const { data: filteredTrades } = await supabase
-      .rpc('get_trades_for_diary', {
-        p_diary_id: params?.id,
-        p_user_id: user.id
-      });
+    const { data: filteredTrades } = await supabase.rpc('get_trades_for_diary', {
+      p_diary_id: params?.id,
+      p_user_id: user.id,
+    });
 
     return NextResponse.json({
       diary: {
@@ -91,27 +91,23 @@ export async function GET(
         project,
         createdBy,
         approvedBy,
-      }
+      },
     });
-
   } catch (error) {
     console.error('Error in diary GET:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
     const supabase = await createClient();
     const body = await request.json();
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -172,12 +168,8 @@ export async function PUT(
     }
 
     return NextResponse.json({ diary });
-
   } catch (error) {
     console.error('Error in diary PUT:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

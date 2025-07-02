@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/refresh-materialized-views",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}

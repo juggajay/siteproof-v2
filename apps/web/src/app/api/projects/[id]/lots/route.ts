@@ -1,26 +1,28 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { apiRateLimiter } from '@/lib/rate-limiter';
 import type { Lot } from '@siteproof/database';
 
 // Schema for creating a lot
 const createLotSchema = z.object({
   name: z.string().optional(),
   description: z.string().optional(),
-  files: z.array(z.object({
-    url: z.string().url(),
-    name: z.string(),
-    size: z.number(),
-    type: z.string(),
-  })).min(1, 'At least one file is required'),
+  files: z
+    .array(
+      z.object({
+        url: z.string().url(),
+        name: z.string(),
+        size: z.number(),
+        type: z.string(),
+      })
+    )
+    .min(1, 'At least one file is required'),
   internalNotes: z.string().optional(),
 });
 
 // GET /api/projects/[id]/lots - List lots for a project
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const projectId = params?.id;
     const { searchParams } = new URL(request.url);
@@ -32,12 +34,11 @@ export async function GET(
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     // Verify user has access to the project
@@ -48,10 +49,7 @@ export async function GET(
       .single();
 
     if (!project) {
-      return NextResponse.json(
-        { message: 'Project not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: 'Project not found' }, { status: 404 });
     }
 
     // Check membership
@@ -72,7 +70,8 @@ export async function GET(
     // Build query
     let query = supabase
       .from('lots')
-      .select(`
+      .select(
+        `
         *,
         creator:created_by (
           id,
@@ -86,7 +85,9 @@ export async function GET(
           email
         ),
         comments:comments(count)
-      `, { count: 'exact' })
+      `,
+        { count: 'exact' }
+      )
       .eq('project_id', projectId)
       .order('lot_number', { ascending: false });
 
@@ -102,10 +103,7 @@ export async function GET(
 
     if (error) {
       console.error('Failed to fetch lots:', error);
-      return NextResponse.json(
-        { message: 'Failed to fetch lots' },
-        { status: 500 }
-      );
+      return NextResponse.json({ message: 'Failed to fetch lots' }, { status: 500 });
     }
 
     // Transform the data
@@ -126,22 +124,16 @@ export async function GET(
     );
   } catch (error) {
     console.error('Get lots error:', error);
-    return NextResponse.json(
-      { message: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'An unexpected error occurred' }, { status: 500 });
   }
 }
 
 // POST /api/projects/[id]/lots - Create a new lot
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     const projectId = params.id;
     const body = await request.json();
-    
+
     // Validate request body
     const validationResult = createLotSchema.safeParse(body);
     if (!validationResult.success) {
@@ -155,11 +147,30 @@ export async function POST(
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Apply rate limiting - 30 lots per hour per user
+    const rateLimitResult = await apiRateLimiter.checkLimit(`lot_creation:${user.id}`);
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
+        {
+          message: 'Too many lots created. Please try again later.',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter.toString(),
+            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString(),
+          },
+        }
       );
     }
 
@@ -171,10 +182,7 @@ export async function POST(
       .single();
 
     if (!project) {
-      return NextResponse.json(
-        { message: 'Project not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: 'Project not found' }, { status: 404 });
     }
 
     // Check membership and permissions
@@ -205,7 +213,8 @@ export async function POST(
         created_by: user.id,
         submitted_at: new Date().toISOString(),
       })
-      .select(`
+      .select(
+        `
         *,
         creator:created_by (
           id,
@@ -213,15 +222,13 @@ export async function POST(
           email,
           avatar_url
         )
-      `)
+      `
+      )
       .single();
 
     if (error) {
       console.error('Failed to create lot:', error);
-      return NextResponse.json(
-        { message: 'Failed to create lot' },
-        { status: 500 }
-      );
+      return NextResponse.json({ message: 'Failed to create lot' }, { status: 500 });
     }
 
     // Refresh the materialized view
@@ -236,9 +243,6 @@ export async function POST(
     );
   } catch (error) {
     console.error('Create lot error:', error);
-    return NextResponse.json(
-      { message: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'An unexpected error occurred' }, { status: 500 });
   }
 }

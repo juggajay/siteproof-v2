@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { validateStateTransition, getUserNcrRole, type NcrStatus } from '@/lib/ncr/state-machine';
+import { createActivityLog } from '@/lib/activity-logger';
 import { z } from 'zod';
 
 const resolveSchema = z.object({
@@ -12,19 +14,15 @@ const resolveSchema = z.object({
   comment: z.string().optional(),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const ncrId = params?.id;
@@ -41,29 +39,35 @@ export async function POST(
       .single();
 
     if (ncrError || !ncr) {
-      return NextResponse.json(
-        { error: 'NCR not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'NCR not found' }, { status: 404 });
     }
 
-    // Check user permission
-    const canResolve = 
-      ncr.assigned_to === user.id ||
-      ncr.raised_by === user.id ||
-      await checkUserIsAdmin(supabase, user.id, ncr.project.organization_id);
+    // Get user's organization role
+    const { data: membership } = await supabase
+      .from('organization_members')
+      .select('role')
+      .eq('organization_id', ncr.project.organization_id)
+      .eq('user_id', user.id)
+      .single();
 
-    if (!canResolve) {
-      return NextResponse.json(
-        { error: 'You do not have permission to resolve this NCR' },
-        { status: 403 }
-      );
+    if (!membership) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Check current status allows resolution
-    if (!['acknowledged', 'in_progress'].includes(ncr.status)) {
+    // Determine user's role in relation to this NCR
+    const userNcrRole = getUserNcrRole(ncr, user.id, membership.role);
+
+    // Validate state transition with required fields
+    const validation = validateStateTransition(
+      ncr.status as NcrStatus,
+      'resolved',
+      userNcrRole,
+      validatedData
+    );
+
+    if (!validation.valid) {
       return NextResponse.json(
-        { error: `Cannot resolve NCR in ${ncr.status} status` },
+        { error: validation.error, requiredFields: validation.requiredFields },
         { status: 400 }
       );
     }
@@ -91,18 +95,45 @@ export async function POST(
 
     // Add comment if provided
     if (validatedData.comment) {
-      await supabase
-        .from('ncr_comments')
-        .insert({
-          ncr_id: ncrId,
-          content: validatedData.comment,
-          author_id: user.id,
-          is_internal: false,
-        });
+      await supabase.from('ncr_comments').insert({
+        ncr_id: ncrId,
+        content: validatedData.comment,
+        author_id: user.id,
+        is_internal: false,
+      });
     }
 
-    // Queue notifications
-    await queueNotifications(supabase, ncr, user.id, 'resolved');
+    // Add to NCR history
+    await supabase.from('ncr_history').insert({
+      ncr_id: ncrId,
+      action: 'status_change',
+      from_status: ncr.status,
+      to_status: 'resolved',
+      notes: `Resolved with root cause: ${validatedData.root_cause}`,
+      created_by: user.id,
+    });
+
+    // Create activity log
+    await createActivityLog(user.id, 'ncr.resolve', {
+      ncr_id: ncrId,
+      ncr_number: ncr.ncr_number,
+      project_id: ncr.project_id,
+      root_cause: validatedData.root_cause,
+      corrective_action: validatedData.corrective_action,
+    });
+
+    // Queue notifications to relevant parties
+    if (ncr.raised_by !== user.id) {
+      await supabase.rpc('queue_notification', {
+        p_type: 'ncr_resolved',
+        p_entity_type: 'ncr',
+        p_entity_id: ncr.id,
+        p_recipient_id: ncr.raised_by,
+        p_subject: `NCR ${ncr.ncr_number} resolved`,
+        p_body: `NCR "${ncr.title}" has been resolved. Please verify the resolution.`,
+        p_priority: 'high',
+      });
+    }
 
     return NextResponse.json({
       message: 'NCR resolved successfully',
@@ -110,79 +141,11 @@ export async function POST(
     });
   } catch (error) {
     console.error('Error resolving NCR:', error);
-    
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
     }
 
-    return NextResponse.json(
-      { error: 'Failed to resolve NCR' },
-      { status: 500 }
-    );
-  }
-}
-
-async function checkUserIsAdmin(
-  supabase: any,
-  userId: string,
-  organizationId: string
-): Promise<boolean> {
-  const { data } = await supabase
-    .from('organization_members')
-    .select('role')
-    .eq('user_id', userId)
-    .eq('organization_id', organizationId)
-    .single();
-
-  return data?.role === 'owner' || data?.role === 'admin';
-}
-
-async function queueNotifications(
-  supabase: any,
-  ncr: any,
-  performedBy: string,
-  _action: string
-) {
-  const notifications = [];
-
-  // Notify NCR raiser
-  if (ncr.raised_by !== performedBy) {
-    notifications.push({
-      type: 'ncr_resolved',
-      entity_type: 'ncr',
-      entity_id: ncr.id,
-      recipient_id: ncr.raised_by,
-      subject: `NCR ${ncr.ncr_number} has been resolved`,
-      body: `The NCR "${ncr.title}" has been marked as resolved. Please review and verify the resolution.`,
-      priority: 'high',
-    });
-  }
-
-  // Notify project managers
-  const { data: projectManagers } = await supabase
-    .from('organization_members')
-    .select('user_id')
-    .eq('organization_id', ncr.project.organization_id)
-    .in('role', ['owner', 'admin'])
-    .neq('user_id', performedBy);
-
-  projectManagers?.forEach((pm: any) => {
-    notifications.push({
-      type: 'ncr_resolved',
-      entity_type: 'ncr',
-      entity_id: ncr.id,
-      recipient_id: pm.user_id,
-      subject: `NCR ${ncr.ncr_number} resolved`,
-      body: `NCR "${ncr.title}" in ${ncr.project.name} has been resolved.`,
-      priority: 'normal',
-    });
-  });
-
-  // Insert notifications
-  if (notifications.length > 0) {
-    await supabase.rpc('queue_notification_batch', { notifications });
+    return NextResponse.json({ error: 'Failed to resolve NCR' }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { apiRateLimiter } from '@/lib/rate-limiter';
 import type { ProjectDashboardStats } from '@siteproof/database';
 
 // Schema for creating a project
@@ -34,18 +35,15 @@ export async function GET(request: Request) {
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     // Base query for project stats
-    let query = supabase
-      .from('project_dashboard_stats')
-      .select('*', { count: 'exact' });
+    let query = supabase.from('project_dashboard_stats').select('*', { count: 'exact' });
 
     // Filter by organization if provided
     if (organizationId) {
@@ -73,13 +71,10 @@ export async function GET(request: Request) {
         .eq('user_id', user.id);
 
       if (!memberships || memberships.length === 0) {
-        return NextResponse.json(
-          { projects: [], total: 0, page, limit },
-          { status: 200 }
-        );
+        return NextResponse.json({ projects: [], total: 0, page, limit }, { status: 200 });
       }
 
-      const orgIds = memberships.map(m => m.organization_id);
+      const orgIds = memberships.map((m) => m.organization_id);
       query = query.in('organization_id', orgIds);
     }
 
@@ -96,12 +91,17 @@ export async function GET(request: Request) {
     }
 
     // Sorting
-    const sortColumn = sortBy === 'last_activity_at' ? 'last_activity_at' : 
-                      sortBy === 'name' ? 'project_name' :
-                      sortBy === 'due_date' ? 'due_date' :
-                      sortBy === 'progress' ? 'progress_percentage' :
-                      'project_created_at';
-    
+    const sortColumn =
+      sortBy === 'last_activity_at'
+        ? 'last_activity_at'
+        : sortBy === 'name'
+          ? 'project_name'
+          : sortBy === 'due_date'
+            ? 'due_date'
+            : sortBy === 'progress'
+              ? 'progress_percentage'
+              : 'project_created_at';
+
     query = query.order(sortColumn, { ascending: sortOrder === 'asc', nullsFirst: false });
 
     // Pagination
@@ -111,10 +111,7 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('Failed to fetch projects:', error);
-      return NextResponse.json(
-        { message: 'Failed to fetch projects' },
-        { status: 500 }
-      );
+      return NextResponse.json({ message: 'Failed to fetch projects' }, { status: 500 });
     }
 
     // Transform the data to match frontend expectations
@@ -151,10 +148,7 @@ export async function GET(request: Request) {
     );
   } catch (error) {
     console.error('Projects list error:', error);
-    return NextResponse.json(
-      { message: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'An unexpected error occurred' }, { status: 500 });
   }
 }
 
@@ -162,7 +156,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    
+
     // Validate request body
     const validationResult = createProjectSchema.safeParse(body);
     if (!validationResult.success) {
@@ -176,11 +170,30 @@ export async function POST(request: Request) {
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Apply rate limiting - 10 projects per hour per user
+    const rateLimitResult = await apiRateLimiter.checkLimit(user.id);
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
+        {
+          message: 'Too many projects created. Please try again later.',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': rateLimitResult.retryAfter.toString(),
+            'X-RateLimit-Limit': rateLimitResult.limit.toString(),
+            'X-RateLimit-Remaining': rateLimitResult.remaining.toString(),
+            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt).toISOString(),
+          },
+        }
       );
     }
 
@@ -196,6 +209,21 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { message: 'You do not have permission to create projects in this organization' },
         { status: 403 }
+      );
+    }
+
+    // Check for duplicate project name within the organization
+    const { data: existingProject } = await supabase
+      .from('projects')
+      .select('id')
+      .eq('organization_id', data.organizationId)
+      .ilike('name', data.name)
+      .single();
+
+    if (existingProject) {
+      return NextResponse.json(
+        { message: 'A project with this name already exists in your organization' },
+        { status: 409 }
       );
     }
 
@@ -229,10 +257,7 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('Failed to create project:', error);
-      return NextResponse.json(
-        { message: 'Failed to create project' },
-        { status: 500 }
-      );
+      return NextResponse.json({ message: 'Failed to create project' }, { status: 500 });
     }
 
     // Refresh the materialized view
@@ -255,9 +280,6 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     console.error('Create project error:', error);
-    return NextResponse.json(
-      { message: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'An unexpected error occurred' }, { status: 500 });
   }
 }

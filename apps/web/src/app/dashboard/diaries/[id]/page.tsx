@@ -18,15 +18,49 @@ export default function DiaryDetailPage() {
   const params = useParams();
   const router = useRouter();
   const diaryId = params?.id as string;
-  
+
   const { data: role } = useOrganizationRole();
   const { data: diary, isLoading, error, refetch } = useDiary(diaryId);
-  
-  const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(role?.role || '');
+
+  const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(
+    role?.role || ''
+  );
   const canEdit = ['owner', 'admin', 'project_manager'].includes(role?.role || '');
 
-  const handleExport = () => {
-    toast.info('Export functionality coming soon');
+  const handleExport = async (format: 'pdf' | 'excel') => {
+    try {
+      const params = new URLSearchParams({
+        format,
+        includeFinancials: hasFinancialAccess.toString(),
+      });
+
+      const response = await fetch(`/api/diaries/${diaryId}/export?${params}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to export diary');
+      }
+
+      // Get the filename from the response headers
+      const contentDisposition = response.headers.get('content-disposition');
+      const filenameMatch = contentDisposition?.match(/filename="(.+)"/);
+      const filename = filenameMatch?.[1] || `diary-export.${format === 'pdf' ? 'html' : 'xlsx'}`;
+
+      // Create download link
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success(`Diary exported as ${format.toUpperCase()}`);
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export diary');
+    }
   };
 
   const handleEdit = () => {
@@ -57,9 +91,7 @@ export default function DiaryDetailPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
               <div className="flex items-start justify-between mb-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                    {diary.diary_number}
-                  </h1>
+                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{diary.diary_number}</h1>
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
@@ -93,10 +125,16 @@ export default function DiaryDetailPage() {
                       Edit
                     </Button>
                   )}
-                  <Button variant="secondary" size="sm" onClick={handleExport}>
-                    <Download className="w-4 h-4 mr-1" />
-                    Export
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button variant="secondary" size="sm" onClick={() => handleExport('excel')}>
+                      <Download className="w-4 h-4 mr-1" />
+                      Excel
+                    </Button>
+                    <Button variant="secondary" size="sm" onClick={() => handleExport('pdf')}>
+                      <Download className="w-4 h-4 mr-1" />
+                      PDF
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -129,7 +167,7 @@ export default function DiaryDetailPage() {
             {/* Workforce Section */}
             <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Workforce on Site</h2>
-              
+
               {/* Show WorkforceEntry with financial data based on role */}
               <WorkforceEntry
                 trades={diary.trades_on_site}
@@ -176,11 +214,15 @@ export default function DiaryDetailPage() {
                           </div>
                           <p className="text-gray-700">{delay.description}</p>
                         </div>
-                        <span className={`text-sm font-medium ${
-                          delay.impact === 'High' ? 'text-red-600' :
-                          delay.impact === 'Medium' ? 'text-orange-600' :
-                          'text-yellow-600'
-                        }`}>
+                        <span
+                          className={`text-sm font-medium ${
+                            delay.impact === 'High'
+                              ? 'text-red-600'
+                              : delay.impact === 'Medium'
+                                ? 'text-orange-600'
+                                : 'text-yellow-600'
+                          }`}
+                        >
                           {delay.impact} Impact
                         </span>
                       </div>
@@ -204,8 +246,12 @@ export default function DiaryDetailPage() {
                       </div>
                       <p className="text-gray-700 mb-2">{incident.description}</p>
                       <div className="space-y-1 text-sm text-gray-600">
-                        <p><strong>Action Taken:</strong> {incident.action_taken}</p>
-                        <p><strong>Reported To:</strong> {incident.reported_to}</p>
+                        <p>
+                          <strong>Action Taken:</strong> {incident.action_taken}
+                        </p>
+                        <p>
+                          <strong>Reported To:</strong> {incident.reported_to}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -225,13 +271,13 @@ export default function DiaryDetailPage() {
             <div className="bg-white rounded-lg border border-gray-200 p-6">
               <div className="flex items-center justify-between text-sm text-gray-600">
                 <div>
-                  Created by {diary.createdBy?.full_name || 'Unknown'} • 
-                  {' '}{formatDistanceToNow(new Date(diary.created_at), { addSuffix: true })}
+                  Created by {diary.createdBy?.full_name || 'Unknown'} •{' '}
+                  {formatDistanceToNow(new Date(diary.created_at), { addSuffix: true })}
                 </div>
                 {diary.approved_at && diary.approvedBy && (
                   <div>
-                    Approved by {diary.approvedBy.full_name} •
-                    {' '}{formatDistanceToNow(new Date(diary.approved_at), { addSuffix: true })}
+                    Approved by {diary.approvedBy.full_name} •{' '}
+                    {formatDistanceToNow(new Date(diary.approved_at), { addSuffix: true })}
                   </div>
                 )}
               </div>

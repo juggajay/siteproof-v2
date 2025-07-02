@@ -7,8 +7,14 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const active = searchParams?.get('active');
     const companyType = searchParams?.get('type');
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const page = parseInt(searchParams?.get('page') || '1');
+    const limit = parseInt(searchParams?.get('limit') || '20');
+    const offset = (page - 1) * limit;
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -24,48 +30,71 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'No organization found' }, { status: 404 });
     }
 
-    // Build query
-    let query = supabase
+    // Build count query
+    let countQuery = supabase
+      .from('company_profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('organization_id', member.organization_id);
+
+    // Build data query
+    let dataQuery = supabase
       .from('company_profiles')
       .select('*')
       .eq('organization_id', member.organization_id)
-      .order('company_name');
+      .order('company_name')
+      .range(offset, offset + limit - 1);
 
-    // Apply filters
+    // Apply filters to both queries
     if (active === 'true') {
-      query = query.eq('is_active', true);
+      countQuery = countQuery.eq('is_active', true);
+      dataQuery = dataQuery.eq('is_active', true);
     }
 
     if (companyType) {
-      query = query.eq('company_type', companyType);
+      countQuery = countQuery.eq('company_type', companyType);
+      dataQuery = dataQuery.eq('company_type', companyType);
     }
 
-    const { data: companies, error } = await query;
+    // Execute queries in parallel
+    const [countResult, dataResult] = await Promise.all([countQuery, dataQuery]);
 
-    if (error) {
-      console.error('Error fetching companies:', error);
-      return NextResponse.json({ error: 'Failed to fetch companies' }, { status: 500 });
+    const { count, error: countError } = countResult;
+    const { data: companies, error: dataError } = dataResult;
+
+    if (countError || dataError) {
+      throw countError || dataError;
     }
 
     // Filter out sensitive financial data if user doesn't have access
-    const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(member.role);
-    
+    const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(
+      member.role
+    );
+
     if (!hasFinancialAccess) {
-      companies?.forEach(company => {
+      companies?.forEach((company) => {
         delete company.bank_account_details;
         delete company.tax_rate;
         delete company.payment_terms;
       });
     }
 
-    return NextResponse.json(companies || []);
+    // Calculate pagination metadata
+    const totalPages = count ? Math.ceil(count / limit) : 0;
+    const hasMore = page < totalPages;
 
+    return NextResponse.json({
+      companies: companies || [],
+      pagination: {
+        page,
+        limit,
+        total: count || 0,
+        totalPages,
+        hasMore,
+      },
+    });
   } catch (error) {
     console.error('Error in companies GET:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
@@ -73,8 +102,11 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const body = await request.json();
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -122,12 +154,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({ company });
-
   } catch (error) {
     console.error('Error in companies POST:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
