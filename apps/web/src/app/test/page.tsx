@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@siteproof/design-system';
-import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, XCircle } from 'lucide-react';
 
 export default function TestPage() {
   const [results, setResults] = useState<any>(null);
