@@ -193,11 +193,7 @@ export default async function InspectionPage({ params }: { params: { id: string 
       </Card>
 
       {/* Inspection Form */}
-      <InspectionForm
-        inspection={inspection}
-        template={inspection.template}
-        readOnly={isReadOnly}
-      />
+      <InspectionForm inspection={inspection} template={inspection.template} />
 
       {/* Approval Info */}
       {inspection.status === 'approved' && inspection.approver && (

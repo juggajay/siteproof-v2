@@ -1,18 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Send,
-  ChevronRight,
-  ChevronLeft,
-  CheckCircle,
-  Loader2,
-  AlertTriangle,
-} from 'lucide-react';
+import { Send, ChevronRight, ChevronLeft, CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 import type { ITPTemplate, Inspection } from '@siteproof/database';
 import { db } from '../offline/db';
@@ -87,6 +80,79 @@ export function InspectionForm({
     enabled: !!projectId,
   });
 
+  const calculateCompletionPercentage = useCallback(
+    (data: any): number => {
+      const requiredFields: string[] = [];
+      const completedFields: string[] = [];
+
+      sections.forEach((section) => {
+        section.items.forEach((item) => {
+          item.fields.forEach((field) => {
+            if (field.required) {
+              requiredFields.push(field.id);
+              if (
+                data[field.id] !== undefined &&
+                data[field.id] !== null &&
+                data[field.id] !== ''
+              ) {
+                completedFields.push(field.id);
+              }
+            }
+          });
+        });
+      });
+
+      if (requiredFields.length === 0) return 100;
+      return Math.round((completedFields.length / requiredFields.length) * 100);
+    },
+    [sections]
+  );
+
+  const handleAutoSave = useCallback(
+    async (data: any) => {
+      setIsSaving(true);
+      try {
+        const inspectionData = {
+          assignment_id: assignmentId || null,
+          template_id: template.id,
+          project_id: projectId,
+          lot_id: lotId || null,
+          inspector_id: 'current-user-id', // TODO: Get from auth context
+          data,
+          status: 'draft' as const,
+          completion_percentage: calculateCompletionPercentage(data),
+          client_id: inspection?.client_id || `client-${Date.now()}`,
+          sync_version: (inspection?.sync_version || 0) + 1,
+        };
+
+        if (inspection?.id) {
+          await db.inspections.update(inspection.id, inspectionData);
+        } else {
+          await db.inspections.add({
+            ...inspectionData,
+            id: `inspection-${Date.now()}`,
+            started_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            submitted_at: null,
+            reviewed_at: null,
+            reviewed_by: null,
+            review_notes: null,
+            last_synced_at: null,
+          });
+        }
+
+        setLastSaved(new Date());
+        onSave?.(data);
+      } catch (error) {
+        console.error('Failed to save inspection:', error);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [assignmentId, template.id, projectId, lotId, inspection, calculateCompletionPercentage, onSave]
+  );
+
   // Auto-save functionality
   useEffect(() => {
     if (!isDirty) return;
@@ -96,81 +162,14 @@ export function InspectionForm({
     }, 2000); // Auto-save after 2 seconds of inactivity
 
     return () => clearTimeout(saveTimeout);
-  }, [formData, isDirty]);
-
-  const handleAutoSave = async (data: any) => {
-    setIsSaving(true);
-    try {
-      const inspectionData = {
-        assignment_id: assignmentId || null,
-        template_id: template.id,
-        project_id: projectId,
-        lot_id: lotId || null,
-        inspector_id: 'current-user-id', // TODO: Get from auth context
-        data,
-        status: 'draft' as const,
-        completion_percentage: calculateCompletionPercentage(data),
-        client_id: inspection?.client_id || `client-${Date.now()}`,
-        sync_version: (inspection?.sync_version || 0) + 1,
-      };
-
-      if (inspection?.id) {
-        await db.inspections.update(inspection.id, inspectionData);
-      } else {
-        await db.inspections.add({
-          ...inspectionData,
-          id: `inspection-${Date.now()}`,
-          started_at: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          submitted_at: null,
-          reviewed_at: null,
-          reviewed_by: null,
-          review_notes: null,
-          last_synced_at: null,
-        });
-      }
-
-      setLastSaved(new Date());
-      onSave?.(data);
-    } catch (error) {
-      console.error('Failed to save inspection:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const calculateCompletionPercentage = (data: any): number => {
-    const requiredFields: string[] = [];
-    const completedFields: string[] = [];
-
-    sections.forEach(section => {
-      section.items.forEach(item => {
-        item.fields.forEach(field => {
-          if (field.required) {
-            requiredFields.push(field.id);
-            if (data[field.id] !== undefined && data[field.id] !== null && data[field.id] !== '') {
-              completedFields.push(field.id);
-            }
-          }
-        });
-      });
-    });
-
-    if (requiredFields.length === 0) return 100;
-    return Math.round((completedFields.length / requiredFields.length) * 100);
-  };
+  }, [formData, isDirty, handleAutoSave]);
 
   const handleFieldChange = (fieldId: string, value: any) => {
     setValue(`data.${fieldId}`, value, { shouldDirty: true });
   };
 
   const handlePhotoCapture = async (fieldId: string, blob: Blob) => {
-    const photoId = await db.storePhoto(
-      inspection?.id || 'temp',
-      fieldId,
-      blob
-    );
+    const photoId = await db.storePhoto(inspection?.id || 'temp', fieldId, blob);
     handleFieldChange(fieldId, { photoId, type: 'photo' });
   };
 
@@ -181,7 +180,7 @@ export function InspectionForm({
   const onSubmitForm = async (data: InspectionFormData) => {
     try {
       await handleAutoSave(data.data);
-      
+
       // Update status to submitted
       if (inspection?.id) {
         await db.inspections.update(inspection.id, {
@@ -192,7 +191,7 @@ export function InspectionForm({
 
       // Trigger sync
       await syncInspection(inspection?.id || '');
-      
+
       onSubmit?.(data.data);
     } catch (error) {
       console.error('Failed to submit inspection:', error);
@@ -228,14 +227,12 @@ export function InspectionForm({
       {/* Section Navigation */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {currentSection.title}
-          </h2>
+          <h2 className="text-xl font-semibold text-gray-900">{currentSection.title}</h2>
           <div className="flex items-center gap-2 text-sm text-gray-500">
             Section {currentSectionIndex + 1} of {sections.length}
           </div>
         </div>
-        
+
         {currentSection.description && (
           <p className="text-gray-600 mb-4">{currentSection.description}</p>
         )}
@@ -253,41 +250,37 @@ export function InspectionForm({
             className="space-y-6"
           >
             {currentSection.items.map((item) => (
-              <div
-                key={item.id}
-                className="bg-white rounded-lg border border-gray-200 p-6"
-              >
+              <div key={item.id} className="bg-white rounded-lg border border-gray-200 p-6">
                 <div className="mb-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-medium text-gray-900">
                         {item.title}
-                        {item.required && (
-                          <span className="ml-1 text-red-500">*</span>
-                        )}
+                        {item.required && <span className="ml-1 text-red-500">*</span>}
                       </h3>
                       {item.description && (
-                        <p className="mt-1 text-sm text-gray-600">
-                          {item.description}
-                        </p>
+                        <p className="mt-1 text-sm text-gray-600">{item.description}</p>
                       )}
                     </div>
-                    
+
                     {/* Check if any field in this item has failed */}
-                    {item.fields.some(field => 
-                      field.type === 'checkbox' && 
-                      field.label.toLowerCase().includes('pass') &&
-                      formData[field.id] === false
+                    {item.fields.some(
+                      (field) =>
+                        field.type === 'checkbox' &&
+                        field.label.toLowerCase().includes('pass') &&
+                        formData[field.id] === false
                     ) && (
                       <Button
                         type="button"
                         variant="danger"
                         size="sm"
-                        onClick={() => setNcrModal({
-                          isOpen: true,
-                          itemRef: item.id,
-                          itemTitle: item.title
-                        })}
+                        onClick={() =>
+                          setNcrModal({
+                            isOpen: true,
+                            itemRef: item.id,
+                            itemTitle: item.title,
+                          })
+                        }
                       >
                         <AlertTriangle className="w-4 h-4 mr-1" />
                         Raise NCR
@@ -375,9 +368,7 @@ export function InspectionForm({
               ) : lastSaved ? (
                 <>
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-gray-500">
-                    Saved {lastSaved.toLocaleTimeString()}
-                  </span>
+                  <span className="text-gray-500">Saved {lastSaved.toLocaleTimeString()}</span>
                 </>
               ) : null}
             </div>
@@ -402,12 +393,14 @@ export function InspectionForm({
         <h4 className="text-sm font-medium text-gray-700 mb-3">Jump to Section</h4>
         <div className="flex flex-wrap gap-2">
           {sections.map((section, index) => {
-            const sectionFields = section.items.flatMap(item => item.fields);
-            const requiredInSection = sectionFields.filter(f => f.required);
+            const sectionFields = section.items.flatMap((item) => item.fields);
+            const requiredInSection = sectionFields.filter((f) => f.required);
             const completedInSection = requiredInSection.filter(
-              f => formData[f.id] !== undefined && formData[f.id] !== null && formData[f.id] !== ''
+              (f) =>
+                formData[f.id] !== undefined && formData[f.id] !== null && formData[f.id] !== ''
             );
-            const isComplete = requiredInSection.length === 0 || 
+            const isComplete =
+              requiredInSection.length === 0 ||
               completedInSection.length === requiredInSection.length;
 
             return (
@@ -417,11 +410,12 @@ export function InspectionForm({
                 onClick={() => goToSection(index)}
                 className={`
                   px-3 py-2 rounded-lg text-sm font-medium transition-colors
-                  ${currentSectionIndex === index
-                    ? 'bg-blue-600 text-white'
-                    : isComplete
-                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ${
+                    currentSectionIndex === index
+                      ? 'bg-blue-600 text-white'
+                      : isComplete
+                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }
                 `}
               >

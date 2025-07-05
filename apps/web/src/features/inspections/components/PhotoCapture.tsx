@@ -13,12 +13,7 @@ interface PhotoCaptureProps {
   onDelete?: () => void;
 }
 
-export function PhotoCapture({
-  label,
-  required = false,
-  onChange,
-  onDelete,
-}: PhotoCaptureProps) {
+export function PhotoCapture({ label, required = false, onChange, onDelete }: PhotoCaptureProps) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
@@ -35,11 +30,11 @@ export function PhotoCapture({
           height: { ideal: 1080 },
         },
       });
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
-      
+
       setStream(mediaStream);
       setIsCapturing(true);
     } catch (error) {
@@ -51,7 +46,7 @@ export function PhotoCapture({
 
   const stopCamera = useCallback(() => {
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       setStream(null);
     }
     setIsCapturing(false);
@@ -126,15 +121,9 @@ export function PhotoCapture({
             className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center"
           >
             <Camera className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-sm text-gray-600 mb-3">
-              Take a photo or upload from device
-            </p>
+            <p className="text-sm text-gray-600 mb-3">Take a photo or upload from device</p>
             <div className="flex gap-3 justify-center">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={startCamera}
-              >
+              <Button type="button" variant="secondary" onClick={startCamera}>
                 <Camera className="w-4 h-4 mr-2" />
                 Take Photo
               </Button>
@@ -164,15 +153,9 @@ export function PhotoCapture({
             exit={{ opacity: 0 }}
             className="relative rounded-lg overflow-hidden bg-black"
           >
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full"
-            />
+            <video ref={videoRef} autoPlay playsInline muted className="w-full" />
             <canvas ref={canvasRef} className="hidden" />
-            
+
             <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-4">
               <div className="flex justify-center gap-4">
                 <button
@@ -201,11 +184,8 @@ export function PhotoCapture({
             exit={{ opacity: 0 }}
             className="relative rounded-lg overflow-hidden"
           >
-            <img
-              src={previewUrl}
-              alt="Captured photo"
-              className="w-full rounded-lg"
-            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={previewUrl} alt="Captured photo" className="w-full rounded-lg" />
             <div className="absolute top-2 right-2 flex gap-2">
               <button
                 type="button"

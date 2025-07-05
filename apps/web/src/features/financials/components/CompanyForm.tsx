@@ -67,7 +67,7 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
         licenses: existingCompany.licenses || [],
       });
     }
-  }, [existingCompany]);
+  }, [existingCompany, formData.insurance_details]);
 
   const createMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
@@ -126,7 +126,7 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
   };
 
   const addLicense = () => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       licenses: [
         ...prev.licenses,
@@ -136,14 +136,14 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
   };
 
   const removeLicense = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       licenses: prev.licenses.filter((_, i) => i !== index),
     }));
   };
 
   const updateLicense = (index: number, field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       licenses: prev.licenses.map((license, i) =>
         i === index ? { ...license, [field]: value } : license
@@ -158,15 +158,15 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
           <h2 className="text-xl font-semibold text-gray-900">
             {isEditing ? 'Edit Company' : 'Add New Company'}
           </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500"
-          >
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
             <X className="w-6 h-6" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <form
+          onSubmit={handleSubmit}
+          className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-140px)]"
+        >
           {/* Basic Information */}
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
@@ -178,7 +178,9 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                 <input
                   type="text"
                   value={formData.company_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, company_name: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, company_name: e.target.value }))
+                  }
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -190,7 +192,9 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                 </label>
                 <select
                   value={formData.company_type}
-                  onChange={(e) => setFormData(prev => ({ ...prev, company_type: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, company_type: e.target.value }))
+                  }
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
@@ -202,13 +206,11 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tax ID
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tax ID</label>
                 <input
                   type="text"
                   value={formData.tax_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, tax_id: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, tax_id: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -220,7 +222,9 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                 <input
                   type="text"
                   value={formData.registration_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, registration_number: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, registration_number: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -238,7 +242,9 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                 <input
                   type="text"
                   value={formData.primary_contact_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, primary_contact_name: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, primary_contact_name: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -250,7 +256,9 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                 <input
                   type="email"
                   value={formData.primary_contact_email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, primary_contact_email: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, primary_contact_email: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -262,7 +270,9 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                 <input
                   type="tel"
                   value={formData.primary_contact_phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, primary_contact_phone: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, primary_contact_phone: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -280,7 +290,9 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                 <input
                   type="text"
                   value={formData.address_line1}
-                  onChange={(e) => setFormData(prev => ({ ...prev, address_line1: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, address_line1: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -292,20 +304,20 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                 <input
                   type="text"
                   value={formData.address_line2}
-                  onChange={(e) => setFormData(prev => ({ ...prev, address_line2: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, address_line2: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    City
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
                   <input
                     type="text"
                     value={formData.city}
-                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -317,7 +329,9 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                   <input
                     type="text"
                     value={formData.state_province}
-                    onChange={(e) => setFormData(prev => ({ ...prev, state_province: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, state_province: e.target.value }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -329,18 +343,18 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                   <input
                     type="text"
                     value={formData.postal_code}
-                    onChange={(e) => setFormData(prev => ({ ...prev, postal_code: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, postal_code: e.target.value }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Country
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
                   <select
                     value={formData.country}
-                    onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, country: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="US">United States</option>
@@ -363,7 +377,9 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                 </label>
                 <select
                   value={formData.default_currency}
-                  onChange={(e) => setFormData(prev => ({ ...prev, default_currency: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, default_currency: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="USD">USD</option>
@@ -381,20 +397,25 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
                 <input
                   type="number"
                   value={formData.payment_terms}
-                  onChange={(e) => setFormData(prev => ({ ...prev, payment_terms: parseInt(e.target.value) || 30 }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      payment_terms: parseInt(e.target.value) || 30,
+                    }))
+                  }
                   min="0"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tax Rate (%)
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
                 <input
                   type="number"
                   value={formData.tax_rate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, tax_rate: parseFloat(e.target.value) || 0 }))
+                  }
                   min="0"
                   max="100"
                   step="0.01"
@@ -408,12 +429,7 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Licenses</h3>
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={addLicense}
-              >
+              <Button type="button" variant="secondary" size="sm" onClick={addLicense}>
                 <Plus className="w-4 h-4 mr-1" />
                 Add License
               </Button>
@@ -494,7 +510,7 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
               <input
                 type="checkbox"
                 checked={formData.is_active}
-                onChange={(e) => setFormData(prev => ({ ...prev, is_active: e.target.checked }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, is_active: e.target.checked }))}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <span className="text-sm font-medium text-gray-700">Active</span>
@@ -503,10 +519,7 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
         </form>
 
         <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
-          <Button
-            variant="secondary"
-            onClick={onClose}
-          >
+          <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button
@@ -516,8 +529,8 @@ export function CompanyForm({ companyId, onClose, onSuccess }: CompanyFormProps)
             {createMutation.isPending || updateMutation.isPending
               ? 'Saving...'
               : isEditing
-              ? 'Update Company'
-              : 'Create Company'}
+                ? 'Update Company'
+                : 'Create Company'}
           </Button>
         </div>
       </div>

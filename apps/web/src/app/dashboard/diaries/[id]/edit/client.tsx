@@ -10,6 +10,7 @@ import { useOrganizationRole } from '@/features/organizations/hooks/useOrganizat
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import type { DailyDiary } from '@siteproof/database';
 
 interface EditDiaryClientProps {
   diaryId: string;
@@ -116,7 +117,13 @@ export default function EditDiaryClient({ diaryId }: EditDiaryClientProps) {
           {diary && project && (
             <DiaryForm
               project={project}
-              diary={diary}
+              diary={
+                {
+                  ...diary,
+                  createdBy: diary.createdBy?.id ?? diary.createdBy,
+                  approvedBy: diary.approvedBy?.id ?? diary.approvedBy,
+                } as DailyDiary
+              }
               date={new Date(diary.diary_date)}
               onSuccess={handleSuccess}
               onCancel={handleCancel}

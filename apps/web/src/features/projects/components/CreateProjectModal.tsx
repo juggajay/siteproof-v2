@@ -16,31 +16,36 @@ interface CreateProjectModalProps {
   organizationId: string;
 }
 
-const createProjectSchema = z.object({
-  name: z.string().min(1, 'Project name is required').max(255),
-  description: z.string().optional(),
-  clientName: z.string().optional(),
-  clientEmail: z.string().email('Invalid email').optional().or(z.literal('')),
-  clientCompany: z.string().optional(),
-  dueDate: z.string().optional(),
-  visibility: z.enum(['private', 'public', 'password']),
-  password: z.string().optional(),
-}).refine((data) => {
-  if (data.visibility === 'password' && !data.password) {
-    return false;
-  }
-  return true;
-}, {
-  message: 'Password is required for password-protected projects',
-  path: ['password'],
-});
+const createProjectSchema = z
+  .object({
+    name: z.string().min(1, 'Project name is required').max(255),
+    description: z.string().optional(),
+    clientName: z.string().optional(),
+    clientEmail: z.string().email('Invalid email').optional().or(z.literal('')),
+    clientCompany: z.string().optional(),
+    dueDate: z.string().optional(),
+    visibility: z.enum(['private', 'public', 'password']),
+    password: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.visibility === 'password' && !data.password) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Password is required for password-protected projects',
+      path: ['password'],
+    }
+  );
 
 type FormData = z.infer<typeof createProjectSchema>;
 
 export function CreateProjectModal({ isOpen, onClose, organizationId }: CreateProjectModalProps) {
   const focusTrapRef = useFocusTrap(isOpen);
   const createProject = useCreateProject();
-  
+
   const {
     register,
     handleSubmit,
@@ -64,9 +69,10 @@ export function CreateProjectModal({ isOpen, onClose, organizationId }: CreatePr
     };
 
     if (isOpen && focusTrapRef.current) {
-      focusTrapRef.current.addEventListener('focustrap:escape', handleEscape);
+      const element = focusTrapRef.current;
+      element.addEventListener('focustrap:escape', handleEscape);
       return () => {
-        focusTrapRef.current?.removeEventListener('focustrap:escape', handleEscape);
+        element.removeEventListener('focustrap:escape', handleEscape);
       };
     }
     return undefined;
@@ -133,9 +139,7 @@ export function CreateProjectModal({ isOpen, onClose, organizationId }: CreatePr
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Create New Project
-              </h2>
+              <h2 className="text-xl font-semibold text-gray-900">Create New Project</h2>
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-gray-500 transition-colors"
@@ -150,9 +154,7 @@ export function CreateProjectModal({ isOpen, onClose, organizationId }: CreatePr
               <div className="space-y-6">
                 {/* Project Details */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    Project Details
-                  </h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Project Details</h3>
                   <div className="space-y-4">
                     <Input
                       {...register('name')}
@@ -161,7 +163,7 @@ export function CreateProjectModal({ isOpen, onClose, organizationId }: CreatePr
                       error={errors.name?.message}
                       fullWidth
                     />
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Description (Optional)
@@ -197,7 +199,7 @@ export function CreateProjectModal({ isOpen, onClose, organizationId }: CreatePr
                       error={errors.clientName?.message}
                       fullWidth
                     />
-                    
+
                     <Input
                       {...register('clientEmail')}
                       type="email"
@@ -206,7 +208,7 @@ export function CreateProjectModal({ isOpen, onClose, organizationId }: CreatePr
                       error={errors.clientEmail?.message}
                       fullWidth
                     />
-                    
+
                     <Input
                       {...register('clientCompany')}
                       label="Company"
@@ -219,9 +221,7 @@ export function CreateProjectModal({ isOpen, onClose, organizationId }: CreatePr
 
                 {/* Visibility Settings */}
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">
-                    Visibility Settings
-                  </h3>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Visibility Settings</h3>
                   <div className="space-y-3">
                     {visibilityOptions.map((option) => {
                       const Icon = option.icon;
@@ -230,9 +230,10 @@ export function CreateProjectModal({ isOpen, onClose, organizationId }: CreatePr
                           key={option.value}
                           className={`
                             relative flex cursor-pointer rounded-lg border p-4
-                            ${visibility === option.value
-                              ? 'border-blue-600 bg-blue-50'
-                              : 'border-gray-300 bg-white hover:bg-gray-50'
+                            ${
+                              visibility === option.value
+                                ? 'border-blue-600 bg-blue-50'
+                                : 'border-gray-300 bg-white hover:bg-gray-50'
                             }
                           `}
                         >
@@ -304,10 +305,7 @@ export function CreateProjectModal({ isOpen, onClose, organizationId }: CreatePr
                 >
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  loading={createProject.isPending}
-                >
+                <Button type="submit" loading={createProject.isPending}>
                   Create Project
                 </Button>
               </div>
