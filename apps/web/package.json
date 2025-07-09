@@ -23,7 +23,7 @@
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@hookform/resolvers": "^3.3.4",
-    "@react-email/components": "^0.0.15",
+    "@react-email/components": "^0.2.0",
     "@react-email/render": "^0.0.12",
     "@siteproof/config": "workspace:*",
     "@siteproof/database": "workspace:*",
