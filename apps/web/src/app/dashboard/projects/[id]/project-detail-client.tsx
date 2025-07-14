@@ -1,0 +1,275 @@
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import {
+  ArrowLeft,
+  Building,
+  Calendar,
+  Mail,
+  Phone,
+  Users,
+  FileText,
+  Plus,
+  Edit,
+  MoreVertical,
+} from 'lucide-react';
+import { Button } from '@siteproof/design-system';
+
+interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  status: 'active' | 'completed' | 'archived';
+  organization_id: string;
+  client_name?: string;
+  client_email?: string;
+  client_phone?: string;
+  client_company?: string;
+  start_date?: string;
+  due_date?: string;
+  created_at: string;
+  updated_at: string;
+  organizations: {
+    id: string;
+    name: string;
+  };
+}
+
+interface ProjectDetailClientProps {
+  project: Project;
+  userRole: 'owner' | 'admin' | 'member' | 'viewer';
+}
+
+export default function ProjectDetailClient({ project, userRole }: ProjectDetailClientProps) {
+  const [activeSection, setActiveSection] = useState<'overview' | 'lots' | 'documents' | 'team'>(
+    'overview'
+  );
+
+  const canEdit = ['owner', 'admin', 'member'].includes(userRole);
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Not set';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+    });
+  };
+
+  const statusColors = {
+    active: 'bg-green-100 text-green-800',
+    completed: 'bg-blue-100 text-blue-800',
+    archived: 'bg-gray-100 text-gray-800',
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="mb-4">
+            <Link href="/dashboard/projects">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Projects
+              </Button>
+            </Link>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
+                {project.description && <p className="mt-2 text-gray-600">{project.description}</p>}
+                <div className="mt-4 flex items-center gap-4">
+                  <span
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${statusColors[project.status]}`}
+                  >
+                    {project.status}
+                  </span>
+                  <span className="text-sm text-gray-500">
+                    Organization: {project.organizations.name}
+                  </span>
+                </div>
+              </div>
+              {canEdit && (
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" size="sm">
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                  <Button variant="ghost" size="sm">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Section Navigation */}
+        <div className="border-b border-gray-200 mb-8">
+          <nav className="-mb-px flex space-x-8">
+            {(['overview', 'lots', 'documents', 'team'] as const).map((section) => (
+              <button
+                key={section}
+                onClick={() => setActiveSection(section)}
+                className={`
+                  py-2 px-1 border-b-2 font-medium text-sm capitalize
+                  ${
+                    activeSection === section
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }
+                `}
+              >
+                {section}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Content Sections */}
+        {activeSection === 'overview' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Project Details */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Timeline */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Timeline</h2>
+                <div className="space-y-4">
+                  <div className="flex items-center">
+                    <Calendar className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Start Date</p>
+                      <p className="text-sm text-gray-600">{formatDate(project.start_date)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Due Date</p>
+                      <p className="text-sm text-gray-600">{formatDate(project.due_date)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Activity */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+                <p className="text-sm text-gray-500">No activity yet</p>
+              </div>
+            </div>
+
+            {/* Client Information */}
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Client Information</h2>
+                {project.client_name ? (
+                  <div className="space-y-4">
+                    <div className="flex items-start">
+                      <Building className="h-5 w-5 text-gray-400 mr-3 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{project.client_name}</p>
+                        {project.client_company && (
+                          <p className="text-sm text-gray-600">{project.client_company}</p>
+                        )}
+                      </div>
+                    </div>
+                    {project.client_email && (
+                      <div className="flex items-center">
+                        <Mail className="h-5 w-5 text-gray-400 mr-3" />
+                        <a
+                          href={`mailto:${project.client_email}`}
+                          className="text-sm text-blue-600 hover:text-blue-700"
+                        >
+                          {project.client_email}
+                        </a>
+                      </div>
+                    )}
+                    {project.client_phone && (
+                      <div className="flex items-center">
+                        <Phone className="h-5 w-5 text-gray-400 mr-3" />
+                        <a href={`tel:${project.client_phone}`} className="text-sm text-gray-900">
+                          {project.client_phone}
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No client information added</p>
+                )}
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+                <div className="space-y-2">
+                  <Button size="sm" fullWidth>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Lot
+                  </Button>
+                  <Button size="sm" variant="secondary" fullWidth>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Upload Document
+                  </Button>
+                  <Button size="sm" variant="secondary" fullWidth>
+                    <Users className="mr-2 h-4 w-4" />
+                    Invite Team Member
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'lots' && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">Project Lots</h2>
+              {canEdit && (
+                <Button size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Lot
+                </Button>
+              )}
+            </div>
+            <p className="text-sm text-gray-500">No lots have been added to this project yet.</p>
+          </div>
+        )}
+
+        {activeSection === 'documents' && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">Documents</h2>
+              {canEdit && (
+                <Button size="sm">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Upload Document
+                </Button>
+              )}
+            </div>
+            <p className="text-sm text-gray-500">No documents have been uploaded yet.</p>
+          </div>
+        )}
+
+        {activeSection === 'team' && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">Team Members</h2>
+              {canEdit && (
+                <Button size="sm">
+                  <Users className="mr-2 h-4 w-4" />
+                  Invite Member
+                </Button>
+              )}
+            </div>
+            <p className="text-sm text-gray-500">Team member management coming soon.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

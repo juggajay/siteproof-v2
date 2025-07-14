@@ -28,16 +28,15 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return null;
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
       day: 'numeric',
-      year: 'numeric' 
+      year: 'numeric',
     });
   };
 
-  const isOverdue = project.dueDate && 
-    project.status === 'active' && 
-    new Date(project.dueDate) < new Date();
+  const isOverdue =
+    project.dueDate && project.status === 'active' && new Date(project.dueDate) < new Date();
 
   return (
     <motion.div
@@ -47,7 +46,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
       whileHover={{ y: -4 }}
       className="group"
     >
-      <Link href={`/projects/${project.id}`}>
+      <Link href={`/dashboard/projects/${project.id}`}>
         <div className="h-full bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
@@ -62,7 +61,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 </div>
               )}
             </div>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[project.status]}`}>
+            <span
+              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[project.status]}`}
+            >
               <StatusIcon className="w-3 h-3 mr-1" />
               {project.status}
             </span>
@@ -89,9 +90,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 mb-4">
             <div className="text-center">
-              <div className="text-2xl font-semibold text-gray-900">
-                {project.stats.totalLots}
-              </div>
+              <div className="text-2xl font-semibold text-gray-900">{project.stats.totalLots}</div>
               <div className="text-xs text-gray-500">Total Lots</div>
             </div>
             <div className="text-center">
@@ -145,6 +144,6 @@ function formatRelativeTime(dateString: string): string {
   if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
   if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
   if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-  
+
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
