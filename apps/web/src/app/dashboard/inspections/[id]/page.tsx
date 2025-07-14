@@ -84,8 +84,6 @@ export default async function InspectionPage({ params }: { params: { id: string 
     redirect('/dashboard');
   }
 
-  const isReadOnly = inspection.status === 'approved' || membership.role === 'viewer';
-
   const statusConfig = {
     draft: { label: 'Draft', variant: 'default' as const },
     in_progress: { label: 'In Progress', variant: 'info' as const },
@@ -193,7 +191,11 @@ export default async function InspectionPage({ params }: { params: { id: string 
       </Card>
 
       {/* Inspection Form */}
-      <InspectionForm inspection={inspection} template={inspection.template} />
+      <InspectionForm
+        inspection={inspection}
+        template={inspection.template}
+        projectId={inspection.project_id}
+      />
 
       {/* Approval Info */}
       {inspection.status === 'approved' && inspection.approver && (
