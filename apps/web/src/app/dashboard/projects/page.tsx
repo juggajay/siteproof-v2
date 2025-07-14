@@ -37,6 +37,8 @@ export default function ProjectsPage() {
           </div>
 
           {/* Projects List */}
+          {/* Note: organizationId is intentionally not passed here.
+              The API will return all projects for all organizations the user belongs to */}
           <ProjectList onCreateProject={() => router.push('/dashboard/projects/new')} />
         </div>
       </div>

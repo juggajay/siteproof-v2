@@ -65,16 +65,27 @@ export async function GET(request: Request) {
       query = query.eq('organization_id', organizationId);
     } else {
       // Get all organizations the user is a member of
-      const { data: memberships } = await supabase
+      console.log(
+        '[Projects API GET] No organizationId provided, fetching user memberships for user:',
+        user.id
+      );
+      const { data: memberships, error: membershipError } = await supabase
         .from('organization_members')
         .select('organization_id')
         .eq('user_id', user.id);
 
+      console.log('[Projects API GET] Membership query result:', {
+        memberships,
+        error: membershipError,
+      });
+
       if (!memberships || memberships.length === 0) {
+        console.log('[Projects API GET] User has no organization memberships');
         return NextResponse.json({ projects: [], total: 0, page, limit }, { status: 200 });
       }
 
       const orgIds = memberships.map((m) => m.organization_id);
+      console.log('[Projects API GET] User belongs to organizations:', orgIds);
       query = query.in('organization_id', orgIds);
     }
 
@@ -107,12 +118,30 @@ export async function GET(request: Request) {
     // Pagination
     query = query.range(offset, offset + limit - 1);
 
+    console.log('[Projects API GET] Executing query with filters:', {
+      organizationIds: organizationId ? [organizationId] : 'from user memberships',
+      status,
+      search,
+      sortColumn,
+      sortOrder,
+      offset,
+      limit,
+    });
+
     const { data: projects, error, count } = await query;
 
     if (error) {
-      console.error('Failed to fetch projects:', error);
+      console.error('[Projects API GET] Failed to fetch projects:', error);
       return NextResponse.json({ message: 'Failed to fetch projects' }, { status: 500 });
     }
+
+    console.log('[Projects API GET] Query results:', {
+      projectsCount: projects?.length || 0,
+      totalCount: count,
+      firstProject: projects?.[0]
+        ? { id: projects[0].project_id, name: projects[0].project_name }
+        : null,
+    });
 
     // Transform the data to match frontend expectations
     const transformedProjects = (projects || []).map((stats: ProjectDashboardStats) => ({
