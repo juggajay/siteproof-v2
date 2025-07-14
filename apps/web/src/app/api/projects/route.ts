@@ -217,7 +217,7 @@ export async function POST(request: Request) {
       .from('projects')
       .select('id')
       .eq('organization_id', data.organizationId)
-      .ilike('name', data.name)
+      .ilike('name', data.name.trim())
       .single();
 
     if (existingProject) {
@@ -239,7 +239,7 @@ export async function POST(request: Request) {
       .from('projects')
       .insert({
         organization_id: data.organizationId,
-        name: data.name,
+        name: data.name.trim(),
         description: data.description,
         client_name: data.clientName,
         client_email: data.clientEmail || null,

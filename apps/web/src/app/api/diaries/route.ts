@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         project:projects(id, name, client_name),
         createdBy:users!daily_diaries_created_by_fkey(id, email, full_name),
         approvedBy:users!daily_diaries_approved_by_fkey(id, email, full_name),
-        daily_workforce_costs!inner(workforce_costs, total_daily_cost)
+        daily_workforce_costs(workforce_costs, total_daily_cost)
       `
       : `
         *,

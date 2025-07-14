@@ -13,6 +13,9 @@ vi.mock('next/navigation', () => ({
     replace: vi.fn(),
     prefetch: vi.fn(),
   }),
+  useSearchParams: () => ({
+    get: vi.fn(),
+  }),
 }));
 
 // Mock toast
@@ -21,6 +24,7 @@ vi.mock('sonner', () => ({
     success: vi.fn(),
     error: vi.fn(),
   },
+  Toaster: () => null,
 }));
 
 describe('LoginForm', () => {
@@ -71,14 +75,14 @@ describe('LoginForm', () => {
       data: { user: { id: '123' }, session: {} },
       error: null,
     });
-    
+
     vi.mocked(mockSupabaseClient.auth.signInWithPassword).mockImplementation(mockSignIn);
 
     render(<LoginForm />);
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
-    
+
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'password123');
 
@@ -99,14 +103,14 @@ describe('LoginForm', () => {
       data: null,
       error: { message: 'Invalid credentials' },
     });
-    
+
     vi.mocked(mockSupabaseClient.auth.signInWithPassword).mockImplementation(mockSignIn);
 
     render(<LoginForm />);
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
-    
+
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'wrongpassword');
 
@@ -119,17 +123,17 @@ describe('LoginForm', () => {
   });
 
   it('disables submit button while loading', async () => {
-    const mockSignIn = vi.fn().mockImplementation(
-      () => new Promise(resolve => setTimeout(resolve, 1000))
-    );
-    
+    const mockSignIn = vi
+      .fn()
+      .mockImplementation(() => new Promise((resolve) => setTimeout(resolve, 1000)));
+
     vi.mocked(mockSupabaseClient.auth.signInWithPassword).mockImplementation(mockSignIn);
 
     render(<LoginForm />);
 
     const emailInput = screen.getByLabelText(/email/i);
     const passwordInput = screen.getByLabelText(/password/i);
-    
+
     await user.type(emailInput, 'test@example.com');
     await user.type(passwordInput, 'password123');
 
@@ -149,7 +153,7 @@ describe('LoginForm', () => {
 
   it('focuses email input on mount', () => {
     render(<LoginForm />);
-    
+
     const emailInput = screen.getByLabelText(/email/i);
     expect(document.activeElement).toBe(emailInput);
   });
