@@ -17,14 +17,18 @@ const createLotSchema = z.object({
         type: z.string(),
       })
     )
-    .min(1, 'At least one file is required'),
+    .optional()
+    .default([]),
   internalNotes: z.string().optional(),
+  status: z.enum(['pending', 'in_review', 'approved', 'rejected']).optional().default('pending'),
 });
 
 // GET /api/projects/[id]/lots - List lots for a project
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const projectId = params?.id;
+    console.log('[Lots API] GET request for project:', projectId);
+
     const { searchParams } = new URL(request.url);
     const status = searchParams?.get('status') as Lot['status'] | null;
     const page = parseInt(searchParams?.get('page') || '1');
@@ -73,18 +77,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .select(
         `
         *,
-        creator:created_by (
+        creator:profiles!lots_created_by_fkey (
           id,
           full_name,
           email,
           avatar_url
         ),
-        reviewer:reviewed_by (
+        reviewer:profiles!lots_reviewed_by_fkey (
           id,
           full_name,
           email
-        ),
-        comments:comments(count)
+        )
       `,
         { count: 'exact' }
       )
@@ -102,15 +105,27 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const { data: lots, error, count } = await query;
 
     if (error) {
-      console.error('Failed to fetch lots:', error);
-      return NextResponse.json({ message: 'Failed to fetch lots' }, { status: 500 });
+      console.error('[Lots API] Failed to fetch lots:', error);
+      console.error('[Lots API] Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      return NextResponse.json(
+        {
+          message: 'Failed to fetch lots',
+          error: error.message,
+          code: error.code,
+        },
+        { status: 400 }
+      );
     }
 
     // Transform the data
     const transformedLots = (lots || []).map((lot: any) => ({
       ...lot,
-      commentCount: lot.comments?.[0]?.count || 0,
-      comments: undefined, // Remove the count object
+      commentCount: 0, // TODO: Add comment count query when needed
     }));
 
     return NextResponse.json(
@@ -216,7 +231,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       .select(
         `
         *,
-        creator:created_by (
+        creator:profiles!lots_created_by_fkey (
           id,
           full_name,
           email,
