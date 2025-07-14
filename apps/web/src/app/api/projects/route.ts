@@ -143,6 +143,100 @@ export async function GET(request: Request) {
         : null,
     });
 
+    // If no projects found in materialized view, check the projects table directly
+    // This handles the case where the materialized view hasn't been refreshed yet
+    let orgIds: string[] | undefined;
+    if (!organizationId) {
+      // Get orgIds from earlier in the code
+      const { data: memberships } = await supabase
+        .from('organization_members')
+        .select('organization_id')
+        .eq('user_id', user.id);
+
+      if (memberships && memberships.length > 0) {
+        orgIds = memberships.map((m) => m.organization_id);
+      }
+    }
+
+    if ((!projects || projects.length === 0) && count === 0) {
+      console.log(
+        '[Projects API GET] No projects in materialized view, checking projects table directly...'
+      );
+
+      // Build a query for the projects table
+      let directQuery = supabase.from('projects').select('*', { count: 'exact' });
+
+      // Apply the same filters
+      if (organizationId) {
+        directQuery = directQuery.eq('organization_id', organizationId);
+      } else if (orgIds && orgIds.length > 0) {
+        directQuery = directQuery.in('organization_id', orgIds);
+      }
+
+      if (status) {
+        directQuery = directQuery.eq('status', status);
+      }
+
+      if (search) {
+        directQuery = directQuery.or(
+          `name.ilike.%${search}%,client_name.ilike.%${search}%,client_company.ilike.%${search}%`
+        );
+      }
+
+      // Apply sorting and pagination
+      directQuery = directQuery.order('created_at', { ascending: false });
+      directQuery = directQuery.range(offset, offset + limit - 1);
+
+      const { data: directProjects, error: directError } = await directQuery;
+
+      if (!directError && directProjects && directProjects.length > 0) {
+        console.log(
+          '[Projects API GET] Found projects in direct table query:',
+          directProjects.length
+        );
+
+        // Transform direct project data to match the expected format
+        const transformedDirectProjects = directProjects.map((project: any) => ({
+          id: project.id,
+          name: project.name,
+          status: project.status,
+          organizationId: project.organization_id,
+          clientName: project.client_name,
+          clientCompany: project.client_company,
+          dueDate: project.due_date,
+          createdAt: project.created_at,
+          lastActivityAt: project.updated_at || project.created_at,
+          progressPercentage: 0,
+          stats: {
+            totalLots: 0,
+            pendingLots: 0,
+            inReviewLots: 0,
+            approvedLots: 0,
+            rejectedLots: 0,
+            totalComments: 0,
+            unresolvedComments: 0,
+          },
+        }));
+
+        return NextResponse.json(
+          {
+            projects: transformedDirectProjects,
+            total: directProjects.length,
+            page,
+            limit,
+          },
+          {
+            status: 200,
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              Pragma: 'no-cache',
+              Expires: '0',
+            },
+          }
+        );
+      }
+    }
+
     // Transform the data to match frontend expectations
     const transformedProjects = (projects || []).map((stats: ProjectDashboardStats) => ({
       id: stats.project_id,
@@ -312,34 +406,14 @@ export async function POST(request: Request) {
 
     console.log('[Projects API] Project created successfully:', { projectId: project.id });
 
-    // Refresh the materialized view with retry logic
-    console.log('[Projects API] Starting materialized view refresh...');
-    let refreshAttempts = 0;
-    const maxRefreshAttempts = 3;
-    let refreshSuccess = false;
+    // Skip materialized view refresh due to missing unique index
+    // The view will be refreshed on the next scheduled refresh
+    console.log(
+      '[Projects API] Skipping materialized view refresh (will update on next scheduled refresh)'
+    );
 
-    while (refreshAttempts < maxRefreshAttempts && !refreshSuccess) {
-      const { error: refreshError } = await supabase.rpc('refresh_project_dashboard_stats');
-      if (refreshError) {
-        console.error(
-          `[Projects API] Failed to refresh materialized view (attempt ${refreshAttempts + 1}/${maxRefreshAttempts}):`,
-          refreshError
-        );
-        refreshAttempts++;
-        if (refreshAttempts < maxRefreshAttempts) {
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-      } else {
-        refreshSuccess = true;
-        console.log('[Projects API] Materialized view refresh successful');
-        // Add a longer delay to ensure the materialized view is fully refreshed
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-      }
-    }
-
-    if (!refreshSuccess) {
-      console.warn('[Projects API] Materialized view refresh failed after all attempts');
-    }
+    // Add a small delay to allow any database triggers to complete
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     // Fetch the complete project data from the materialized view
     // This ensures we have all the stats immediately available
