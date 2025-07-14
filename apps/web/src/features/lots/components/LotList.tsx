@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns';
 interface LotListProps {
   projectId: string;
   canEdit: boolean;
+  refreshTrigger?: number;
 }
 
 interface Lot {
@@ -28,7 +29,7 @@ interface Lot {
   reviewed_by: string | null;
 }
 
-export function LotList({ projectId }: LotListProps) {
+export function LotList({ projectId, refreshTrigger }: LotListProps) {
   const [lots, setLots] = useState<Lot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export function LotList({ projectId }: LotListProps) {
   useEffect(() => {
     fetchLots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId]);
+  }, [projectId, refreshTrigger]);
 
   const fetchLots = async () => {
     try {

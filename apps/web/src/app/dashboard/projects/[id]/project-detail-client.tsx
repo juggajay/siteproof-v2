@@ -49,6 +49,7 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
   );
   const [showCreateLotModal, setShowCreateLotModal] = useState(false);
   const [_showUploadDocumentModal, setShowUploadDocumentModal] = useState(false);
+  const [refreshLots, setRefreshLots] = useState(0);
 
   const canEdit = ['owner', 'admin', 'member'].includes(userRole);
 
@@ -245,7 +246,7 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
                 </Button>
               )}
             </div>
-            <LotList projectId={project.id} canEdit={canEdit} />
+            <LotList projectId={project.id} canEdit={canEdit} refreshTrigger={refreshLots} />
           </div>
         )}
 
@@ -287,7 +288,7 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
           onClose={() => setShowCreateLotModal(false)}
           onSuccess={() => {
             setShowCreateLotModal(false);
-            // The lot list will automatically refresh via router.refresh() in the modal
+            setRefreshLots((prev) => prev + 1); // Trigger lot list refresh
           }}
         />
       )}
