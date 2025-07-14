@@ -242,6 +242,12 @@ export async function POST(request: Request) {
     }
 
     // Create the project
+    console.log('[Projects API] Creating project:', {
+      organizationId: data.organizationId,
+      name: data.name.trim(),
+      userId: user.id,
+    });
+
     const { data: project, error } = await supabase
       .from('projects')
       .insert({
@@ -263,11 +269,22 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error('Failed to create project:', error);
-      return NextResponse.json({ message: 'Failed to create project' }, { status: 500 });
+      console.error('[Projects API] Failed to create project:', error);
+      console.error('[Projects API] Error details:', { code: error.code, message: error.message });
+      return NextResponse.json(
+        {
+          message: 'Failed to create project',
+          error: error.message,
+          code: error.code,
+        },
+        { status: 500 }
+      );
     }
 
+    console.log('[Projects API] Project created successfully:', { projectId: project.id });
+
     // Refresh the materialized view with retry logic
+    console.log('[Projects API] Starting materialized view refresh...');
     let refreshAttempts = 0;
     const maxRefreshAttempts = 3;
     let refreshSuccess = false;
@@ -276,7 +293,7 @@ export async function POST(request: Request) {
       const { error: refreshError } = await supabase.rpc('refresh_project_dashboard_stats');
       if (refreshError) {
         console.error(
-          `Failed to refresh project dashboard stats (attempt ${refreshAttempts + 1}):`,
+          `[Projects API] Failed to refresh materialized view (attempt ${refreshAttempts + 1}/${maxRefreshAttempts}):`,
           refreshError
         );
         refreshAttempts++;
@@ -285,13 +302,19 @@ export async function POST(request: Request) {
         }
       } else {
         refreshSuccess = true;
+        console.log('[Projects API] Materialized view refresh successful');
         // Add a longer delay to ensure the materialized view is fully refreshed
         await new Promise((resolve) => setTimeout(resolve, 1500));
       }
     }
 
+    if (!refreshSuccess) {
+      console.warn('[Projects API] Materialized view refresh failed after all attempts');
+    }
+
     // Fetch the complete project data from the materialized view
     // This ensures we have all the stats immediately available
+    console.log('[Projects API] Fetching project stats from materialized view...');
     let projectStats = null;
     let fetchAttempts = 0;
     const maxFetchAttempts = 3;
@@ -305,14 +328,16 @@ export async function POST(request: Request) {
 
       if (error || !data) {
         fetchAttempts++;
+        console.warn(
+          `[Projects API] Project not found in materialized view (attempt ${fetchAttempts}/${maxFetchAttempts})`,
+          error?.message || 'No data returned'
+        );
         if (fetchAttempts < maxFetchAttempts) {
-          console.log(
-            `Project not found in materialized view (attempt ${fetchAttempts}), retrying...`
-          );
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       } else {
         projectStats = data;
+        console.log('[Projects API] Project stats fetched successfully');
       }
     }
 

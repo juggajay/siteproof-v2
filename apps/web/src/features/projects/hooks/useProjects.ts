@@ -118,7 +118,7 @@ export function useCreateProject() {
 
       return response.json();
     },
-    onSuccess: (response, variables) => {
+    onSuccess: (response) => {
       // Optimistically update the cache with the new project
       queryClient.setQueriesData<ProjectsResponse>({ queryKey: ['projects'] }, (oldData) => {
         if (!oldData) return oldData;

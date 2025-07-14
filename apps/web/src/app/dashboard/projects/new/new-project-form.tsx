@@ -2,37 +2,69 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CreateProjectModal } from '@/features/projects/components/CreateProjectModal';
+import { Button, Card, CardContent, CardHeader, CardTitle } from '@siteproof/design-system';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { CreateProjectForm } from '@/features/projects/components/CreateProjectForm';
+import { useCreateProject } from '@/features/projects/hooks/useProjects';
 
 export default function NewProjectForm({ organizationId }: { organizationId: string }) {
-  const [isOpen, setIsOpen] = useState(true);
   const router = useRouter();
+  const createProject = useCreateProject();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleClose = () => {
-    setIsOpen(false);
-    router.push('/dashboard/projects');
+  const handleSubmit = async (data: any) => {
+    setIsSubmitting(true);
+    try {
+      await createProject.mutateAsync({
+        ...data,
+        organizationId,
+      });
+      // Redirect to projects list after successful creation
+      router.push('/dashboard/projects');
+    } catch (error) {
+      // Error is handled by the mutation hook
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <>
-      <div className="min-h-screen bg-gray-50">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <div className="py-8">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">Create New Project</h1>
-              <p className="mt-2 text-gray-600">
-                Set up a new construction project to track progress and manage documentation
-              </p>
-            </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+        <div className="py-8">
+          {/* Back button */}
+          <div className="mb-6">
+            <Link href="/dashboard/projects">
+              <Button variant="ghost" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Projects
+              </Button>
+            </Link>
           </div>
+
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">Create New Project</h1>
+            <p className="mt-2 text-gray-600">
+              Set up a new construction project to track progress and manage documentation
+            </p>
+          </div>
+
+          {/* Form Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Project Details</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CreateProjectForm
+                onSubmit={handleSubmit}
+                isSubmitting={isSubmitting}
+                onCancel={() => router.push('/dashboard/projects')}
+              />
+            </CardContent>
+          </Card>
         </div>
       </div>
-      <CreateProjectModal 
-        isOpen={isOpen} 
-        onClose={handleClose} 
-        organizationId={organizationId} 
-      />
-    </>
+    </div>
   );
 }

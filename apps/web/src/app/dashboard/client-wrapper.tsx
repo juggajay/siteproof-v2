@@ -4,15 +4,14 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Button, Input, useToast } from '@siteproof/design-system';
 import { Plus, Building2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 export function ClientWrapper() {
   const [showCreateOrg, setShowCreateOrg] = useState(false);
   const [orgName, setOrgName] = useState('');
   const [orgDescription, setOrgDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const { showSuccess, showError } = useToast();
-  const router = useRouter();
 
   const handleCreateOrganization = async () => {
     if (!orgName.trim()) {
@@ -35,7 +34,11 @@ export function ClientWrapper() {
 
       if (response.ok) {
         showSuccess('Organization created successfully!');
-        router.refresh(); // Refresh the page to show the dashboard
+        setIsRedirecting(true);
+        // Use window.location for a full page reload to ensure state is updated
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1000);
       } else {
         const error = await response.json();
         console.error('Organization creation failed:', error);
@@ -58,26 +61,28 @@ export function ClientWrapper() {
           onChange={(e) => setOrgName(e.target.value)}
           placeholder="Enter your organization name"
           required
+          disabled={isCreating || isRedirecting}
         />
         <Input
           label="Description (Optional)"
           value={orgDescription}
           onChange={(e) => setOrgDescription(e.target.value)}
           placeholder="Brief description of your organization"
+          disabled={isCreating || isRedirecting}
         />
         <div className="flex gap-2">
-          <Button 
-            onClick={handleCreateOrganization} 
-            loading={isCreating}
-            disabled={!orgName.trim()}
+          <Button
+            onClick={handleCreateOrganization}
+            loading={isCreating || isRedirecting}
+            disabled={!orgName.trim() || isRedirecting}
           >
             <Building2 className="mr-2 h-4 w-4" />
-            Create Organization
+            {isRedirecting ? 'Redirecting...' : 'Create Organization'}
           </Button>
-          <Button 
-            variant="secondary" 
+          <Button
+            variant="secondary"
             onClick={() => setShowCreateOrg(false)}
-            disabled={isCreating}
+            disabled={isCreating || isRedirecting}
           >
             Cancel
           </Button>
