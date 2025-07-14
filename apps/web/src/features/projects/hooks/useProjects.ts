@@ -74,8 +74,10 @@ export function useProjects(options: UseProjectsOptions = {}) {
 
       return response.json();
     },
-    staleTime: 30 * 1000, // Consider data fresh for 30 seconds
+    staleTime: 10 * 1000, // Consider data fresh for 10 seconds (reduced for better responsiveness)
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnMount: true, // Always refetch when component mounts
   });
 }
 
@@ -93,10 +95,15 @@ export interface CreateProjectData {
   password?: string;
 }
 
+interface CreateProjectResponse {
+  message: string;
+  project: Project;
+}
+
 export function useCreateProject() {
   const queryClient = useQueryClient();
 
-  return useMutation<any, Error, CreateProjectData>({
+  return useMutation<CreateProjectResponse, Error, CreateProjectData>({
     mutationFn: async (data) => {
       const response = await fetch('/api/projects', {
         method: 'POST',
@@ -111,12 +118,31 @@ export function useCreateProject() {
 
       return response.json();
     },
-    onSuccess: () => {
-      // Invalidate and refetch projects list with force refetch
+    onSuccess: (response, variables) => {
+      // Optimistically update the cache with the new project
+      queryClient.setQueriesData<ProjectsResponse>({ queryKey: ['projects'] }, (oldData) => {
+        if (!oldData) return oldData;
+        return {
+          ...oldData,
+          projects: [response.project, ...oldData.projects],
+          total: oldData.total + 1,
+        };
+      });
+
+      // Invalidate and refetch projects list to ensure consistency
       queryClient.invalidateQueries({
         queryKey: ['projects'],
         refetchType: 'all',
       });
+
+      // Schedule an additional refetch after a delay to catch any delayed updates
+      setTimeout(() => {
+        queryClient.invalidateQueries({
+          queryKey: ['projects'],
+          refetchType: 'all',
+        });
+      }, 2000);
+
       toast.success('Project created successfully');
     },
     onError: (error) => {

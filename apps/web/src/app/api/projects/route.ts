@@ -267,28 +267,104 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'Failed to create project' }, { status: 500 });
     }
 
-    // Refresh the materialized view
-    const { error: refreshError } = await supabase.rpc('refresh_project_dashboard_stats');
-    if (refreshError) {
-      console.error('Failed to refresh project dashboard stats:', refreshError);
-      // Don't fail the request if the refresh fails
-    } else {
-      // Add a small delay to ensure the materialized view is fully refreshed
-      await new Promise((resolve) => setTimeout(resolve, 500));
+    // Refresh the materialized view with retry logic
+    let refreshAttempts = 0;
+    const maxRefreshAttempts = 3;
+    let refreshSuccess = false;
+
+    while (refreshAttempts < maxRefreshAttempts && !refreshSuccess) {
+      const { error: refreshError } = await supabase.rpc('refresh_project_dashboard_stats');
+      if (refreshError) {
+        console.error(
+          `Failed to refresh project dashboard stats (attempt ${refreshAttempts + 1}):`,
+          refreshError
+        );
+        refreshAttempts++;
+        if (refreshAttempts < maxRefreshAttempts) {
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+      } else {
+        refreshSuccess = true;
+        // Add a longer delay to ensure the materialized view is fully refreshed
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
     }
 
-    return NextResponse.json(
-      {
-        message: 'Project created successfully',
-        project: {
+    // Fetch the complete project data from the materialized view
+    // This ensures we have all the stats immediately available
+    let projectStats = null;
+    let fetchAttempts = 0;
+    const maxFetchAttempts = 3;
+
+    while (fetchAttempts < maxFetchAttempts && !projectStats) {
+      const { data, error } = await supabase
+        .from('project_dashboard_stats')
+        .select('*')
+        .eq('project_id', project.id)
+        .single();
+
+      if (error || !data) {
+        fetchAttempts++;
+        if (fetchAttempts < maxFetchAttempts) {
+          console.log(
+            `Project not found in materialized view (attempt ${fetchAttempts}), retrying...`
+          );
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      } else {
+        projectStats = data;
+      }
+    }
+
+    const transformedProject = projectStats
+      ? {
+          id: projectStats.project_id,
+          name: projectStats.project_name,
+          status: projectStats.project_status,
+          organizationId: projectStats.organization_id,
+          clientName: projectStats.client_name,
+          clientCompany: projectStats.client_company,
+          dueDate: projectStats.due_date,
+          createdAt: projectStats.project_created_at,
+          lastActivityAt: projectStats.last_activity_at,
+          progressPercentage: projectStats.progress_percentage,
+          stats: {
+            totalLots: projectStats.total_lots,
+            pendingLots: projectStats.pending_lots,
+            inReviewLots: projectStats.in_review_lots,
+            approvedLots: projectStats.approved_lots,
+            rejectedLots: projectStats.rejected_lots,
+            totalComments: projectStats.total_comments,
+            unresolvedComments: projectStats.unresolved_comments,
+          },
+        }
+      : {
+          // Fallback data if materialized view is not ready
           id: project.id,
           name: project.name,
           status: project.status,
           organizationId: project.organization_id,
           clientName: project.client_name,
           clientCompany: project.client_company,
+          dueDate: project.due_date,
           createdAt: project.created_at,
-        },
+          lastActivityAt: project.created_at,
+          progressPercentage: 0,
+          stats: {
+            totalLots: 0,
+            pendingLots: 0,
+            inReviewLots: 0,
+            approvedLots: 0,
+            rejectedLots: 0,
+            totalComments: 0,
+            unresolvedComments: 0,
+          },
+        };
+
+    return NextResponse.json(
+      {
+        message: 'Project created successfully',
+        project: transformedProject,
       },
       { status: 201 }
     );
