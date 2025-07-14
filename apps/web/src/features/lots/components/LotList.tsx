@@ -35,6 +35,12 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log(
+      '[LotList] Component mounted/updated - projectId:',
+      projectId,
+      'refreshTrigger:',
+      refreshTrigger
+    );
     fetchLots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, refreshTrigger]);

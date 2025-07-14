@@ -287,8 +287,12 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
           projectId={project.id}
           onClose={() => setShowCreateLotModal(false)}
           onSuccess={() => {
+            console.log('[ProjectDetail] Lot created successfully, triggering refresh');
+            setRefreshLots((prev) => {
+              console.log('[ProjectDetail] Updating refreshLots from', prev, 'to', prev + 1);
+              return prev + 1;
+            });
             setShowCreateLotModal(false);
-            setRefreshLots((prev) => prev + 1); // Trigger lot list refresh
           }}
         />
       )}
