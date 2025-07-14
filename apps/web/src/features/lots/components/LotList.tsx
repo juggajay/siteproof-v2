@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { FileText, Calendar, CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -128,9 +129,10 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
   return (
     <div className="space-y-4">
       {lots.map((lot) => (
-        <div
+        <Link
           key={lot.id}
-          className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+          href={`/dashboard/projects/${projectId}/lots/${lot.id}`}
+          className="block bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
@@ -164,7 +166,7 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
               </div>
             </div>
           </div>
-        </div>
+        </Link>
       ))}
     </div>
   );
