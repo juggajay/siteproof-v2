@@ -14,15 +14,22 @@ export default function NewProjectForm({ organizationId }: { organizationId: str
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (data: any) => {
+    console.log('[NewProjectForm] Submitting project with data:', data);
     setIsSubmitting(true);
     try {
-      await createProject.mutateAsync({
+      const result = await createProject.mutateAsync({
         ...data,
         organizationId,
       });
+      console.log('[NewProjectForm] Project created successfully, redirecting...', result);
+
+      // Add a small delay before redirecting to ensure cache updates are processed
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // Redirect to projects list after successful creation
       router.push('/dashboard/projects');
     } catch (error) {
+      console.error('[NewProjectForm] Failed to create project:', error);
       // Error is handled by the mutation hook
       setIsSubmitting(false);
     }

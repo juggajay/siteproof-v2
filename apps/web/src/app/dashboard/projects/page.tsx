@@ -7,9 +7,15 @@ import { Plus } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 import { ProjectList } from '@/features/projects/components/ProjectList';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function ProjectsPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    console.log('[ProjectsPage] Component mounted');
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

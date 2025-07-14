@@ -56,6 +56,16 @@ export function useProjects(options: UseProjectsOptions = {}) {
   return useQuery<ProjectsResponse, Error>({
     queryKey: ['projects', { organizationId, status, search, sortBy, sortOrder, page, limit }],
     queryFn: async () => {
+      console.log('[useProjects] Fetching projects with params:', {
+        organizationId,
+        status,
+        search,
+        sortBy,
+        sortOrder,
+        page,
+        limit,
+      });
+
       const params = new URLSearchParams();
       if (organizationId) params.append('organizationId', organizationId);
       if (status) params.append('status', status);
@@ -69,10 +79,17 @@ export function useProjects(options: UseProjectsOptions = {}) {
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('[useProjects] Failed to fetch projects:', error);
         throw new Error(error.message || 'Failed to fetch projects');
       }
 
-      return response.json();
+      const data = await response.json();
+      console.log('[useProjects] Projects fetched successfully:', {
+        total: data.total,
+        count: data.projects?.length,
+        projects: data.projects?.map((p: Project) => ({ id: p.id, name: p.name })),
+      });
+      return data;
     },
     staleTime: 10 * 1000, // Consider data fresh for 10 seconds (reduced for better responsiveness)
     gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
@@ -105,6 +122,8 @@ export function useCreateProject() {
 
   return useMutation<CreateProjectResponse, Error, CreateProjectData>({
     mutationFn: async (data) => {
+      console.log('[useCreateProject] Creating project with data:', data);
+
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -113,23 +132,32 @@ export function useCreateProject() {
 
       if (!response.ok) {
         const error = await response.json();
+        console.error('[useCreateProject] Failed to create project:', error);
         throw new Error(error.message || 'Failed to create project');
       }
 
-      return response.json();
+      const result = await response.json();
+      console.log('[useCreateProject] Project created successfully:', result);
+      return result;
     },
     onSuccess: (response) => {
+      console.log('[useCreateProject] onSuccess called with:', response);
+
       // Optimistically update the cache with the new project
       queryClient.setQueriesData<ProjectsResponse>({ queryKey: ['projects'] }, (oldData) => {
+        console.log('[useCreateProject] Updating cache - old data:', oldData);
         if (!oldData) return oldData;
-        return {
+        const newData = {
           ...oldData,
           projects: [response.project, ...oldData.projects],
           total: oldData.total + 1,
         };
+        console.log('[useCreateProject] Updated cache with new data:', newData);
+        return newData;
       });
 
       // Invalidate and refetch projects list to ensure consistency
+      console.log('[useCreateProject] Invalidating queries for refetch');
       queryClient.invalidateQueries({
         queryKey: ['projects'],
         refetchType: 'all',
@@ -137,6 +165,7 @@ export function useCreateProject() {
 
       // Schedule an additional refetch after a delay to catch any delayed updates
       setTimeout(() => {
+        console.log('[useCreateProject] Performing delayed refetch');
         queryClient.invalidateQueries({
           queryKey: ['projects'],
           refetchType: 'all',
@@ -146,6 +175,7 @@ export function useCreateProject() {
       toast.success('Project created successfully');
     },
     onError: (error) => {
+      console.error('[useCreateProject] Mutation error:', error);
       toast.error(error.message || 'Failed to create project');
     },
   });
