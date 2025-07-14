@@ -144,7 +144,14 @@ export async function GET(request: Request) {
         page,
         limit,
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
     );
   } catch (error) {
     console.error('Projects list error:', error);
@@ -261,7 +268,14 @@ export async function POST(request: Request) {
     }
 
     // Refresh the materialized view
-    await supabase.rpc('refresh_project_dashboard_stats');
+    const { error: refreshError } = await supabase.rpc('refresh_project_dashboard_stats');
+    if (refreshError) {
+      console.error('Failed to refresh project dashboard stats:', refreshError);
+      // Don't fail the request if the refresh fails
+    } else {
+      // Add a small delay to ensure the materialized view is fully refreshed
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
 
     return NextResponse.json(
       {

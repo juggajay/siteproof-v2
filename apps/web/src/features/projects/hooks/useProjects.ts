@@ -66,7 +66,7 @@ export function useProjects(options: UseProjectsOptions = {}) {
       params.append('limit', limit.toString());
 
       const response = await fetch(`/api/projects?${params}`);
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to fetch projects');
@@ -112,8 +112,11 @@ export function useCreateProject() {
       return response.json();
     },
     onSuccess: () => {
-      // Invalidate and refetch projects list
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      // Invalidate and refetch projects list with force refetch
+      queryClient.invalidateQueries({
+        queryKey: ['projects'],
+        refetchType: 'all',
+      });
       toast.success('Project created successfully');
     },
     onError: (error) => {
