@@ -21,6 +21,7 @@ const createLotSchema = z.object({
     .default([]),
   internalNotes: z.string().optional(),
   status: z.enum(['pending', 'in_review', 'approved', 'rejected']).optional().default('pending'),
+  selectedItpTemplates: z.array(z.string()).optional().default([]),
 });
 
 // GET /api/projects/[id]/lots - List lots for a project
@@ -242,6 +243,45 @@ export async function POST(request: Request, { params }: { params: { id: string 
         },
         { status: 500 }
       );
+    }
+
+    // Create ITP instances for selected templates
+    if (data.selectedItpTemplates && data.selectedItpTemplates.length > 0) {
+      console.log('[Lots API] Creating ITP instances for templates:', data.selectedItpTemplates);
+
+      // First, validate that all templates exist and are accessible
+      const { data: templates, error: templatesError } = await supabase
+        .from('itp_templates')
+        .select('id, name, organization_id')
+        .in('id', data.selectedItpTemplates)
+        .eq('organization_id', project.organization_id)
+        .eq('is_active', true)
+        .is('deleted_at', null);
+
+      if (templatesError) {
+        console.error('[Lots API] Failed to validate templates:', templatesError);
+        // Don't fail the lot creation, just log the error
+      } else if (templates && templates.length > 0) {
+        // Create ITP instances for each template
+        const itpInstances = templates.map((template) => ({
+          template_id: template.id,
+          project_id: projectId,
+          lot_id: lot.id,
+          name: `${template.name} - ${lot.name}`,
+          data: {},
+          status: 'draft',
+          created_by: user.id,
+        }));
+
+        const { error: instancesError } = await supabase.from('itp_instances').insert(itpInstances);
+
+        if (instancesError) {
+          console.error('[Lots API] Failed to create ITP instances:', instancesError);
+          // Don't fail the lot creation, just log the error
+        } else {
+          console.log('[Lots API] Successfully created', itpInstances.length, 'ITP instances');
+        }
+      }
     }
 
     // Skip refreshing the materialized view due to missing unique index

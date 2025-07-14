@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, Upload, FileText, Loader2 } from 'lucide-react';
+import { X, Upload, FileText, Loader2, ClipboardList, CheckCircle2 } from 'lucide-react';
 import { Button, Input, Textarea } from '@siteproof/design-system';
 import {
   validateFileSize,
@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/client';
 const createLotSchema = z.object({
   name: z.string().min(1, 'Lot name is required').max(100),
   description: z.string().optional(),
+  selectedItpTemplates: z.array(z.string()).optional().default([]),
 });
 
 type CreateLotData = z.infer<typeof createLotSchema>;
@@ -27,20 +28,65 @@ interface CreateLotModalProps {
   onSuccess?: () => void;
 }
 
+interface ITPTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  category?: string;
+  is_active: boolean;
+}
+
 export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModalProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [itpTemplates, setItpTemplates] = useState<ITPTemplate[]>([]);
+  const [selectedItpTemplates, setSelectedItpTemplates] = useState<string[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
   } = useForm<CreateLotData>({
     resolver: zodResolver(createLotSchema),
   });
+
+  // Load ITP templates on component mount
+  useEffect(() => {
+    loadItpTemplates();
+  }, []);
+
+  // Update form value when selected templates change
+  useEffect(() => {
+    setValue('selectedItpTemplates', selectedItpTemplates);
+  }, [selectedItpTemplates, setValue]);
+
+  const loadItpTemplates = async () => {
+    setIsLoadingTemplates(true);
+    try {
+      const response = await fetch('/api/itp/templates?is_active=true');
+      if (response.ok) {
+        const data = await response.json();
+        setItpTemplates(data.templates || []);
+      } else {
+        console.error('Failed to load ITP templates');
+      }
+    } catch (error) {
+      console.error('Error loading ITP templates:', error);
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  };
+
+  const toggleItpTemplate = (templateId: string) => {
+    setSelectedItpTemplates((prev) =>
+      prev.includes(templateId) ? prev.filter((id) => id !== templateId) : [...prev, templateId]
+    );
+  };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = event.target.files;
@@ -131,6 +177,7 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
           name: data.name,
           description: data.description,
           status: 'pending',
+          selectedItpTemplates: selectedItpTemplates,
         }),
       });
 
@@ -211,6 +258,68 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
                 rows={3}
                 disabled={isSubmitting}
               />
+            </div>
+
+            {/* ITP Template Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                ITP Templates (Optional)
+              </label>
+              <p className="text-sm text-gray-500 mb-3">
+                Select inspection templates to assign to this lot. You can also assign them later.
+              </p>
+
+              {isLoadingTemplates ? (
+                <div className="flex items-center justify-center p-4 border border-gray-300 rounded-md">
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  <span className="text-sm text-gray-600">Loading templates...</span>
+                </div>
+              ) : itpTemplates.length === 0 ? (
+                <div className="text-center p-4 border border-gray-300 rounded-md">
+                  <ClipboardList className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-600">No ITP templates available</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3">
+                  {itpTemplates.map((template) => (
+                    <div
+                      key={template.id}
+                      className={`flex items-start p-3 rounded-md border cursor-pointer transition-colors ${
+                        selectedItpTemplates.includes(template.id)
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                      onClick={() => toggleItpTemplate(template.id)}
+                    >
+                      <div className="flex-shrink-0 mr-3 pt-1">
+                        {selectedItpTemplates.includes(template.id) ? (
+                          <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                        ) : (
+                          <div className="h-5 w-5 border-2 border-gray-300 rounded-full" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-gray-900">{template.name}</h4>
+                        {template.description && (
+                          <p className="text-sm text-gray-500 mt-1">{template.description}</p>
+                        )}
+                        {template.category && (
+                          <span className="inline-block mt-1 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded">
+                            {template.category}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {selectedItpTemplates.length > 0 && (
+                <p className="mt-2 text-sm text-green-600">
+                  {selectedItpTemplates.length} template
+                  {selectedItpTemplates.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
             </div>
 
             <div>
