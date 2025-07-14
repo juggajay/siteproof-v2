@@ -42,15 +42,23 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
   const fetchLots = async () => {
     try {
       setLoading(true);
+      setError(null);
+      console.log('[LotList] Fetching lots for project:', projectId);
+
       const response = await fetch(`/api/projects/${projectId}/lots`);
+      console.log('[LotList] Response status:', response.status);
 
       if (!response.ok) {
-        throw new Error('Failed to fetch lots');
+        const errorData = await response.json();
+        console.error('[LotList] Error response:', errorData);
+        throw new Error(errorData.message || 'Failed to fetch lots');
       }
 
       const data = await response.json();
-      setLots(data.lots);
+      console.log('[LotList] Lots fetched:', data);
+      setLots(data.lots || []);
     } catch (err) {
+      console.error('[LotList] Fetch error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);

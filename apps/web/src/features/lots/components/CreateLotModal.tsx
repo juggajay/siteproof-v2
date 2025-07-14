@@ -120,6 +120,9 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
     setError(null);
 
     try {
+      console.log('[CreateLotModal] Creating lot for project:', projectId);
+      console.log('[CreateLotModal] Lot data:', data);
+
       // Create the lot first
       const response = await fetch(`/api/projects/${projectId}/lots`, {
         method: 'POST',
@@ -131,12 +134,17 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
         }),
       });
 
+      console.log('[CreateLotModal] Response status:', response.status);
+
       if (!response.ok) {
         const error = await response.json();
+        console.error('[CreateLotModal] Error response:', error);
         throw new Error(error.message || 'Failed to create lot');
       }
 
-      const { lot } = await response.json();
+      const responseData = await response.json();
+      console.log('[CreateLotModal] Lot created:', responseData);
+      const { lot } = responseData;
 
       // Upload files if any
       if (files.length > 0) {
