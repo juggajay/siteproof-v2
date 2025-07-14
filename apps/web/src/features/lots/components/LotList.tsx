@@ -1,13 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FileText, Calendar, User, CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
+import { FileText, Calendar, CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import type { Lot } from '@siteproof/database';
 
 interface LotListProps {
   projectId: string;
   canEdit: boolean;
+}
+
+interface Lot {
+  id: string;
+  project_id: string;
+  lot_number: number;
+  name: string | null;
+  description: string | null;
+  status: 'pending' | 'in_review' | 'approved' | 'rejected';
+  files: Array<{
+    url: string;
+    name: string;
+    size: number;
+    type: string;
+  }> | null;
+  created_at: string;
+  reviewed_at: string | null;
+  created_by: string;
+  reviewed_by: string | null;
 }
 
 export function LotList({ projectId }: LotListProps) {
@@ -38,7 +56,7 @@ export function LotList({ projectId }: LotListProps) {
     }
   };
 
-  const getStatusIcon = (status: Lot['status']) => {
+  const getStatusIcon = (status: 'pending' | 'in_review' | 'approved' | 'rejected') => {
     switch (status) {
       case 'pending':
         return <Clock className="h-4 w-4 text-yellow-500" />;
@@ -51,7 +69,7 @@ export function LotList({ projectId }: LotListProps) {
     }
   };
 
-  const getStatusColor = (status: Lot['status']) => {
+  const getStatusColor = (status: 'pending' | 'in_review' | 'approved' | 'rejected') => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-800';
@@ -126,13 +144,6 @@ export function LotList({ projectId }: LotListProps) {
                   <div className="flex items-center">
                     <FileText className="mr-1 h-4 w-4" />
                     {lot.files.length} {lot.files.length === 1 ? 'file' : 'files'}
-                  </div>
-                )}
-
-                {lot.reviewed_at && (
-                  <div className="flex items-center">
-                    <User className="mr-1 h-4 w-4" />
-                    Reviewed {formatDistanceToNow(new Date(lot.reviewed_at), { addSuffix: true })}
                   </div>
                 )}
               </div>

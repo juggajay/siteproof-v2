@@ -77,17 +77,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .select(
         `
         *,
-        creator:profiles!lots_created_by_fkey (
-          id,
-          full_name,
-          email,
-          avatar_url
-        ),
-        reviewer:profiles!lots_reviewed_by_fkey (
-          id,
-          full_name,
-          email
-        )
+        created_by,
+        reviewed_by
       `,
         { count: 'exact' }
       )
@@ -232,17 +223,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
         created_by: user.id,
         submitted_at: new Date().toISOString(),
       })
-      .select(
-        `
-        *,
-        creator:profiles!lots_created_by_fkey (
-          id,
-          full_name,
-          email,
-          avatar_url
-        )
-      `
-      )
+      .select('*')
       .single();
 
     if (error) {
