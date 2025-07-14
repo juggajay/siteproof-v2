@@ -147,11 +147,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
 export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     const projectId = params.id;
+    console.log('[Lots API] POST request for project:', projectId);
+
     const body = await request.json();
+    console.log('[Lots API] Request body:', body);
 
     // Validate request body
     const validationResult = createLotSchema.safeParse(body);
     if (!validationResult.success) {
+      console.error('[Lots API] Validation failed:', validationResult.error.errors);
       return NextResponse.json(
         { message: validationResult.error.errors[0].message },
         { status: 400 }
@@ -222,9 +226,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
         project_id: projectId,
         name: data.name || `Lot for ${project.name}`,
         description: data.description,
-        files: data.files,
+        files: data.files || [],
         internal_notes: data.internalNotes,
-        status: 'pending',
+        status: data.status || 'pending',
         created_by: user.id,
         submitted_at: new Date().toISOString(),
       })
@@ -242,12 +246,28 @@ export async function POST(request: Request, { params }: { params: { id: string 
       .single();
 
     if (error) {
-      console.error('Failed to create lot:', error);
-      return NextResponse.json({ message: 'Failed to create lot' }, { status: 500 });
+      console.error('[Lots API] Failed to create lot:', error);
+      console.error('[Lots API] Error details:', {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
+      return NextResponse.json(
+        {
+          message: 'Failed to create lot',
+          error: error.message,
+          code: error.code,
+        },
+        { status: 500 }
+      );
     }
 
-    // Refresh the materialized view
-    await supabase.rpc('refresh_project_dashboard_stats');
+    // Skip refreshing the materialized view due to missing unique index
+    // The view will be refreshed on the next scheduled refresh
+    console.log(
+      '[Lots API] Skipping materialized view refresh (will update on next scheduled refresh)'
+    );
 
     return NextResponse.json(
       {
