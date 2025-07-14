@@ -15,6 +15,8 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
+import { CreateLotModal } from '@/features/lots/components/CreateLotModal';
+import { LotList } from '@/features/lots/components/LotList';
 
 interface Project {
   id: string;
@@ -45,6 +47,8 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
   const [activeSection, setActiveSection] = useState<'overview' | 'lots' | 'documents' | 'team'>(
     'overview'
   );
+  const [showCreateLotModal, setShowCreateLotModal] = useState(false);
+  const [_showUploadDocumentModal, setShowUploadDocumentModal] = useState(false);
 
   const canEdit = ['owner', 'admin', 'member'].includes(userRole);
 
@@ -207,11 +211,16 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
                 <div className="space-y-2">
-                  <Button size="sm" fullWidth>
+                  <Button size="sm" fullWidth onClick={() => setShowCreateLotModal(true)}>
                     <Plus className="mr-2 h-4 w-4" />
                     Add Lot
                   </Button>
-                  <Button size="sm" variant="secondary" fullWidth>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    fullWidth
+                    onClick={() => setShowUploadDocumentModal(true)}
+                  >
                     <FileText className="mr-2 h-4 w-4" />
                     Upload Document
                   </Button>
@@ -230,13 +239,13 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Project Lots</h2>
               {canEdit && (
-                <Button size="sm">
+                <Button size="sm" onClick={() => setShowCreateLotModal(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add Lot
                 </Button>
               )}
             </div>
-            <p className="text-sm text-gray-500">No lots have been added to this project yet.</p>
+            <LotList projectId={project.id} canEdit={canEdit} />
           </div>
         )}
 
@@ -270,6 +279,18 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      {showCreateLotModal && (
+        <CreateLotModal
+          projectId={project.id}
+          onClose={() => setShowCreateLotModal(false)}
+          onSuccess={() => {
+            setShowCreateLotModal(false);
+            // The lot list will automatically refresh via router.refresh() in the modal
+          }}
+        />
+      )}
     </div>
   );
 }
