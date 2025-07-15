@@ -1,0 +1,12 @@
+# Dependabot configuration
+# This file disables Dependabot for this repository
+
+version: 2
+updates:
+  # Disable all package ecosystem updates
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    # Set open-pull-requests-limit to 0 to disable Dependabot
+    open-pull-requests-limit: 0
