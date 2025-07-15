@@ -23,7 +23,7 @@ export default async function LotDetailPage({ params }: PageProps) {
     );
   }
 
-  // Get lot details with project info
+  // Get lot details with project and ITP info
   const { data: lot, error } = await supabase
     .from('lots')
     .select(
@@ -33,6 +33,21 @@ export default async function LotDetailPage({ params }: PageProps) {
         id,
         name,
         organization_id
+      ),
+      itp_instances (
+        id,
+        name,
+        status,
+        completion_percentage,
+        created_at,
+        updated_at,
+        itp_templates (
+          id,
+          name,
+          description,
+          category,
+          structure
+        )
       )
     `
     )
@@ -60,7 +75,8 @@ export default async function LotDetailPage({ params }: PageProps) {
       <p>Project: {lot.projects?.name}</p>
       <p>Status: {lot.status}</p>
       <p>Created: {new Date(lot.created_at).toLocaleDateString()}</p>
-      <p className="mt-4 text-green-600">Lot data with project loaded successfully!</p>
+      <p>ITPs: {lot.itp_instances?.length || 0}</p>
+      <p className="mt-4 text-green-600">Lot data with project and ITPs loaded successfully!</p>
       <pre className="mt-4 p-4 bg-gray-100 rounded text-xs">{JSON.stringify(lot, null, 2)}</pre>
     </div>
   );
