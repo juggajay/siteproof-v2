@@ -118,6 +118,7 @@ export async function GET(
           },
         },
         membership,
+        memberships,
         lot: basicLot,
       },
     });
