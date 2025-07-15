@@ -165,7 +165,7 @@ export default function LotDetailClient({ lot, projectId, userRole }: LotDetailC
                 <h3 className="text-lg font-medium text-gray-900">Lot Information</h3>
               </div>
               <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <dl className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Status</dt>
                     <dd className="mt-1 text-sm text-gray-900 capitalize">
@@ -197,7 +197,7 @@ export default function LotDetailClient({ lot, projectId, userRole }: LotDetailC
                       </dd>
                     </div>
                   )}
-                </div>
+                </dl>
               </div>
             </div>
           </div>
