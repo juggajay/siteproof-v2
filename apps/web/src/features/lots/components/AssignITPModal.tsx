@@ -163,7 +163,7 @@ export function AssignITPModal({
                 </p>
               </div>
             ) : (
-              <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                 {templates.map((template) => (
                   <div
                     key={template.id}
