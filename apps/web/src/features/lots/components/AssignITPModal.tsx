@@ -163,7 +163,10 @@ export function AssignITPModal({
                 </p>
               </div>
             ) : (
-              <div className="space-y-3 overflow-y-auto pr-2" style={{ maxHeight: '400px' }}>
+              <div
+                className="space-y-3"
+                style={{ maxHeight: '400px', overflowY: 'scroll', paddingRight: '8px' }}
+              >
                 {templates.map((template) => (
                   <div
                     key={template.id}
