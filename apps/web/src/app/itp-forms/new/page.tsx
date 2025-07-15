@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
@@ -8,7 +8,7 @@ import { FORM_TYPE_LABELS } from '@/features/itp-forms/types/form.types';
 import { EarthworksPreconstructionForm } from '@/features/itp-forms/components/forms/EarthworksPreconstructionForm';
 import { createClient } from '@/lib/supabase/client';
 
-export default function NewITPFormPage() {
+function NewITPFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const formType = searchParams.get('type') || '';
@@ -88,5 +88,13 @@ export default function NewITPFormPage() {
         {renderForm()}
       </div>
     </div>
+  );
+}
+
+export default function NewITPFormPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8">Loading...</div>}>
+      <NewITPFormContent />
+    </Suspense>
   );
 }
