@@ -111,7 +111,6 @@ export async function POST(request: NextRequest) {
       template_id: template.id,
       project_id: projectId,
       lot_id: lotId,
-      name: `${template.name} - ${lot.name || `Lot #${lot.id.slice(-4)}`}`,
       data: {},
       status: 'draft',
       created_by: user.id,

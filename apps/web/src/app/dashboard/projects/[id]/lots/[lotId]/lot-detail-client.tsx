@@ -17,7 +17,6 @@ import { AssignITPModal } from '@/features/lots/components/AssignITPModal';
 
 interface ITPInstance {
   id: string;
-  name: string;
   status: 'draft' | 'in_progress' | 'completed' | 'approved';
   completion_percentage: number;
   created_at: string;
@@ -26,7 +25,6 @@ interface ITPInstance {
     id: string;
     name: string;
     description?: string;
-    category?: string;
     structure: any;
   };
 }
@@ -283,7 +281,9 @@ export default function LotDetailClient({ lot, projectId, userRole }: LotDetailC
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h4 className="text-lg font-medium text-gray-900">{itp.name}</h4>
+                        <h4 className="text-lg font-medium text-gray-900">
+                          {itp.itp_templates.name}
+                        </h4>
                         {itp.itp_templates.description && (
                           <p className="mt-1 text-sm text-gray-600">
                             {itp.itp_templates.description}
@@ -296,11 +296,6 @@ export default function LotDetailClient({ lot, projectId, userRole }: LotDetailC
                             {getStatusIcon(itp.status)}
                             <span className="ml-1 capitalize">{itp.status.replace('_', ' ')}</span>
                           </span>
-                          {itp.itp_templates.category && (
-                            <span className="text-xs text-gray-500">
-                              {itp.itp_templates.category}
-                            </span>
-                          )}
                           <span className="text-xs text-gray-500">
                             Created {new Date(itp.created_at).toLocaleDateString()}
                           </span>
