@@ -33,7 +33,7 @@ interface Project {
   id: string;
   name: string;
   organization_id: string;
-  organizations: {
+  organization: {
     id: string;
     name: string;
   };
@@ -56,7 +56,7 @@ interface Lot {
   reviewed_at: string | null;
   created_by: string;
   reviewed_by: string | null;
-  projects: Project;
+  project: Project;
   itp_instances: ITPInstance[];
 }
 
@@ -138,7 +138,7 @@ export default function LotDetailClient({ lot, projectId, userRole }: LotDetailC
                   Lot #{lot.lot_number}
                   {lot.name && `: ${lot.name}`}
                 </h1>
-                <p className="text-sm text-gray-500 mt-1">Project: {lot.projects.name}</p>
+                <p className="text-sm text-gray-500 mt-1">Project: {lot.project.name}</p>
                 {lot.description && <p className="mt-2 text-gray-600">{lot.description}</p>}
                 <div className="mt-4 flex items-center gap-4">
                   <span
