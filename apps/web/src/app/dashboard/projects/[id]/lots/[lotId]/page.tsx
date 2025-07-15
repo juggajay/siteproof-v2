@@ -1,4 +1,3 @@
-import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
 interface PageProps {
