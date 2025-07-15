@@ -17,6 +17,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 async function getLotDetails(projectId: string, lotId: string) {
   console.log('[getLotDetails] Starting with:', { projectId, lotId });
+  console.log('[getLotDetails] Type check:', {
+    projectIdType: typeof projectId,
+    lotIdType: typeof lotId,
+    projectIdValue: projectId,
+    lotIdValue: lotId,
+  });
 
   const supabase = await createClient();
 
@@ -31,6 +37,15 @@ async function getLotDetails(projectId: string, lotId: string) {
     console.error('[getLotDetails] No user found');
     throw new Error('Unauthorized');
   }
+
+  // First check if lot exists
+  const { count } = await supabase
+    .from('lots')
+    .select('*', { count: 'exact', head: true })
+    .eq('id', lotId)
+    .eq('project_id', projectId);
+
+  console.log('[getLotDetails] Lot count check:', { count, lotId, projectId });
 
   // Get lot details with related ITP instances
   const { data: lot, error } = await supabase
