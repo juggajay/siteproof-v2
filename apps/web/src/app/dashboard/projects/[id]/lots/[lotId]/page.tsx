@@ -45,7 +45,6 @@ export default async function LotDetailPage({ params }: PageProps) {
           id,
           name,
           description,
-          category,
           structure
         )
       )
