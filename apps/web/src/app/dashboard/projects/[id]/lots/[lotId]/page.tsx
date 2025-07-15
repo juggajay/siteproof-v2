@@ -17,12 +17,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 async function getLotDetails(projectId: string, lotId: string) {
   console.log('[getLotDetails] Starting with:', { projectId, lotId });
-  console.log('[getLotDetails] Type check:', {
-    projectIdType: typeof projectId,
-    lotIdType: typeof lotId,
-    projectIdValue: projectId,
-    lotIdValue: lotId,
-  });
 
   const supabase = await createClient();
 
@@ -31,29 +25,51 @@ async function getLotDetails(projectId: string, lotId: string) {
     error: authError,
   } = await supabase.auth.getUser();
 
-  console.log('[getLotDetails] Auth check:', { userId: user?.id, authError });
+  console.log('[getLotDetails] Auth check:', {
+    hasUser: !!user,
+    userId: user?.id,
+    authError: authError?.message,
+  });
 
   if (!user) {
     console.error('[getLotDetails] No user found');
-    throw new Error('Unauthorized');
+    return null;
   }
 
-  // First check if lot exists
-  const { count } = await supabase
+  // First, let's check if the lot exists at all
+  const { data: lotExists, error: existsError } = await supabase
     .from('lots')
-    .select('*', { count: 'exact', head: true })
+    .select('id, project_id')
     .eq('id', lotId)
-    .eq('project_id', projectId);
+    .single();
 
-  console.log('[getLotDetails] Lot count check:', { count, lotId, projectId });
+  console.log('[getLotDetails] Lot exists check:', {
+    exists: !!lotExists,
+    lotProjectId: lotExists?.project_id,
+    expectedProjectId: projectId,
+    error: existsError?.message,
+  });
 
-  // Get lot details with related ITP instances
+  if (!lotExists) {
+    console.error('[getLotDetails] Lot does not exist in database');
+    return null;
+  }
+
+  if (lotExists.project_id !== projectId) {
+    console.error('[getLotDetails] Lot exists but project_id mismatch:', {
+      lotProjectId: lotExists.project_id,
+      urlProjectId: projectId,
+    });
+    return null;
+  }
+
+  // Now get the full lot details
   const { data: lot, error } = await supabase
     .from('lots')
     .select(
       `
       *,
-      projects(
+      projects!inner(
         id,
         name,
         organization_id,
@@ -83,62 +99,70 @@ async function getLotDetails(projectId: string, lotId: string) {
     .eq('project_id', projectId)
     .single();
 
-  console.log('[getLotDetails] Query result:', { lot, error });
+  console.log('[getLotDetails] Full query result:', {
+    hasLot: !!lot,
+    hasProject: !!lot?.projects,
+    hasOrganization: !!lot?.projects?.organizations,
+    error: error?.message,
+  });
 
-  if (error) {
+  if (error || !lot) {
     console.error('[getLotDetails] Error fetching lot:', error);
-    console.error('[getLotDetails] Lot ID:', lotId);
-    console.error('[getLotDetails] Project ID:', projectId);
-    console.error('[getLotDetails] Error details:', error.message, error.details);
     return null;
   }
 
-  if (!lot) {
-    console.error('[getLotDetails] No lot found with ID:', lotId);
+  // Check user access
+  const orgId = lot.projects?.organization_id;
+  if (!orgId) {
+    console.error('[getLotDetails] No organization_id found');
     return null;
   }
 
-  // Check if lot has project data
-  if (!lot.projects) {
-    console.error('Lot has no project data:', lot);
-    throw new Error('Lot is not associated with a project');
-  }
-
-  // Verify user has access to this project
-  const { data: membership } = await supabase
+  const { data: membership, error: membershipError } = await supabase
     .from('organization_members')
     .select('role')
-    .eq('organization_id', lot.projects.organization_id)
+    .eq('organization_id', orgId)
     .eq('user_id', user.id)
     .single();
 
+  console.log('[getLotDetails] Membership check:', {
+    hasAccess: !!membership,
+    role: membership?.role,
+    error: membershipError?.message,
+  });
+
   if (!membership) {
-    console.error('User has no membership in organization:', lot.projects.organization_id);
-    throw new Error('Access denied');
+    console.error('[getLotDetails] User does not have access to organization');
+    return null;
   }
 
+  // Ensure itp_instances is an array
+  if (!lot.itp_instances) {
+    lot.itp_instances = [];
+  }
+
+  console.log('[getLotDetails] Success! Returning lot data');
   return { lot, userRole: membership.role };
 }
 
 export default async function LotDetailPage({ params }: PageProps) {
-  const { id, lotId } = await params;
-  console.log('[LotDetailPage] Loading with params:', { id, lotId });
+  const { id: projectId, lotId } = await params;
+
+  console.log('[LotDetailPage] Page params:', { projectId, lotId });
 
   try {
-    const result = await getLotDetails(id, lotId);
+    const result = await getLotDetails(projectId, lotId);
 
     if (!result) {
-      console.error('[LotDetailPage] No lot found for:', { projectId: id, lotId });
+      console.error('[LotDetailPage] No result from getLotDetails, showing 404');
       notFound();
     }
 
     const { lot, userRole } = result;
-    console.log('[LotDetailPage] Successfully loaded lot:', lot.id);
 
-    return <LotDetailClient lot={lot} projectId={id} userRole={userRole} />;
+    return <LotDetailClient lot={lot} userRole={userRole} projectId={projectId} />;
   } catch (error) {
-    console.error('[LotDetailPage] Error:', error);
-    console.error('[LotDetailPage] Params:', { id, lotId });
+    console.error('[LotDetailPage] Unexpected error:', error);
     notFound();
   }
 }

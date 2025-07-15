@@ -1,39 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-export async function GET(_request: NextRequest, { params }: { params: { lotId: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ lotId: string }> }
+) {
   try {
+    const { lotId } = await params;
     const supabase = await createClient();
-    const { lotId } = params;
 
-    console.log('[Debug API] Checking lot:', lotId);
-
-    // Get user
+    // Get current user
     const {
       data: { user },
-      error: authError,
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json(
-        {
-          error: 'Not authenticated',
-          authError: authError?.message,
-        },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Try basic lot query first
+    // 1. Check if lot exists at all
     const { data: basicLot, error: basicError } = await supabase
       .from('lots')
       .select('*')
       .eq('id', lotId)
       .single();
 
-    console.log('[Debug API] Basic lot query:', { basicLot, basicError });
-
-    // Try lot with project
+    // 2. Check lot with project relationship
     const { data: lotWithProject, error: projectError } = await supabase
       .from('lots')
       .select(
@@ -49,9 +41,7 @@ export async function GET(_request: NextRequest, { params }: { params: { lotId: 
       .eq('id', lotId)
       .single();
 
-    console.log('[Debug API] Lot with project:', { lotWithProject, projectError });
-
-    // Try full query like the page does
+    // 3. Check full lot with all relationships
     const { data: fullLot, error: fullError } = await supabase
       .from('lots')
       .select(
@@ -65,46 +55,49 @@ export async function GET(_request: NextRequest, { params }: { params: { lotId: 
             id,
             name
           )
-        ),
-        itp_instances (
-          id,
-          name,
-          status,
-          completion_percentage,
-          created_at,
-          updated_at,
-          itp_templates (
-            id,
-            name,
-            description,
-            category,
-            structure
-          )
         )
       `
       )
       .eq('id', lotId)
       .single();
 
-    console.log('[Debug API] Full lot query:', { fullLot, fullError });
+    // 4. Check user's organization memberships
+    const { data: memberships } = await supabase
+      .from('organization_members')
+      .select(
+        `
+        organization_id,
+        role,
+        organizations (
+          id,
+          name
+        )
+      `
+      )
+      .eq('user_id', user.id);
 
-    // Check user's organization membership
+    // 5. If lot exists, check if user has access to its organization
+    let hasAccess = false;
     let membership = null;
+
     if (lotWithProject?.projects?.organization_id) {
-      const { data: membershipData, error: membershipError } = await supabase
+      const { data: mem } = await supabase
         .from('organization_members')
-        .select('role')
+        .select('*')
         .eq('organization_id', lotWithProject.projects.organization_id)
         .eq('user_id', user.id)
         .single();
 
-      membership = { data: membershipData, error: membershipError };
+      hasAccess = !!mem;
+      membership = mem;
     }
 
     return NextResponse.json({
       debug: {
         lotId,
-        user: { id: user.id, email: user.email },
+        userId: user.id,
+        userEmail: user.email,
+        hasAccess,
         queries: {
           basic: {
             success: !basicError,
