@@ -130,47 +130,64 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
     <div className="space-y-4">
       {lots.map((lot) => {
         const lotUrl = `/dashboard/projects/${projectId}/lots/${lot.id}`;
-        console.log('[LotList] Lot URL generated:', lotUrl, { lotId: lot.id, projectId });
+        console.log('[LotList] Lot URL generated:', lotUrl, {
+          lotId: lot.id,
+          projectId,
+          projectIdType: typeof projectId,
+          projectIdLength: projectId.length,
+          lotIdType: typeof lot.id,
+          lotIdLength: lot.id.length,
+        });
         return (
           <Link
             key={lot.id}
             href={lotUrl}
             className="block bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => console.log('[LotList] Navigating to lot:', lotUrl)}
+            onClick={(e) => {
+              console.log('[LotList] Link clicked:', lotUrl);
+              console.log(
+                '[LotList] Event target href:',
+                (e.currentTarget as HTMLAnchorElement).href
+              );
+              console.log(
+                '[LotList] Raw href attribute:',
+                (e.currentTarget as HTMLAnchorElement).getAttribute('href')
+              );
+            }}
           >
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Lot #{lot.lot_number}
-                  {lot.name && `: ${lot.name}`}
-                </h3>
-                <span
-                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(lot.status)}`}
-                >
-                  {getStatusIcon(lot.status)}
-                  <span className="ml-1 capitalize">{lot.status.replace('_', ' ')}</span>
-                </span>
-              </div>
-
-              {lot.description && <p className="mt-1 text-sm text-gray-600">{lot.description}</p>}
-
-              <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
-                <div className="flex items-center">
-                  <Calendar className="mr-1 h-4 w-4" />
-                  {formatDistanceToNow(new Date(lot.created_at), { addSuffix: true })}
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Lot #{lot.lot_number}
+                    {lot.name && `: ${lot.name}`}
+                  </h3>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(lot.status)}`}
+                  >
+                    {getStatusIcon(lot.status)}
+                    <span className="ml-1 capitalize">{lot.status.replace('_', ' ')}</span>
+                  </span>
                 </div>
 
-                {lot.files && lot.files.length > 0 && (
+                {lot.description && <p className="mt-1 text-sm text-gray-600">{lot.description}</p>}
+
+                <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
                   <div className="flex items-center">
-                    <FileText className="mr-1 h-4 w-4" />
-                    {lot.files.length} {lot.files.length === 1 ? 'file' : 'files'}
+                    <Calendar className="mr-1 h-4 w-4" />
+                    {formatDistanceToNow(new Date(lot.created_at), { addSuffix: true })}
                   </div>
-                )}
+
+                  {lot.files && lot.files.length > 0 && (
+                    <div className="flex items-center">
+                      <FileText className="mr-1 h-4 w-4" />
+                      {lot.files.length} {lot.files.length === 1 ? 'file' : 'files'}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </Link>
+          </Link>
         );
       })}
     </div>

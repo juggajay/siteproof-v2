@@ -6,7 +6,7 @@ import ProjectDetailClient from './project-detail-client';
 export const dynamic = 'force-dynamic';
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata(_props: Props): Promise<Metadata> {
@@ -17,6 +17,8 @@ export async function generateMetadata(_props: Props): Promise<Metadata> {
 }
 
 export default async function ProjectDetailPage({ params }: Props) {
+  const { id } = await params;
+  console.log('[ProjectDetailPage] Project ID:', id, 'Type:', typeof id, 'Length:', id.length);
   const supabase = await createClient();
 
   // Get current user
@@ -40,7 +42,7 @@ export default async function ProjectDetailPage({ params }: Props) {
       )
     `
     )
-    .eq('id', params.id)
+    .eq('id', id)
     .single();
 
   if (error || !project) {
