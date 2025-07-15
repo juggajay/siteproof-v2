@@ -280,7 +280,10 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
                   <p className="text-sm text-gray-600">No ITP templates available</p>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-300 rounded-md p-3">
+                <div
+                  className="space-y-2 border border-gray-300 rounded-md p-3"
+                  style={{ maxHeight: '192px', overflowY: 'scroll' }}
+                >
                   {itpTemplates.map((template) => (
                     <div
                       key={template.id}
