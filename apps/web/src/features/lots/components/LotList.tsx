@@ -128,12 +128,16 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
 
   return (
     <div className="space-y-4">
-      {lots.map((lot) => (
-        <Link
-          key={lot.id}
-          href={`/dashboard/projects/${projectId}/lots/${lot.id}`}
-          className="block bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-        >
+      {lots.map((lot) => {
+        const lotUrl = `/dashboard/projects/${projectId}/lots/${lot.id}`;
+        console.log('[LotList] Lot URL generated:', lotUrl, { lotId: lot.id, projectId });
+        return (
+          <Link
+            key={lot.id}
+            href={lotUrl}
+            className="block bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => console.log('[LotList] Navigating to lot:', lotUrl)}
+          >
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -167,7 +171,8 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
             </div>
           </div>
         </Link>
-      ))}
+        );
+      })}
     </div>
   );
 }

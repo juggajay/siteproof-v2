@@ -31,11 +31,11 @@ async function getLotDetails(projectId: string, lotId: string) {
     .select(
       `
       *,
-      projects!inner(
+      projects(
         id,
         name,
         organization_id,
-        organizations!inner(
+        organizations(
           id,
           name
         )
@@ -47,7 +47,7 @@ async function getLotDetails(projectId: string, lotId: string) {
         completion_percentage,
         created_at,
         updated_at,
-        itp_templates!inner(
+        itp_templates(
           id,
           name,
           description,
@@ -63,7 +63,16 @@ async function getLotDetails(projectId: string, lotId: string) {
 
   if (error) {
     console.error('Error fetching lot:', error);
+    console.error('Lot ID:', lotId);
+    console.error('Project ID:', projectId);
+    console.error('Error details:', error.message, error.details);
     return null;
+  }
+
+  // Check if lot has project data
+  if (!lot.projects) {
+    console.error('Lot has no project data:', lot);
+    throw new Error('Lot is not associated with a project');
   }
 
   // Verify user has access to this project
@@ -75,6 +84,7 @@ async function getLotDetails(projectId: string, lotId: string) {
     .single();
 
   if (!membership) {
+    console.error('User has no membership in organization:', lot.projects.organization_id);
     throw new Error('Access denied');
   }
 
@@ -82,13 +92,20 @@ async function getLotDetails(projectId: string, lotId: string) {
 }
 
 export default async function LotDetailPage({ params }: PageProps) {
-  const result = await getLotDetails(params.id, params.lotId);
+  try {
+    const result = await getLotDetails(params.id, params.lotId);
 
-  if (!result) {
+    if (!result) {
+      console.error('No lot found for:', { projectId: params.id, lotId: params.lotId });
+      notFound();
+    }
+
+    const { lot, userRole } = result;
+
+    return <LotDetailClient lot={lot} projectId={params.id} userRole={userRole} />;
+  } catch (error) {
+    console.error('Error in LotDetailPage:', error);
+    console.error('Params:', params);
     notFound();
   }
-
-  const { lot, userRole } = result;
-
-  return <LotDetailClient lot={lot} projectId={params.id} userRole={userRole} />;
 }

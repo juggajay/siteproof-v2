@@ -66,12 +66,7 @@ export async function GET(request: NextRequest) {
     // Build query
     let query = supabase
       .from('itp_templates')
-      .select(
-        `
-        *,
-        creator:users!itp_templates_created_by_fkey(id, email, full_name)
-      `
-      )
+      .select('*')
       .eq('organization_id', membership.organization_id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
