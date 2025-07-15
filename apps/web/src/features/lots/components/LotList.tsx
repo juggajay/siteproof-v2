@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { FileText, Calendar, CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -31,6 +32,7 @@ interface Lot {
 }
 
 export function LotList({ projectId, refreshTrigger }: LotListProps) {
+  const router = useRouter();
   const [lots, setLots] = useState<Lot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,20 +141,12 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
           lotIdLength: lot.id.length,
         });
         return (
-          <Link
+          <div
             key={lot.id}
-            href={lotUrl}
             className="block bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={(e) => {
-              console.log('[LotList] Link clicked:', lotUrl);
-              console.log(
-                '[LotList] Event target href:',
-                (e.currentTarget as HTMLAnchorElement).href
-              );
-              console.log(
-                '[LotList] Raw href attribute:',
-                (e.currentTarget as HTMLAnchorElement).getAttribute('href')
-              );
+            onClick={() => {
+              console.log('[LotList] Navigating with router.push to:', lotUrl);
+              router.push(lotUrl);
             }}
           >
             <div className="flex items-start justify-between">
@@ -187,7 +181,7 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
                 </div>
               </div>
             </div>
-          </Link>
+          </div>
         );
       })}
     </div>
