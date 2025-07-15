@@ -16,12 +16,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 async function getLotDetails(projectId: string, lotId: string) {
   console.log('[getLotDetails] Starting with:', { projectId, lotId });
-  
+
   const supabase = await createClient();
 
   const {
     data: { user },
-    error: authError
+    error: authError,
   } = await supabase.auth.getUser();
 
   console.log('[getLotDetails] Auth check:', { userId: user?.id, authError });
@@ -48,7 +48,6 @@ async function getLotDetails(projectId: string, lotId: string) {
       ),
       itp_instances(
         id,
-        name,
         status,
         completion_percentage,
         created_at,
@@ -76,7 +75,7 @@ async function getLotDetails(projectId: string, lotId: string) {
     console.error('[getLotDetails] Error details:', error.message, error.details);
     return null;
   }
-  
+
   if (!lot) {
     console.error('[getLotDetails] No lot found with ID:', lotId);
     return null;
