@@ -122,8 +122,8 @@ export function AssignITPModal({
         {/* Center modal */}
         <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
 
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full max-h-[90vh] flex flex-col">
-          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4 flex-1 overflow-hidden flex flex-col">
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
+          <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Assign ITP Templates</h3>
               <button
@@ -147,63 +147,61 @@ export function AssignITPModal({
             </div>
 
             {/* Template Selection */}
-            <div className="flex-1 min-h-0 overflow-hidden">
-              {isLoadingTemplates ? (
-                <div className="text-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
-                  <p className="text-gray-600">Loading templates...</p>
-                </div>
-              ) : templates.length === 0 ? (
-                <div className="text-center py-8">
-                  <ClipboardList className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-4 text-sm font-medium text-gray-900">No Available Templates</h3>
-                  <p className="mt-2 text-sm text-gray-500">
-                    {assignedTemplateIds.length > 0
-                      ? 'All templates are already assigned to this lot.'
-                      : 'No ITP templates are available. Contact your administrator to create templates.'}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3 overflow-y-auto pr-2 h-full">
-                  {templates.map((template) => (
-                    <div
-                      key={template.id}
-                      className={`relative rounded-lg border p-4 cursor-pointer transition-colors ${
-                        selectedTemplateIds.includes(template.id)
-                          ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
-                          : 'border-gray-300 hover:bg-gray-50'
-                      }`}
-                      onClick={() => toggleTemplate(template.id)}
-                    >
-                      <div className="flex items-start">
-                        <div className="flex-shrink-0 mr-3 pt-1">
-                          {selectedTemplateIds.includes(template.id) ? (
-                            <CheckCircle2 className="h-5 w-5 text-blue-600" />
-                          ) : (
-                            <div className="h-5 w-5 border-2 border-gray-300 rounded-full" />
-                          )}
+            {isLoadingTemplates ? (
+              <div className="text-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-blue-600" />
+                <p className="text-gray-600">Loading templates...</p>
+              </div>
+            ) : templates.length === 0 ? (
+              <div className="text-center py-8">
+                <ClipboardList className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-4 text-sm font-medium text-gray-900">No Available Templates</h3>
+                <p className="mt-2 text-sm text-gray-500">
+                  {assignedTemplateIds.length > 0
+                    ? 'All templates are already assigned to this lot.'
+                    : 'No ITP templates are available. Contact your administrator to create templates.'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 overflow-y-auto pr-2" style={{ maxHeight: '400px' }}>
+                {templates.map((template) => (
+                  <div
+                    key={template.id}
+                    className={`relative rounded-lg border p-4 cursor-pointer transition-colors ${
+                      selectedTemplateIds.includes(template.id)
+                        ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
+                        : 'border-gray-300 hover:bg-gray-50'
+                    }`}
+                    onClick={() => toggleTemplate(template.id)}
+                  >
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0 mr-3 pt-1">
+                        {selectedTemplateIds.includes(template.id) ? (
+                          <CheckCircle2 className="h-5 w-5 text-blue-600" />
+                        ) : (
+                          <div className="h-5 w-5 border-2 border-gray-300 rounded-full" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-medium text-gray-900">{template.name}</h4>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-sm font-medium text-gray-900">{template.name}</h4>
+                        {template.description && (
+                          <p className="mt-1 text-sm text-gray-500">{template.description}</p>
+                        )}
+                        {template.category && (
+                          <div className="mt-2">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                              {template.category}
+                            </span>
                           </div>
-                          {template.description && (
-                            <p className="mt-1 text-sm text-gray-500">{template.description}</p>
-                          )}
-                          {template.category && (
-                            <div className="mt-2">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                {template.category}
-                              </span>
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {selectedTemplateIds.length > 0 && (
               <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-md">
