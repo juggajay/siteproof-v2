@@ -1,44 +1,72 @@
-// File: apps/web/src/app/dashboard/projects/[id]/lots/[lotId]/page-simple.tsx
-
+import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import LotDetailClient from './lot-detail-client';
 
 interface PageProps {
   params: Promise<{ id: string; lotId: string }>;
 }
 
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id, lotId } = await params;
+  return {
+    title: `Lot ${lotId} - Project ${id}`,
+    description: 'Lot details and ITP management',
+  };
+}
+
 export default async function LotDetailPage({ params }: PageProps) {
-  // Await the params (Next.js 15 requirement)
   const { id: projectId, lotId } = await params;
 
-  console.log('[LotDetailPage] Rendering with:', { projectId, lotId });
+  console.log('[LotDetailPage] Page params:', { projectId, lotId });
 
   const supabase = await createClient();
 
-  // Get current user
   const {
     data: { user },
+    error: authError,
   } = await supabase.auth.getUser();
 
+  console.log('[LotDetailPage] Auth check:', {
+    hasUser: !!user,
+    userId: user?.id,
+    authError: authError?.message,
+  });
+
   if (!user) {
-    return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold text-red-600">Not Authenticated</h1>
-        <p>Please log in to view this page.</p>
-      </div>
-    );
+    console.error('[LotDetailPage] No user found');
+    return notFound();
   }
 
-  // Get lot details
+  // Get lot details with related ITP instances
   const { data: lot, error } = await supabase
     .from('lots')
     .select(
       `
       *,
-      projects (
+      projects!inner(
         id,
         name,
-        organization_id
+        organization_id,
+        organizations(
+          id,
+          name
+        )
+      ),
+      itp_instances(
+        id,
+        name,
+        status,
+        completion_percentage,
+        created_at,
+        updated_at,
+        itp_templates(
+          id,
+          name,
+          description,
+          category,
+          structure
+        )
       )
     `
     )
@@ -46,62 +74,47 @@ export default async function LotDetailPage({ params }: PageProps) {
     .eq('project_id', projectId)
     .single();
 
-  console.log('[LotDetailPage] Query result:', { lot, error });
+  console.log('[LotDetailPage] Query result:', {
+    hasLot: !!lot,
+    hasProject: !!lot?.projects,
+    error: error?.message,
+  });
 
   if (error || !lot) {
-    console.error('[LotDetailPage] Lot not found:', error);
-    notFound();
+    console.error('[LotDetailPage] Error fetching lot:', error);
+    return notFound();
   }
 
   // Check user access
-  const { data: membership } = await supabase
+  const orgId = lot.projects?.organization_id;
+  if (!orgId) {
+    console.error('[LotDetailPage] No organization_id found');
+    return notFound();
+  }
+
+  const { data: membership, error: membershipError } = await supabase
     .from('organization_members')
     .select('role')
-    .eq('organization_id', lot.projects?.organization_id)
+    .eq('organization_id', orgId)
     .eq('user_id', user.id)
     .single();
 
+  console.log('[LotDetailPage] Membership check:', {
+    hasAccess: !!membership,
+    role: membership?.role,
+    error: membershipError?.message,
+  });
+
   if (!membership) {
-    return (
-      <div className="p-8">
-        <h1 className="text-2xl font-bold text-red-600">Access Denied</h1>
-        <p>You don&apos;t have access to this lot.</p>
-      </div>
-    );
+    console.error('[LotDetailPage] User does not have access to organization');
+    return notFound();
   }
 
-  // Simple display of lot information
-  return (
-    <div className="p-8">
-      <div className="bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold mb-4">
-          Lot #{lot.lot_number}: {lot.name}
-        </h1>
+  // Ensure itp_instances is an array
+  if (!lot.itp_instances) {
+    lot.itp_instances = [];
+  }
 
-        <div className="space-y-2">
-          <p>
-            <strong>Project:</strong> {lot.projects?.name}
-          </p>
-          <p>
-            <strong>Status:</strong> {lot.status}
-          </p>
-          <p>
-            <strong>Created:</strong> {new Date(lot.created_at).toLocaleDateString()}
-          </p>
-          {lot.description && (
-            <p>
-              <strong>Description:</strong> {lot.description}
-            </p>
-          )}
-        </div>
-
-        <div className="mt-6 p-4 bg-gray-100 rounded">
-          <p className="text-sm text-gray-600">Debug Info:</p>
-          <p className="text-xs font-mono">Lot ID: {lot.id}</p>
-          <p className="text-xs font-mono">Project ID: {lot.project_id}</p>
-          <p className="text-xs font-mono">Your Role: {membership.role}</p>
-        </div>
-      </div>
-    </div>
-  );
+  console.log('[LotDetailPage] Success! Returning lot data');
+  return <LotDetailClient lot={lot} userRole={membership.role} projectId={projectId} />;
 }

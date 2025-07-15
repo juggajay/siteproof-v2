@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   ClipboardList,
@@ -69,6 +69,7 @@ interface LotDetailClientProps {
 }
 
 export default function LotDetailClient({ lot, projectId, userRole }: LotDetailClientProps) {
+  const router = useRouter();
   const [showAssignITPModal, setShowAssignITPModal] = useState(false);
 
   const canEdit = ['owner', 'admin', 'member'].includes(userRole);
@@ -122,12 +123,14 @@ export default function LotDetailClient({ lot, projectId, userRole }: LotDetailC
         {/* Header */}
         <div className="mb-8">
           <div className="mb-4">
-            <Link href={`/dashboard/projects/${projectId}`}>
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Project
-              </Button>
-            </Link>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push(`/dashboard/projects/${projectId}`)}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Project
+            </Button>
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
