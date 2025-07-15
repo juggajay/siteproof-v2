@@ -23,10 +23,19 @@ export default async function LotDetailPage({ params }: PageProps) {
     );
   }
 
-  // Get lot details - simplified query
+  // Get lot details with project info
   const { data: lot, error } = await supabase
     .from('lots')
-    .select('*')
+    .select(
+      `
+      *,
+      projects!inner (
+        id,
+        name,
+        organization_id
+      )
+    `
+    )
     .eq('id', lotId)
     .eq('project_id', projectId)
     .single();
@@ -48,9 +57,10 @@ export default async function LotDetailPage({ params }: PageProps) {
       <h1 className="text-2xl font-bold mb-4">
         Lot #{lot.lot_number}: {lot.name}
       </h1>
+      <p>Project: {lot.projects?.name}</p>
       <p>Status: {lot.status}</p>
       <p>Created: {new Date(lot.created_at).toLocaleDateString()}</p>
-      <p className="mt-4 text-green-600">Basic lot data loaded successfully!</p>
+      <p className="mt-4 text-green-600">Lot data with project loaded successfully!</p>
       <pre className="mt-4 p-4 bg-gray-100 rounded text-xs">{JSON.stringify(lot, null, 2)}</pre>
     </div>
   );
