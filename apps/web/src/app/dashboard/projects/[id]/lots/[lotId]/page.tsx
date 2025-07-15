@@ -18,6 +18,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function LotDetailPage({ params }: PageProps) {
   const { id: projectId, lotId } = await params;
   
+  // Debug: Log the parameters
   console.log('[LotDetailPage] Loading lot:', { projectId, lotId });
 
   const supabase = await createClient();
