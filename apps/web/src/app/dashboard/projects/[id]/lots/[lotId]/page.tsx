@@ -15,13 +15,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 async function getLotDetails(projectId: string, lotId: string) {
+  console.log('[getLotDetails] Starting with:', { projectId, lotId });
+  
   const supabase = await createClient();
 
   const {
     data: { user },
+    error: authError
   } = await supabase.auth.getUser();
 
+  console.log('[getLotDetails] Auth check:', { userId: user?.id, authError });
+
   if (!user) {
+    console.error('[getLotDetails] No user found');
     throw new Error('Unauthorized');
   }
 
@@ -61,11 +67,18 @@ async function getLotDetails(projectId: string, lotId: string) {
     .eq('project_id', projectId)
     .single();
 
+  console.log('[getLotDetails] Query result:', { lot, error });
+
   if (error) {
-    console.error('Error fetching lot:', error);
-    console.error('Lot ID:', lotId);
-    console.error('Project ID:', projectId);
-    console.error('Error details:', error.message, error.details);
+    console.error('[getLotDetails] Error fetching lot:', error);
+    console.error('[getLotDetails] Lot ID:', lotId);
+    console.error('[getLotDetails] Project ID:', projectId);
+    console.error('[getLotDetails] Error details:', error.message, error.details);
+    return null;
+  }
+  
+  if (!lot) {
+    console.error('[getLotDetails] No lot found with ID:', lotId);
     return null;
   }
 
