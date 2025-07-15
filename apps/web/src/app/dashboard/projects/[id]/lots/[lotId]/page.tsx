@@ -4,12 +4,13 @@ import { createClient } from '@/lib/supabase/server';
 import LotDetailClient from './lot-detail-client';
 
 interface PageProps {
-  params: { id: string; lotId: string };
+  params: Promise<{ id: string; lotId: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id, lotId } = await params;
   return {
-    title: `Lot ${params.lotId} - Project ${params.id}`,
+    title: `Lot ${lotId} - Project ${id}`,
     description: 'Lot details and ITP management',
   };
 }
@@ -48,6 +49,7 @@ async function getLotDetails(projectId: string, lotId: string) {
       ),
       itp_instances(
         id,
+        name,
         status,
         completion_percentage,
         created_at,
@@ -104,20 +106,24 @@ async function getLotDetails(projectId: string, lotId: string) {
 }
 
 export default async function LotDetailPage({ params }: PageProps) {
+  const { id, lotId } = await params;
+  console.log('[LotDetailPage] Loading with params:', { id, lotId });
+
   try {
-    const result = await getLotDetails(params.id, params.lotId);
+    const result = await getLotDetails(id, lotId);
 
     if (!result) {
-      console.error('No lot found for:', { projectId: params.id, lotId: params.lotId });
+      console.error('[LotDetailPage] No lot found for:', { projectId: id, lotId });
       notFound();
     }
 
     const { lot, userRole } = result;
+    console.log('[LotDetailPage] Successfully loaded lot:', lot.id);
 
-    return <LotDetailClient lot={lot} projectId={params.id} userRole={userRole} />;
+    return <LotDetailClient lot={lot} projectId={id} userRole={userRole} />;
   } catch (error) {
-    console.error('Error in LotDetailPage:', error);
-    console.error('Params:', params);
+    console.error('[LotDetailPage] Error:', error);
+    console.error('[LotDetailPage] Params:', { id, lotId });
     notFound();
   }
 }
