@@ -9,6 +9,7 @@ export function getRedisClient(): Redis {
 
     redis = new Redis(redisUrl, {
       maxRetriesPerRequest: 3,
+      lazyConnect: true, // Don't connect immediately
       retryStrategy: (times) => {
         // Exponential backoff: 50ms, 100ms, 200ms, 400ms, 800ms, then give up
         if (times > 5) return null;

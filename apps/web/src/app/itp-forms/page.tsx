@@ -11,7 +11,7 @@ import { pdfGenerator } from '@/features/itp-forms/utils/pdf-generator';
 
 export default function ITPFormsPage() {
   const router = useRouter();
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? navigator.onLine : true);
   const [forms, setForms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

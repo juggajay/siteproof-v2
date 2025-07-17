@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  # Main Next.js application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      # Supabase Configuration
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      
+      # Application Configuration
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+      - NEXT_PUBLIC_SITE_NAME=SiteProof
+      
+      # Security Configuration
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      
+      # Redis URL (connects to redis service)
+      - REDIS_URL=redis://redis:6379
+      
+      # Trigger.dev Configuration
+      - TRIGGER_API_KEY=${TRIGGER_API_KEY}
+      - TRIGGER_API_URL=${TRIGGER_API_URL}
+      
+      # File Upload Configuration
+      - NEXT_PUBLIC_MAX_FILE_SIZE=10485760
+      - NEXT_PUBLIC_ALLOWED_FILE_TYPES=image/*,application/pdf
+      
+      # Email Configuration
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      
+      # Weather API
+      - NEXT_PUBLIC_WEATHER_API_KEY=${NEXT_PUBLIC_WEATHER_API_KEY}
+      
+      # Feature Flags
+      - NEXT_PUBLIC_ENABLE_PWA=true
+      - NEXT_PUBLIC_ENABLE_ANALYTICS=false
+      - NEXT_PUBLIC_ENABLE_SENTRY=false
+    depends_on:
+      - redis
+    volumes:
+      - ./apps/web/public:/app/apps/web/public
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Redis for rate limiting and caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  # Playwright testing service
+  playwright:
+    image: mcr.microsoft.com/playwright:v1.40.0-focal
+    working_dir: /app
+    volumes:
+      - .:/app
+      - playwright_cache:/root/.cache/ms-playwright
+    environment:
+      - CI=true
+      - PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright
+    command: tail -f /dev/null # Keep container running for manual testing
+    depends_on:
+      - web
+    profiles:
+      - testing
+
+  # Development database (optional - for local testing without Supabase)
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=siteproof_test
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./packages/database/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    profiles:
+      - local-db
+
+volumes:
+  redis_data:
+  postgres_data:
+  playwright_cache:
+
+networks:
+  default:
+    name: siteproof-network

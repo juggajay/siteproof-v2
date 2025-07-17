@@ -21,6 +21,7 @@
   "license": "ISC",
   "description": "SiteProof v2 - Monorepo",
   "devDependencies": {
+    "@playwright/test": "^1.54.1",
     "@types/node": "^20.11.5",
     "husky": "^9.1.7",
     "lint-staged": "^16.1.2",
