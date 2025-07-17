@@ -247,6 +247,11 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({ projectId, lotId, itp
 
   const isHoldPoint = (sectionId: string, itemId: string) => {
     // Check if this item is marked as a hold point in the template
+    if (structure.hold_points?.includes(itemId)) {
+      return true;
+    }
+
+    // Fallback: check in sections structure
     const section = itpInstance?.itp_templates?.structure?.sections?.find(
       (s: any) => s.id === sectionId
     );
@@ -256,6 +261,11 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({ projectId, lotId, itp
 
   const isWitnessPoint = (sectionId: string, itemId: string) => {
     // Check if this item is marked as a witness point in the template
+    if (structure.witness_points?.includes(itemId)) {
+      return true;
+    }
+
+    // Fallback: check in sections structure
     const section = itpInstance?.itp_templates?.structure?.sections?.find(
       (s: any) => s.id === sectionId
     );
@@ -343,6 +353,20 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({ projectId, lotId, itp
           </div>
 
           {/* Handle additional input based on item type */}
+          {item.type === 'checkbox' && (
+            <div className="space-y-1">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={data.value === true}
+                  onChange={(e) => updateInspectionItem(fullItemId, 'value', e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span className="ml-2 text-sm text-gray-700">Compliant</span>
+              </div>
+            </div>
+          )}
+
           {item.type === 'text' && (
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700">Value</label>
@@ -546,14 +570,55 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({ projectId, lotId, itp
   console.log('Structure:', structure);
   console.log('Structure type:', typeof structure);
   console.log('Structure.sections:', structure?.sections);
+  console.log('Structure.inspection_items:', structure?.inspection_items);
 
   const completedItems = Object.values(inspectionData).filter(
     (item) => item.status !== 'pending'
   ).length;
-  const totalItems =
-    structure.sections?.reduce((total: number, section: any) => {
+
+  // Support both structure formats: sections-based and inspection_items-based
+  let totalItems = 0;
+  let sectionsData: any[] = [];
+
+  if (structure.sections) {
+    // Original sections-based structure
+    totalItems = structure.sections.reduce((total: number, section: any) => {
       return total + (section.items?.length || 0);
-    }, 0) || 0;
+    }, 0);
+    sectionsData = structure.sections;
+  } else if (structure.inspection_items) {
+    // New inspection_items-based structure - group by category
+    const categories = structure.categories || [];
+    totalItems = structure.inspection_items.length;
+
+    // Create sections from categories
+    sectionsData = categories
+      .map((category: string) => {
+        const categoryItems = structure.inspection_items
+          .filter((item: any) => item.category === category)
+          .sort((a: any, b: any) => a.order - b.order);
+
+        return {
+          id: category,
+          title: category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' '),
+          description: `${category.charAt(0).toUpperCase() + category.slice(1).replace(/_/g, ' ')} inspection items`,
+          items: categoryItems.map((item: any) => ({
+            id: item.id,
+            title: item.description,
+            description: item.description,
+            type:
+              item.type === 'boolean' ? 'checkbox' : item.type === 'numeric' ? 'number' : item.type,
+            required: item.required,
+            min: item.min,
+            max: item.max,
+            unit: item.unit,
+            hold_point: structure.hold_points?.includes(item.id),
+            witness_point: structure.witness_points?.includes(item.id),
+          })),
+        };
+      })
+      .filter((section: any) => section.items.length > 0);
+  }
   const completionPercentage = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
 
   return (
@@ -613,8 +678,8 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({ projectId, lotId, itp
 
         {/* Form */}
         <div className="space-y-6">
-          {structure.sections?.length > 0 ? (
-            structure.sections.map((section: any) => (
+          {sectionsData.length > 0 ? (
+            sectionsData.map((section: any) => (
               <Card key={section.id}>
                 <CardHeader>
                   <CardTitle className="text-xl">{section.title}</CardTitle>
@@ -640,7 +705,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({ projectId, lotId, itp
                         Debug Information (Click to expand)
                       </summary>
                       <pre className="mt-2 text-xs bg-gray-100 p-4 rounded overflow-auto">
-                        {JSON.stringify({ template, structure }, null, 2)}
+                        {JSON.stringify({ template, structure, sectionsData, totalItems }, null, 2)}
                       </pre>
                     </details>
                   </div>
