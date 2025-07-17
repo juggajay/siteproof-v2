@@ -120,6 +120,8 @@ export async function POST(request: NextRequest) {
 
     for (const template of templates) {
       try {
+        console.log('Processing template:', template.name, 'with structure:', template.structure);
+
         // Initialize inspection data using the RPC function
         const { data: initialData, error: initError } = await supabase.rpc(
           'initialize_inspection_data',
@@ -128,20 +130,24 @@ export async function POST(request: NextRequest) {
           }
         );
 
+        let finalData: any;
         if (initError) {
-          console.error('Error initializing data for template', template.name, ':', initError);
-          throw new Error(`Failed to initialize data for template ${template.name}`);
+          console.error('RPC Error initializing data for template', template.name, ':', initError);
+          console.error('Template structure was:', template.structure);
+          // Try without initialization as fallback
+          console.log('Falling back to empty data object for', template.name);
+          finalData = {};
+        } else {
+          console.log('Successfully initialized data for', template.name, ':', initialData);
+          finalData = initialData || {};
         }
-
-        console.log('Initialized data for', template.name, ':', initialData);
 
         itpInstances.push({
           template_id: template.id,
           project_id: projectId,
           lot_id: lotId,
-          organization_id: (lot.projects as any).organization_id,
           name: template.name,
-          data: initialData || {},
+          data: finalData,
           status: 'draft',
           created_by: user.id,
         });

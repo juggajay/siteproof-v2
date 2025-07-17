@@ -32,6 +32,7 @@ export async function GET(
     console.log('Can access templates?', { data: templateTest, error: templateError });
 
     // First verify the lot exists and user has access
+    console.log('Checking lot access...');
     const { data: lot, error: lotError } = await supabase
       .from('lots')
       .select(
@@ -48,24 +49,49 @@ export async function GET(
       .eq('project_id', projectId)
       .single();
 
-    if (lotError || !lot) {
+    if (lotError) {
+      console.error('Lot query error:', lotError);
       return NextResponse.json({ error: 'Lot not found' }, { status: 404 });
     }
 
+    if (!lot) {
+      console.error('Lot not found for ID:', lotId, 'Project:', projectId);
+      return NextResponse.json({ error: 'Lot not found' }, { status: 404 });
+    }
+
+    console.log('Lot found:', lot.id, 'Organization:', (lot.projects as any)?.organization_id);
+
     // Check user membership
-    const { data: membership } = await supabase
+    console.log(
+      'Checking user membership for org:',
+      (lot.projects as any).organization_id,
+      'user:',
+      user.id
+    );
+    const { data: membership, error: membershipError } = await supabase
       .from('organization_members')
       .select('role')
       .eq('organization_id', (lot.projects as any).organization_id)
       .eq('user_id', user.id)
       .single();
 
+    if (membershipError) {
+      console.error('Membership query error:', membershipError);
+    }
+
     if (!membership) {
+      console.error(
+        'No membership found for user:',
+        user.id,
+        'in org:',
+        (lot.projects as any).organization_id
+      );
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
+    console.log('User membership confirmed:', membership.role);
+
     // Get ITP instances for this lot (use left join to handle deleted templates)
-    // Filter by organization to ensure RLS compliance
     const { data: instances, error: instancesError } = await supabase
       .from('itp_instances')
       .select(
@@ -79,7 +105,6 @@ export async function GET(
         created_at,
         updated_at,
         created_by,
-        organization_id,
         itp_templates(
           id,
           name,
@@ -91,7 +116,6 @@ export async function GET(
       )
       .eq('lot_id', lotId)
       .eq('project_id', projectId)
-      .eq('organization_id', (lot.projects as any).organization_id)
       .order('created_at', { ascending: true });
 
     if (instancesError) {
