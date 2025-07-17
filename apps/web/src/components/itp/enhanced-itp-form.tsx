@@ -6,7 +6,17 @@ import { Button } from '@siteproof/design-system';
 import { Input } from '@siteproof/design-system';
 import { Select } from '@siteproof/design-system';
 import { Textarea } from '@siteproof/design-system';
-import { CheckCircle2, XCircle, MinusCircle, Clock, Camera, AlertCircle, Save, Send, ArrowLeft } from 'lucide-react';
+import {
+  CheckCircle2,
+  XCircle,
+  MinusCircle,
+  Clock,
+  Camera,
+  AlertCircle,
+  Save,
+  Send,
+  ArrowLeft,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface InspectionData {
@@ -25,12 +35,7 @@ interface EnhancedITPFormProps {
   userRole: string;
 }
 
-const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({ 
-  projectId, 
-  lotId, 
-  itpId,
-  userRole 
-}) => {
+const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({ projectId, lotId, itpId, userRole }) => {
   const router = useRouter();
   const [itpInstance, setItpInstance] = useState<any>(null);
   const [inspectionData, setInspectionData] = useState<Record<string, InspectionData>>({});
@@ -42,20 +47,20 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
   const loadItpInstance = useCallback(async () => {
     try {
       setError(null);
-      
+
       const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${itpId}`);
-      
+
       if (!response.ok) {
         throw new Error('Failed to load ITP instance');
       }
-      
+
       const data = await response.json();
       setItpInstance(data.itpInstance);
-      
+
       // Convert existing JSONB data to structured format
       const existingData = data.itpInstance.data || {};
       const convertedData: Record<string, InspectionData> = {};
-      
+
       // Convert from current JSONB structure to inspection data format
       Object.entries(existingData).forEach(([sectionId, sectionData]: [string, any]) => {
         if (typeof sectionData === 'object' && sectionData !== null) {
@@ -67,13 +72,13 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
                 comments: itemData.notes || '',
                 inspected_by: itemData.inspected_by || '',
                 inspected_at: itemData.inspected_at || '',
-                photos: itemData.photos || []
+                photos: itemData.photos || [],
               };
             }
           });
         }
       });
-      
+
       setInspectionData(convertedData);
     } catch (error) {
       console.error('Error loading ITP instance:', error);
@@ -88,26 +93,26 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
   }, [loadItpInstance]);
 
   const updateInspectionItem = (itemId: string, field: keyof InspectionData, value: any) => {
-    setInspectionData(prev => ({
+    setInspectionData((prev) => ({
       ...prev,
       [itemId]: {
-        ...prev[itemId] || { status: 'pending', value: null, comments: '', photos: [] },
+        ...(prev[itemId] || { status: 'pending', value: null, comments: '', photos: [] }),
         [field]: value,
         inspected_at: new Date().toISOString(),
-        inspected_by: 'current-user' // This should be the actual user ID
-      }
+        inspected_by: 'current-user', // This should be the actual user ID
+      },
     }));
     setHasChanges(true);
   };
 
   const handleNumericInput = (itemId: string, value: string, field: any) => {
     const numValue = parseFloat(value);
-    
+
     if (value === '' || isNaN(numValue)) {
       updateInspectionItem(itemId, 'value', null);
       return;
     }
-    
+
     // Auto-validate against min/max if provided
     if (field.validation?.min !== undefined && numValue < field.validation.min) {
       updateInspectionItem(itemId, 'status', 'fail');
@@ -116,30 +121,30 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
     } else {
       updateInspectionItem(itemId, 'status', 'pass');
     }
-    
+
     updateInspectionItem(itemId, 'value', numValue);
   };
 
   const convertToJsonbFormat = () => {
     const jsonbData: any = {};
-    
+
     Object.entries(inspectionData).forEach(([fullItemId, data]) => {
       const [sectionId, itemId] = fullItemId.split('_');
-      
+
       if (!jsonbData[sectionId]) {
         jsonbData[sectionId] = {};
       }
-      
+
       jsonbData[sectionId][itemId] = {
         result: data.status,
         value: data.value,
         notes: data.comments,
         inspected_by: data.inspected_by,
         inspected_at: data.inspected_at,
-        photos: data.photos
+        photos: data.photos,
       };
     });
-    
+
     return jsonbData;
   };
 
@@ -147,27 +152,28 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
     try {
       setSaving(true);
       setError(null);
-      
+
       const jsonbData = convertToJsonbFormat();
-      
+
       // Calculate completion percentage
       const totalItems = Object.keys(inspectionData).length;
       const completedItems = Object.values(inspectionData).filter(
-        item => item.status !== 'pending'
+        (item) => item.status !== 'pending'
       ).length;
-      const completionPercentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
-      
+      const completionPercentage =
+        totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+
       const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${itpId}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           data: jsonbData,
           inspection_status: submit ? 'completed' : 'in_progress',
           inspection_date: submit ? new Date().toISOString() : null,
-          completion_percentage: completionPercentage
-        })
+          completion_percentage: completionPercentage,
+        }),
       });
 
       if (!response.ok) {
@@ -176,13 +182,14 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
       }
 
       setHasChanges(false);
-      
+
       if (submit) {
         router.push(`/dashboard/projects/${projectId}/lots/${lotId}`);
       } else {
         // Show success message for draft save
         const successMessage = document.createElement('div');
-        successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
+        successMessage.className =
+          'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-lg z-50';
         successMessage.textContent = 'Draft saved successfully!';
         document.body.appendChild(successMessage);
         setTimeout(() => {
@@ -240,14 +247,18 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
 
   const isHoldPoint = (sectionId: string, itemId: string) => {
     // Check if this item is marked as a hold point in the template
-    const section = itpInstance?.itp_templates?.structure?.sections?.find((s: any) => s.id === sectionId);
+    const section = itpInstance?.itp_templates?.structure?.sections?.find(
+      (s: any) => s.id === sectionId
+    );
     const item = section?.items?.find((i: any) => i.id === itemId);
     return item?.hold_point || false;
   };
 
   const isWitnessPoint = (sectionId: string, itemId: string) => {
     // Check if this item is marked as a witness point in the template
-    const section = itpInstance?.itp_templates?.structure?.sections?.find((s: any) => s.id === sectionId);
+    const section = itpInstance?.itp_templates?.structure?.sections?.find(
+      (s: any) => s.id === sectionId
+    );
     const item = section?.items?.find((i: any) => i.id === itemId);
     return item?.witness_point || false;
   };
@@ -258,7 +269,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
       status: 'pending',
       value: null,
       comments: '',
-      photos: []
+      photos: [],
     };
 
     // Handle both simple and complex template structures
@@ -274,9 +285,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
               {itemTitle}
               {itemRequired && <span className="text-red-500 ml-1">*</span>}
             </h4>
-            {itemDescription && (
-              <p className="text-sm text-gray-600 mt-1">{itemDescription}</p>
-            )}
+            {itemDescription && <p className="text-sm text-gray-600 mt-1">{itemDescription}</p>}
           </div>
           <div className="flex items-center gap-2">
             {getStatusIcon(data.status)}
@@ -336,9 +345,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
           {/* Handle additional input based on item type */}
           {item.type === 'text' && (
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Value
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Value</label>
               <Input
                 value={data.value?.toString() || ''}
                 onChange={(e) => updateInspectionItem(fullItemId, 'value', e.target.value)}
@@ -347,7 +354,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
               />
             </div>
           )}
-          
+
           {item.type === 'number' && (
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700">
@@ -369,12 +376,10 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
               )}
             </div>
           )}
-          
+
           {item.type === 'select' && item.options && (
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Select Option
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Select Option</label>
               <Select
                 options={item.options.map((option: string) => ({ value: option, label: option }))}
                 value={data.value?.toString() || ''}
@@ -384,12 +389,10 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
               />
             </div>
           )}
-          
+
           {item.type === 'textarea' && (
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Notes
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Notes</label>
               <Textarea
                 value={data.value?.toString() || ''}
                 onChange={(e) => updateInspectionItem(fullItemId, 'value', e.target.value)}
@@ -399,12 +402,10 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
               />
             </div>
           )}
-          
+
           {item.type === 'date' && (
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700">
-                Date
-              </label>
+              <label className="block text-sm font-medium text-gray-700">Date</label>
               <Input
                 type="date"
                 value={data.value?.toString() || ''}
@@ -421,7 +422,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
                 {field.label}
                 {field.required && <span className="text-red-500 ml-1">*</span>}
               </label>
-              
+
               {field.type === 'text' && (
                 <Input
                   value={data.value?.toString() || ''}
@@ -430,7 +431,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
                   className="w-full"
                 />
               )}
-              
+
               {field.type === 'number' && (
                 <div className="space-y-1">
                   <Input
@@ -449,17 +450,19 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
                   )}
                 </div>
               )}
-              
+
               {field.type === 'select' && (
                 <Select
-                  options={field.options?.map((option: string) => ({ value: option, label: option })) || []}
+                  options={
+                    field.options?.map((option: string) => ({ value: option, label: option })) || []
+                  }
                   value={data.value?.toString() || ''}
                   onChange={(value) => updateInspectionItem(fullItemId, 'value', value)}
                   placeholder="Select..."
                   className="w-64"
                 />
               )}
-              
+
               {field.type === 'textarea' && (
                 <Textarea
                   value={data.value?.toString() || ''}
@@ -469,7 +472,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
                   className="w-full"
                 />
               )}
-              
+
               {field.type === 'date' && (
                 <Input
                   type="date"
@@ -478,7 +481,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
                   className="w-48"
                 />
               )}
-              
+
               {field.type === 'checkbox' && (
                 <div className="flex items-center">
                   <input
@@ -505,15 +508,15 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
           </div>
 
           {/* Photo upload placeholder */}
-          <Button 
-            size="sm" 
-            variant="secondary" 
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={() => alert('Photo upload functionality coming soon!')}
           >
             <Camera className="w-4 h-4 mr-2" />
             Add Photo
           </Button>
-          
+
           {data.photos.length > 0 && (
             <p className="text-sm text-gray-600">{data.photos.length} photo(s) attached</p>
           )}
@@ -523,7 +526,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
   };
 
   if (loading) return <div className="flex justify-center p-8">Loading...</div>;
-  
+
   if (error) {
     return (
       <div className="flex items-center p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -532,17 +535,25 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
       </div>
     );
   }
-  
+
   if (!itpInstance) return <div>ITP instance not found</div>;
 
   const template = itpInstance.itp_templates;
   const structure = template.structure;
+
+  // Debug logging
+  console.log('Template:', template);
+  console.log('Structure:', structure);
+  console.log('Structure type:', typeof structure);
+  console.log('Structure.sections:', structure?.sections);
+
   const completedItems = Object.values(inspectionData).filter(
-    item => item.status !== 'pending'
+    (item) => item.status !== 'pending'
   ).length;
-  const totalItems = structure.sections?.reduce((total: number, section: any) => {
-    return total + (section.items?.length || 0);
-  }, 0) || 0;
+  const totalItems =
+    structure.sections?.reduce((total: number, section: any) => {
+      return total + (section.items?.length || 0);
+    }, 0) || 0;
   const completionPercentage = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
 
   return (
@@ -563,32 +574,31 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {template.name}
-                </h1>
+                <h1 className="text-3xl font-bold text-gray-900">{template.name}</h1>
                 <p className="text-lg text-gray-600 mt-2">
                   Lot #{itpInstance.lot?.lot_number} - {itpInstance.lot?.project?.name}
                 </p>
                 {template.description && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    {template.description}
-                  </p>
+                  <p className="text-sm text-gray-500 mt-1">{template.description}</p>
                 )}
               </div>
               <div className="flex items-center space-x-4">
                 <span
                   className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(itpInstance.inspection_status)}`}
                 >
-                  {itpInstance.inspection_status?.charAt(0).toUpperCase() + itpInstance.inspection_status?.slice(1) || 'Draft'}
+                  {itpInstance.inspection_status?.charAt(0).toUpperCase() +
+                    itpInstance.inspection_status?.slice(1) || 'Draft'}
                 </span>
                 <span className="text-sm text-gray-500">Role: {userRole}</span>
               </div>
             </div>
-            
+
             {/* Progress Bar */}
             <div className="mt-4">
               <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                <span>Progress: {completedItems} / {totalItems} items completed</span>
+                <span>
+                  Progress: {completedItems} / {totalItems} items completed
+                </span>
                 <span>{Math.round(completionPercentage)}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
@@ -603,19 +613,41 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
 
         {/* Form */}
         <div className="space-y-6">
-          {structure.sections?.map((section: any) => (
-            <Card key={section.id}>
-              <CardHeader>
-                <CardTitle className="text-xl">{section.title}</CardTitle>
-                {section.description && (
-                  <p className="text-gray-600">{section.description}</p>
-                )}
-              </CardHeader>
-              <CardContent>
-                {section.items?.map((item: any) => renderInspectionItem(section, item))}
+          {structure.sections?.length > 0 ? (
+            structure.sections.map((section: any) => (
+              <Card key={section.id}>
+                <CardHeader>
+                  <CardTitle className="text-xl">{section.title}</CardTitle>
+                  {section.description && <p className="text-gray-600">{section.description}</p>}
+                </CardHeader>
+                <CardContent>
+                  {section.items?.map((item: any) => renderInspectionItem(section, item))}
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <Card>
+              <CardContent className="p-8 text-center">
+                <div className="space-y-4">
+                  <AlertCircle className="h-12 w-12 mx-auto text-yellow-500" />
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">No Inspection Items Found</h3>
+                    <p className="text-gray-600 mt-1">
+                      This ITP template appears to be empty or has an invalid structure.
+                    </p>
+                    <details className="mt-4 text-left">
+                      <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-700">
+                        Debug Information (Click to expand)
+                      </summary>
+                      <pre className="mt-2 text-xs bg-gray-100 p-4 rounded overflow-auto">
+                        {JSON.stringify({ template, structure }, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -632,7 +664,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
                 </div>
               )}
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <Button
                 onClick={() => saveInspection(false)}
@@ -651,12 +683,8 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
                   </>
                 )}
               </Button>
-              
-              <Button
-                onClick={() => saveInspection(true)}
-                disabled={saving}
-                variant="primary"
-              >
+
+              <Button onClick={() => saveInspection(true)} disabled={saving} variant="primary">
                 {saving ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -671,7 +699,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
               </Button>
             </div>
           </div>
-          
+
           {error && (
             <div className="flex items-center p-4 bg-red-50 border border-red-200 rounded-lg mt-4">
               <AlertCircle className="h-5 w-5 text-red-600 mr-3" />
