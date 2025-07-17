@@ -44,7 +44,7 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
           name: instance.name || instance.itp_templates?.name || 'Unknown Template',
           description: instance.itp_templates?.description,
           status: instance.inspection_status || instance.status || 'draft',
-          completion_percentage: instance.completion_percentage || 0,
+          completion_percentage: 0, // Column doesn't exist in database, default to 0
           template_id: instance.template_id,
         }));
         setItpInstances(instances);
