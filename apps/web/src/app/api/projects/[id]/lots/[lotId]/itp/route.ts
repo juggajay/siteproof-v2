@@ -65,6 +65,7 @@ export async function GET(
     }
 
     // Get ITP instances for this lot (use left join to handle deleted templates)
+    // Filter by organization to ensure RLS compliance
     const { data: instances, error: instancesError } = await supabase
       .from('itp_instances')
       .select(
@@ -78,6 +79,7 @@ export async function GET(
         created_at,
         updated_at,
         created_by,
+        organization_id,
         itp_templates(
           id,
           name,
@@ -89,6 +91,7 @@ export async function GET(
       )
       .eq('lot_id', lotId)
       .eq('project_id', projectId)
+      .eq('organization_id', (lot.projects as any).organization_id)
       .order('created_at', { ascending: true });
 
     if (instancesError) {

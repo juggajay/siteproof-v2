@@ -139,6 +139,7 @@ export async function POST(request: NextRequest) {
           template_id: template.id,
           project_id: projectId,
           lot_id: lotId,
+          organization_id: (lot.projects as any).organization_id,
           name: template.name,
           data: initialData || {},
           status: 'draft',
