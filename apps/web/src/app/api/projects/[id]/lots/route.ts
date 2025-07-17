@@ -267,9 +267,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
           template_id: template.id,
           project_id: projectId,
           lot_id: lot.id,
-          name: template.name, // Copy template name to instance
+          organization_id: project.organization_id,
           data: {},
-          status: 'draft',
+          evidence_files: [],
+          inspection_status: 'draft',
+          sync_status: 'pending',
+          is_active: true,
           created_by: user.id,
         }));
 

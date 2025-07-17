@@ -260,10 +260,13 @@ export default function LotDetailClientSimple({
                         {instance.itp_templates?.name || 'Unknown Template'}
                       </h4>
                       <p className="text-sm text-gray-500">
-                        Status: {instance.status || 'Unknown'}
+                        Status: {instance.inspection_status || 'Unknown'}
                       </p>
                       <p className="text-sm text-gray-500">
-                        Progress: {instance.completion_percentage || 0}%
+                        Date: {instance.inspection_date ? formatDate(instance.inspection_date) : 'Not set'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Active: {instance.is_active ? 'Yes' : 'No'}
                       </p>
                     </div>
                     <div className="text-sm text-gray-500">{formatDate(instance.created_at)}</div>
