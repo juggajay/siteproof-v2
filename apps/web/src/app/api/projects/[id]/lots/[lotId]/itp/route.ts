@@ -10,13 +10,26 @@ export async function GET(
     const { id: projectId, lotId } = params;
     const supabase = await createClient();
 
+    console.log('=== ITP API Debug ===');
+    console.log('Project ID:', projectId);
+    console.log('Lot ID:', lotId);
+
     // Get current user
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
+    console.log('User:', user?.id, 'Error:', userError);
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Test if we can access templates
+    const { data: templateTest, error: templateError } = await supabase
+      .from('itp_templates')
+      .select('id, name, structure')
+      .limit(1);
+    console.log('Can access templates?', { data: templateTest, error: templateError });
 
     // First verify the lot exists and user has access
     const { data: lot, error: lotError } = await supabase
@@ -80,8 +93,12 @@ export async function GET(
 
     if (instancesError) {
       console.error('Error fetching ITP instances:', instancesError);
+      console.error('Full instances error details:', JSON.stringify(instancesError, null, 2));
       return NextResponse.json({ error: 'Failed to fetch ITP instances' }, { status: 500 });
     }
+
+    console.log('ITP instances fetched successfully:', instances?.length || 0, 'instances');
+    console.log('===================');
 
     return NextResponse.json({
       instances: instances || [],
