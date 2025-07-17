@@ -180,6 +180,57 @@ export default function LotDetailClientSimple({
           </div>
         </div>
 
+        {/* Files Section */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Files</h2>
+            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+              Upload Files
+            </button>
+          </div>
+
+          {!lot.files || lot.files.length === 0 ? (
+            <div className="text-center py-12">
+              <FileText className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No files uploaded</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Upload files related to this lot for review and documentation.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {lot.files.map((file: any, index: number) => (
+                <div key={index} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center">
+                    <FileText className="h-8 w-8 text-blue-500 mr-3" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {file.name || 'Unnamed file'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {file.type || 'Unknown type'} •{' '}
+                        {file.size ? `${Math.round(file.size / 1024)}KB` : 'Unknown size'}
+                      </p>
+                    </div>
+                  </div>
+                  {file.url && (
+                    <div className="mt-3">
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        View File
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {/* ITP Instances Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-4">
@@ -209,7 +260,10 @@ export default function LotDetailClientSimple({
                         {instance.itp_templates?.name || 'Unknown Template'}
                       </h4>
                       <p className="text-sm text-gray-500">
-                        Status: {instance.inspection_status || 'Unknown'}
+                        Status: {instance.status || 'Unknown'}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Progress: {instance.completion_percentage || 0}%
                       </p>
                     </div>
                     <div className="text-sm text-gray-500">{formatDate(instance.created_at)}</div>
