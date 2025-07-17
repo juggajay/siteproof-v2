@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, FileText, Users, Clock, AlertCircle } from 'lucide-react';
+import { ArrowLeft, FileText, Users, Clock } from 'lucide-react';
+import { MobileItpManager } from '@/components/itp/mobile-itp-manager';
 
 interface LotDetailClientSimpleProps {
   lot: any;
@@ -166,16 +167,7 @@ export default function LotDetailClientSimple({
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Actions</h3>
               <div className="space-y-3">
-                <button 
-                  onClick={() => {
-                    // Navigate to ITP assignment page
-                    router.push(`/dashboard/projects/${projectId}/lots/${lot.id}/itp-assign`);
-                  }}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Assign ITP Template
-                </button>
-                <button 
+                <button
                   onClick={() => {
                     // Scroll to files section
                     const filesSection = document.getElementById('files-section');
@@ -187,7 +179,7 @@ export default function LotDetailClientSimple({
                 >
                   View Files
                 </button>
-                <button 
+                <button
                   onClick={() => {
                     // Generate and download report
                     window.open(`/api/projects/${projectId}/lots/${lot.id}/export`, '_blank');
@@ -202,7 +194,10 @@ export default function LotDetailClientSimple({
         </div>
 
         {/* Files Section */}
-        <div id="files-section" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div
+          id="files-section"
+          className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8"
+        >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Files</h2>
             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
@@ -252,69 +247,8 @@ export default function LotDetailClientSimple({
           )}
         </div>
 
-        {/* ITP Instances Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">ITP Instances</h2>
-            {lot.itp_instances?.length === 0 && (
-              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                Add ITP Instance
-              </button>
-            )}
-          </div>
-
-          {lot.itp_instances?.length === 0 ? (
-            <div className="text-center py-12">
-              <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No ITP instances</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Get started by assigning an ITP template to this lot.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {lot.itp_instances.map((instance: any) => (
-                <div key={instance.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {instance.itp_templates?.name || 'Unknown Template'}
-                      </h4>
-                      <p className="text-sm text-gray-500">
-                        Status: <span className={`font-medium ${getStatusColor(instance.inspection_status)}`}>
-                          {instance.inspection_status || 'Draft'}
-                        </span>
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Date: {instance.inspection_date ? formatDate(instance.inspection_date) : 'Not set'}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Active: {instance.is_active ? 'Yes' : 'No'}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end space-y-2">
-                      <div className="text-sm text-gray-500">{formatDate(instance.created_at)}</div>
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => router.push(`/dashboard/projects/${projectId}/lots/${lot.id}/itp/${instance.id}`)}
-                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-                        >
-                          Open ITP
-                        </button>
-                        <button
-                          onClick={() => router.push(`/dashboard/projects/${projectId}/lots/${lot.id}/itp/${instance.id}/enhanced`)}
-                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
-                        >
-                          Enhanced
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        {/* Mobile-Optimized ITP Section */}
+        <MobileItpManager projectId={projectId} lotId={lot.id} userRole={userRole} />
       </div>
     </div>
   );

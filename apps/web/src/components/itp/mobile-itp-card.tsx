@@ -1,0 +1,231 @@
+'use client';
+
+import React, { useState } from 'react';
+import {
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  XCircle,
+  MinusCircle,
+  Camera,
+  MessageSquare,
+} from 'lucide-react';
+
+interface MobileItpCardProps {
+  itp: {
+    id: string;
+    name: string;
+    description?: string;
+    inspection_status: string;
+    completion_percentage?: number;
+    items?: any[];
+  };
+  onStatusChange: (itemId: string, status: 'pass' | 'fail' | 'na') => void;
+  onAddComment: (itemId: string, comment: string) => void;
+  onAddPhoto: (itemId: string) => void;
+}
+
+export function MobileItpCard({
+  itp,
+  onStatusChange,
+  onAddComment,
+  onAddPhoto,
+}: MobileItpCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [activeCommentItem, setActiveCommentItem] = useState<string | null>(null);
+  const [commentText, setCommentText] = useState('');
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return 'bg-green-100 text-green-800';
+      case 'in_progress':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleCommentSubmit = (itemId: string) => {
+    if (commentText.trim()) {
+      onAddComment(itemId, commentText.trim());
+      setCommentText('');
+      setActiveCommentItem(null);
+    }
+  };
+
+  // Mock items for now - in real implementation, this would come from the ITP structure
+  const mockItems = [
+    {
+      id: 'AS001',
+      title: 'Existing pavement surface cleaned and prepared',
+      category: 'preparation',
+      status: null,
+    },
+    { id: 'AS002', title: 'Surface defects repaired', category: 'preparation', status: null },
+    {
+      id: 'AS003',
+      title: 'Prime coat application rate (L/m²)',
+      category: 'application',
+      status: null,
+    },
+    { id: 'AS004', title: 'Aggregate spread rate (m²/m³)', category: 'application', status: null },
+    {
+      id: 'AS005',
+      title: 'Aggregate size and grading conformance',
+      category: 'materials',
+      status: null,
+    },
+  ];
+
+  return (
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
+      {/* Header - Always visible */}
+      <div className="p-4 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <h3 className="font-medium text-gray-900 text-lg">{itp.name}</h3>
+            {itp.description && <p className="text-sm text-gray-600 mt-1">{itp.description}</p>}
+            <div className="flex items-center gap-3 mt-2">
+              <span
+                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(itp.inspection_status)}`}
+              >
+                {itp.inspection_status?.charAt(0).toUpperCase() + itp.inspection_status?.slice(1) ||
+                  'Draft'}
+              </span>
+              {itp.completion_percentage !== undefined && (
+                <span className="text-sm text-gray-500">{itp.completion_percentage}% complete</span>
+              )}
+            </div>
+          </div>
+          <div className="ml-4">
+            {isExpanded ? (
+              <ChevronUp className="h-6 w-6 text-gray-400" />
+            ) : (
+              <ChevronDown className="h-6 w-6 text-gray-400" />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Expandable Content */}
+      {isExpanded && (
+        <div className="border-t border-gray-200">
+          <div className="p-4 space-y-4">
+            {mockItems.map((item) => (
+              <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                {/* Item Header */}
+                <div className="mb-4">
+                  <h4 className="font-medium text-gray-900 text-base leading-tight">
+                    {item.title}
+                  </h4>
+                  <span className="inline-block mt-2 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded">
+                    {item.category}
+                  </span>
+                </div>
+
+                {/* Large Touch-Friendly Buttons */}
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  <button
+                    onClick={() => onStatusChange(item.id, 'pass')}
+                    className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
+                      item.status === 'pass'
+                        ? 'bg-green-500 border-green-500 text-white shadow-lg'
+                        : 'bg-white border-green-200 text-green-600 hover:bg-green-50'
+                    }`}
+                  >
+                    <CheckCircle2 className="h-6 w-6 mb-1" />
+                    <span className="text-sm font-medium">PASS</span>
+                  </button>
+
+                  <button
+                    onClick={() => onStatusChange(item.id, 'fail')}
+                    className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
+                      item.status === 'fail'
+                        ? 'bg-red-500 border-red-500 text-white shadow-lg'
+                        : 'bg-white border-red-200 text-red-600 hover:bg-red-50'
+                    }`}
+                  >
+                    <XCircle className="h-6 w-6 mb-1" />
+                    <span className="text-sm font-medium">FAIL</span>
+                  </button>
+
+                  <button
+                    onClick={() => onStatusChange(item.id, 'na')}
+                    className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
+                      item.status === 'na'
+                        ? 'bg-gray-500 border-gray-500 text-white shadow-lg'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <MinusCircle className="h-6 w-6 mb-1" />
+                    <span className="text-sm font-medium">N/A</span>
+                  </button>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={() =>
+                      setActiveCommentItem(activeCommentItem === item.id ? null : item.id)
+                    }
+                    className="flex-1 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center text-gray-700 hover:bg-gray-50"
+                  >
+                    <MessageSquare className="h-4 w-4 mr-2" />
+                    <span className="text-sm">Comment</span>
+                  </button>
+
+                  <button
+                    onClick={() => onAddPhoto(item.id)}
+                    className="flex-1 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center text-gray-700 hover:bg-gray-50"
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    <span className="text-sm">Photo</span>
+                  </button>
+                </div>
+
+                {/* Comment Input */}
+                {activeCommentItem === item.id && (
+                  <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                    <textarea
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="Add a comment..."
+                      rows={3}
+                      className="w-full p-2 border border-gray-300 rounded text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => handleCommentSubmit(item.id)}
+                        disabled={!commentText.trim()}
+                        className="px-4 py-2 bg-blue-600 text-white rounded text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Add Comment
+                      </button>
+                      <button
+                        onClick={() => {
+                          setActiveCommentItem(null);
+                          setCommentText('');
+                        }}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded text-sm font-medium"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Submit Section */}
+          <div className="border-t border-gray-200 p-4">
+            <button className="w-full h-12 bg-blue-600 text-white rounded-lg font-medium text-lg hover:bg-blue-700 transition-colors">
+              Submit ITP for Review
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
