@@ -38,8 +38,25 @@ export default async function LotDetailPage({ params }: PageProps) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      console.error('[LotDetailPage] No user found, returning 404');
-      return notFound();
+      console.error('[LotDetailPage] No user found');
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
+              <p className="text-gray-600">
+                You need to be logged in to view this lot. Please sign in and try again.
+              </p>
+              <a
+                href="/auth/login"
+                className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Sign In
+              </a>
+            </div>
+          </div>
+        </div>
+      );
     }
 
     console.log('[LotDetailPage] User authenticated:', user.id);
@@ -89,14 +106,71 @@ export default async function LotDetailPage({ params }: PageProps) {
         lotId,
         projectId,
       });
-      return notFound();
+
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">Lot Not Found</h1>
+              <p className="text-gray-600 mb-4">
+                The lot you are looking for could not be found. This could be because:
+              </p>
+              <ul className="list-disc list-inside text-gray-600 mb-4 space-y-1">
+                <li>The lot ID is incorrect</li>
+                <li>The lot has been deleted</li>
+                <li>You don&apos;t have permission to access this lot</li>
+                <li>The project doesn&apos;t exist</li>
+              </ul>
+              <div className="space-x-4">
+                <a
+                  href={`/dashboard/projects/${projectId}`}
+                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Back to Project
+                </a>
+                <a
+                  href="/dashboard/projects"
+                  className="inline-block px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                >
+                  All Projects
+                </a>
+              </div>
+              {error && (
+                <details className="mt-4">
+                  <summary className="cursor-pointer text-sm text-gray-500">
+                    Technical Details
+                  </summary>
+                  <pre className="mt-2 p-4 bg-gray-100 rounded text-xs overflow-auto">
+                    {JSON.stringify(
+                      { error: error.message, code: error.code, hint: error.hint },
+                      null,
+                      2
+                    )}
+                  </pre>
+                </details>
+              )}
+            </div>
+          </div>
+        </div>
+      );
     }
 
     // Check user access
     const orgId = lot.project?.organization_id;
     if (!orgId) {
       console.error('[LotDetailPage] No organization_id found in lot.project:', lot.project);
-      return notFound();
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">Configuration Error</h1>
+              <p className="text-gray-600">
+                There&apos;s an issue with the project configuration. Please contact support.
+              </p>
+            </div>
+          </div>
+        </div>
+      );
     }
 
     console.log('[LotDetailPage] Checking membership for org:', orgId);
@@ -119,7 +193,30 @@ export default async function LotDetailPage({ params }: PageProps) {
         userId: user.id,
         error: membershipError?.message,
       });
-      return notFound();
+
+      return (
+        <div className="min-h-screen bg-gray-50">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+              <p className="text-gray-600 mb-4">
+                You don&apos;t have permission to access this lot. You may need to:
+              </p>
+              <ul className="list-disc list-inside text-gray-600 mb-4 space-y-1">
+                <li>Be invited to the organization</li>
+                <li>Request access from an organization admin</li>
+                <li>Sign in with a different account</li>
+              </ul>
+              <a
+                href="/dashboard"
+                className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Back to Dashboard
+              </a>
+            </div>
+          </div>
+        </div>
+      );
     }
 
     // Ensure itp_instances is an array
@@ -148,9 +245,26 @@ export default async function LotDetailPage({ params }: PageProps) {
               There was an error loading this lot. Please try refreshing the page or contact support
               if the issue persists.
             </p>
-            <pre className="mt-4 p-4 bg-gray-100 rounded text-sm">
-              {JSON.stringify(error, null, 2)}
-            </pre>
+            <div className="mt-4 space-x-4">
+              <a
+                href={`/dashboard/projects/${projectId}/lots/${lotId}`}
+                className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Refresh Page
+              </a>
+              <a
+                href="/dashboard"
+                className="inline-block px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                Back to Dashboard
+              </a>
+            </div>
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm text-gray-500">Technical Details</summary>
+              <pre className="mt-2 p-4 bg-gray-100 rounded text-xs overflow-auto">
+                {JSON.stringify(error, null, 2)}
+              </pre>
+            </details>
           </div>
         </div>
       </div>
