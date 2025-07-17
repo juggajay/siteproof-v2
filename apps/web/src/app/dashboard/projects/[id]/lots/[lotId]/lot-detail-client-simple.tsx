@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, FileText, Users, Clock } from 'lucide-react';
+import { ArrowLeft, FileText } from 'lucide-react';
 import { MobileItpManager } from '@/components/itp/mobile-itp-manager';
 
 interface LotDetailClientSimpleProps {
@@ -85,112 +85,58 @@ export default function LotDetailClientSimple({
         </div>
 
         {/* Lot Details */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Main Details */}
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Lot Details</h2>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Lot Details</h2>
 
-              <div className="space-y-4">
-                {lot.description && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Description</label>
-                    <p className="mt-1 text-gray-900">{lot.description}</p>
-                  </div>
-                )}
+          <div className="space-y-4">
+            {lot.description && (
+              <div>
+                <label className="text-sm font-medium text-gray-700">Description</label>
+                <p className="mt-1 text-gray-900">{lot.description}</p>
+              </div>
+            )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Version</label>
-                    <p className="mt-1 text-gray-900">{lot.version || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Created</label>
-                    <p className="mt-1 text-gray-900">{formatDate(lot.created_at)}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Submitted</label>
-                    <p className="mt-1 text-gray-900">{formatDate(lot.submitted_at)}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Reviewed</label>
-                    <p className="mt-1 text-gray-900">{formatDate(lot.reviewed_at)}</p>
-                  </div>
-                </div>
-
-                {lot.internal_notes && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Internal Notes</label>
-                    <p className="mt-1 text-gray-900">{lot.internal_notes}</p>
-                  </div>
-                )}
-
-                {lot.client_notes && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">Client Notes</label>
-                    <p className="mt-1 text-gray-900">{lot.client_notes}</p>
-                  </div>
-                )}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Version</label>
+                <p className="mt-1 text-gray-900">{lot.version || 'N/A'}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Created</label>
+                <p className="mt-1 text-gray-900">{formatDate(lot.created_at)}</p>
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Submitted</label>
+                <p className="mt-1 text-gray-900">{formatDate(lot.submitted_at)}</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Reviewed</label>
+                <p className="mt-1 text-gray-900">{formatDate(lot.reviewed_at)}</p>
+              </div>
+            </div>
+
+            {lot.internal_notes && (
+              <div>
+                <label className="text-sm font-medium text-gray-700">Internal Notes</label>
+                <p className="mt-1 text-gray-900">{lot.internal_notes}</p>
+              </div>
+            )}
+
+            {lot.client_notes && (
+              <div>
+                <label className="text-sm font-medium text-gray-700">Client Notes</label>
+                <p className="mt-1 text-gray-900">{lot.client_notes}</p>
+              </div>
+            )}
           </div>
+        </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Stats */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Stats</h3>
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <FileText className="h-5 w-5 text-gray-400 mr-3" />
-                  <span className="text-sm text-gray-600">Files: {lot.files?.length || 0}</span>
-                </div>
-                <div className="flex items-center">
-                  <Users className="h-5 w-5 text-gray-400 mr-3" />
-                  <span className="text-sm text-gray-600">
-                    ITP Instances: {lot.itp_instances?.length || 0}
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <Clock className="h-5 w-5 text-gray-400 mr-3" />
-                  <span className="text-sm text-gray-600">
-                    Last Updated: {formatDate(lot.updated_at)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Actions</h3>
-              <div className="space-y-3">
-                <button
-                  onClick={() => {
-                    // Scroll to files section
-                    const filesSection = document.getElementById('files-section');
-                    if (filesSection) {
-                      filesSection.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
-                  className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                >
-                  View Files
-                </button>
-                <button
-                  onClick={() => {
-                    // Generate and download report
-                    window.open(`/api/projects/${projectId}/lots/${lot.id}/export`, '_blank');
-                  }}
-                  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  Export Report
-                </button>
-              </div>
-            </div>
-          </div>
+        {/* Mobile-Optimized ITP Section - Moved here after details */}
+        <div className="mb-8">
+          <MobileItpManager projectId={projectId} lotId={lot.id} userRole={userRole} />
         </div>
 
         {/* Files Section */}
@@ -201,7 +147,7 @@ export default function LotDetailClientSimple({
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Files</h2>
             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-              Upload Files
+              Add Files
             </button>
           </div>
 
@@ -247,8 +193,18 @@ export default function LotDetailClientSimple({
           )}
         </div>
 
-        {/* Mobile-Optimized ITP Section */}
-        <MobileItpManager projectId={projectId} lotId={lot.id} userRole={userRole} />
+        {/* Export Report - Big Green Button at Bottom */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <button
+            onClick={() => {
+              // Generate and download report
+              window.open(`/api/projects/${projectId}/lots/${lot.id}/export`, '_blank');
+            }}
+            className="w-full h-16 px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold"
+          >
+            Export Report
+          </button>
+        </div>
       </div>
     </div>
   );
