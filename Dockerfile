@@ -55,8 +55,14 @@ RUN mkdir -p ./apps/web/.next
 RUN chown nextjs:nodejs ./apps/web/.next
 
 # Copy built application
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next ./apps/web/.next
+COPY --from=builder --chown=nextjs:nodejs /app/apps/web/package.json ./apps/web/package.json
+COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nextjs:nodejs /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+
+# Copy packages
+COPY --from=builder --chown=nextjs:nodejs /app/packages ./packages
 
 USER nextjs
 
@@ -69,4 +75,5 @@ ENV HOSTNAME "0.0.0.0"
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
-CMD ["node", "apps/web/server.js"]
+WORKDIR /app/apps/web
+CMD ["node", "../../node_modules/next/dist/bin/next", "start"]
