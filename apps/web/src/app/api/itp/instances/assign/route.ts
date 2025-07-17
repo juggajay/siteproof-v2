@@ -146,7 +146,6 @@ export async function POST(request: NextRequest) {
           template_id: template.id,
           project_id: projectId,
           lot_id: lotId,
-          name: template.name,
           data: finalData,
           status: 'draft',
           created_by: user.id,

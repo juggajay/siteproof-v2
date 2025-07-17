@@ -98,7 +98,6 @@ export async function GET(
         `
         id,
         template_id,
-        name,
         data,
         status,
         completion_percentage,
