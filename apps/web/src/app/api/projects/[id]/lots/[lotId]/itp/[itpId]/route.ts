@@ -18,11 +18,11 @@ const updateItpInstanceSchema = z.object({
 
 // GET /api/projects/[id]/lots/[lotId]/itp/[itpId] - Get ITP instance
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string; lotId: string; itpId: string } }
 ) {
   try {
-    const { id: projectId, lotId, itpId } = params;
+    const { lotId, itpId } = params;
     const supabase = await createClient();
 
     // Get current user
@@ -66,7 +66,7 @@ export async function GET(
     const { data: membership } = await supabase
       .from('organization_members')
       .select('role')
-      .eq('organization_id', itpInstance.itp_templates.organization_id)
+      .eq('organization_id', (itpInstance as any).itp_templates.organization_id)
       .eq('user_id', user.id)
       .single();
 
@@ -87,7 +87,7 @@ export async function PUT(
   { params }: { params: { id: string; lotId: string; itpId: string } }
 ) {
   try {
-    const { id: projectId, lotId, itpId } = params;
+    const { lotId, itpId } = params;
     const body = await request.json();
 
     // Validate request body
@@ -135,7 +135,7 @@ export async function PUT(
     const { data: membership } = await supabase
       .from('organization_members')
       .select('role')
-      .eq('organization_id', itpInstance.itp_templates.organization_id)
+      .eq('organization_id', (itpInstance as any).itp_templates.organization_id)
       .eq('user_id', user.id)
       .single();
 
@@ -218,11 +218,11 @@ export async function PUT(
 
 // DELETE /api/projects/[id]/lots/[lotId]/itp/[itpId] - Delete ITP instance
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { id: string; lotId: string; itpId: string } }
 ) {
   try {
-    const { id: projectId, lotId, itpId } = params;
+    const { lotId, itpId } = params;
     const supabase = await createClient();
 
     // Get current user
@@ -252,7 +252,7 @@ export async function DELETE(
     const { data: membership } = await supabase
       .from('organization_members')
       .select('role')
-      .eq('organization_id', itpInstance.itp_templates.organization_id)
+      .eq('organization_id', (itpInstance as any).itp_templates.organization_id)
       .eq('user_id', user.id)
       .single();
 

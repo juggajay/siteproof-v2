@@ -70,18 +70,6 @@ export default function ItpInstanceClient({
     }
   };
 
-  const getResultIcon = (result: InspectionResult) => {
-    switch (result) {
-      case 'pass':
-        return <CheckCircle className="h-5 w-5 text-green-600" />;
-      case 'fail':
-        return <XCircle className="h-5 w-5 text-red-600" />;
-      case 'na':
-        return <Minus className="h-5 w-5 text-gray-600" />;
-      default:
-        return null;
-    }
-  };
 
   const updateItemResult = (sectionId: string, itemId: string, result: InspectionResult) => {
     setFormData(prev => ({
@@ -204,7 +192,7 @@ export default function ItpInstanceClient({
 
         {/* Form */}
         <div className="space-y-6">
-          {structure.sections?.map((section: any, sectionIndex: number) => (
+          {structure.sections?.map((section: any) => (
             <div key={section.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="px-6 py-4 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-900">{section.title}</h2>
@@ -214,7 +202,7 @@ export default function ItpInstanceClient({
               </div>
               
               <div className="p-6 space-y-6">
-                {section.items?.map((item: any, itemIndex: number) => (
+                {section.items?.map((item: any) => (
                   <div key={item.id} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">

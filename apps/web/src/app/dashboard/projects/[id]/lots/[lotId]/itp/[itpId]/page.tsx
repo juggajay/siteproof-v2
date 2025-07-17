@@ -9,7 +9,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   try {
-    const { id, lotId, itpId } = await params;
+    const { id, lotId } = await params;
     return {
       title: `ITP Instance - Lot ${lotId} - Project ${id}`,
       description: 'Inspection Test Plan instance for lot',
