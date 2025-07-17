@@ -1,7 +1,5 @@
-const { createClient } = require('@supabase/supabase-js');
-
-// This script creates sample ITP templates for testing
-// You'll need to run this after authentication in your application
+// This script shows sample ITP templates for testing
+// You can use these structures to create templates in your application
 
 const sampleTemplates = [
   {
