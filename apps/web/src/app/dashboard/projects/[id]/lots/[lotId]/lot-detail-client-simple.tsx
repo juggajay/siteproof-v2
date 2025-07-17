@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FileText, Users, Clock, AlertCircle } from 'lucide-react';
 
 interface LotDetailClientSimpleProps {
   lot: any;
@@ -15,6 +15,32 @@ export default function LotDetailClientSimple({
   userRole,
 }: LotDetailClientSimpleProps) {
   const router = useRouter();
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Not set';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'approved':
+        return 'bg-green-100 text-green-800';
+      case 'rejected':
+        return 'bg-red-100 text-red-800';
+      case 'in_review':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -32,22 +58,166 @@ export default function LotDetailClientSimple({
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Lot #{lot.lot_number}
-              {lot.name && `: ${lot.name}`}
-            </h1>
-            <p className="text-sm text-gray-500 mt-1">Project: {lot.project?.name || 'Unknown'}</p>
-            <p className="text-sm text-gray-500 mt-1">User Role: {userRole}</p>
-            <p className="text-sm text-gray-500 mt-1">Status: {lot.status}</p>
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Lot #{lot.lot_number}
+                  {lot.name && `: ${lot.name}`}
+                </h1>
+                <p className="text-lg text-gray-600 mt-2">
+                  Project: {lot.project?.name || 'Unknown'}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Organization: {lot.project?.organization?.name || 'Unknown'}
+                </p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <span
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(lot.status)}`}
+                >
+                  {lot.status?.charAt(0).toUpperCase() + lot.status?.slice(1) || 'Unknown'}
+                </span>
+                <span className="text-sm text-gray-500">Role: {userRole}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Debug Info */}
+        {/* Lot Details */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Main Details */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Lot Details</h2>
+
+              <div className="space-y-4">
+                {lot.description && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Description</label>
+                    <p className="mt-1 text-gray-900">{lot.description}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Version</label>
+                    <p className="mt-1 text-gray-900">{lot.version || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Created</label>
+                    <p className="mt-1 text-gray-900">{formatDate(lot.created_at)}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Submitted</label>
+                    <p className="mt-1 text-gray-900">{formatDate(lot.submitted_at)}</p>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Reviewed</label>
+                    <p className="mt-1 text-gray-900">{formatDate(lot.reviewed_at)}</p>
+                  </div>
+                </div>
+
+                {lot.internal_notes && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Internal Notes</label>
+                    <p className="mt-1 text-gray-900">{lot.internal_notes}</p>
+                  </div>
+                )}
+
+                {lot.client_notes && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Client Notes</label>
+                    <p className="mt-1 text-gray-900">{lot.client_notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Quick Stats */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Stats</h3>
+              <div className="space-y-3">
+                <div className="flex items-center">
+                  <FileText className="h-5 w-5 text-gray-400 mr-3" />
+                  <span className="text-sm text-gray-600">Files: {lot.files?.length || 0}</span>
+                </div>
+                <div className="flex items-center">
+                  <Users className="h-5 w-5 text-gray-400 mr-3" />
+                  <span className="text-sm text-gray-600">
+                    ITP Instances: {lot.itp_instances?.length || 0}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <Clock className="h-5 w-5 text-gray-400 mr-3" />
+                  <span className="text-sm text-gray-600">
+                    Last Updated: {formatDate(lot.updated_at)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Actions</h3>
+              <div className="space-y-3">
+                <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                  Assign ITP Template
+                </button>
+                <button className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                  View Files
+                </button>
+                <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                  Export Report
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ITP Instances Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Debug Information</h2>
-          <pre className="text-xs bg-gray-100 p-4 rounded overflow-auto">
-            {JSON.stringify({ lot, projectId, userRole }, null, 2)}
-          </pre>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">ITP Instances</h2>
+            {lot.itp_instances?.length === 0 && (
+              <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Add ITP Instance
+              </button>
+            )}
+          </div>
+
+          {lot.itp_instances?.length === 0 ? (
+            <div className="text-center py-12">
+              <AlertCircle className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No ITP instances</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Get started by assigning an ITP template to this lot.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {lot.itp_instances.map((instance: any) => (
+                <div key={instance.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-medium text-gray-900">
+                        {instance.itp_templates?.name || 'Unknown Template'}
+                      </h4>
+                      <p className="text-sm text-gray-500">
+                        Status: {instance.inspection_status || 'Unknown'}
+                      </p>
+                    </div>
+                    <div className="text-sm text-gray-500">{formatDate(instance.created_at)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
