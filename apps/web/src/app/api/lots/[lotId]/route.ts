@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { lotId: string } }
-) {
+export async function GET(_request: NextRequest, { params }: { params: { lotId: string } }) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -16,14 +15,16 @@ export async function GET(
     // Get lot with basic info
     const { data: lot, error } = await supabase
       .from('lots')
-      .select(`
+      .select(
+        `
         *,
         projects (
           id,
           name,
           organization_id
         )
-      `)
+      `
+      )
       .eq('id', params.lotId)
       .single();
 
@@ -47,23 +48,38 @@ export async function GET(
     // Get ITP instances separately to avoid join issues
     const { data: itpInstances } = await supabase
       .from('itp_instances')
-      .select(`
-        *,
+      .select(
+        `
+        id,
+        template_id,
+        project_id,
+        lot_id,
+        data,
+        status,
+        completion_percentage,
+        started_at,
+        completed_at,
+        approved_at,
+        approved_by,
+        created_by,
+        created_at,
+        updated_at,
         itp_templates (
           id,
           name,
           description,
           category
         )
-      `)
+      `
+      )
       .eq('lot_id', params.lotId);
 
     return NextResponse.json({
       lot: {
         ...lot,
-        itp_instances: itpInstances || []
+        itp_instances: itpInstances || [],
       },
-      userRole: membership.role
+      userRole: membership.role,
     });
   } catch (error) {
     console.error('Error in lot API:', error);
