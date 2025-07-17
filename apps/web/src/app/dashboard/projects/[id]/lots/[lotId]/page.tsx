@@ -82,7 +82,7 @@ export default async function LotDetailPage({ params }: PageProps) {
         ),
         itp_instances(
           id,
-          status,
+          name,
           completion_percentage,
           created_at,
           updated_at,
