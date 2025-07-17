@@ -261,13 +261,21 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
       photos: []
     };
 
+    // Handle both simple and complex template structures
+    const itemTitle = item.title || item.label || 'Inspection Item';
+    const itemDescription = item.description;
+    const itemRequired = item.required || false;
+
     return (
       <div key={fullItemId} className="border rounded-lg p-4 mb-4 bg-white">
         <div className="flex items-start justify-between mb-3">
           <div className="flex-1">
-            <h4 className="font-medium text-gray-900">{item.title}</h4>
-            {item.description && (
-              <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+            <h4 className="font-medium text-gray-900">
+              {itemTitle}
+              {itemRequired && <span className="text-red-500 ml-1">*</span>}
+            </h4>
+            {itemDescription && (
+              <p className="text-sm text-gray-600 mt-1">{itemDescription}</p>
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -325,7 +333,88 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
             </Button>
           </div>
 
-          {/* Render additional fields based on item.fields */}
+          {/* Handle additional input based on item type */}
+          {item.type === 'text' && (
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Value
+              </label>
+              <Input
+                value={data.value?.toString() || ''}
+                onChange={(e) => updateInspectionItem(fullItemId, 'value', e.target.value)}
+                placeholder={item.placeholder || 'Enter text value'}
+                className="w-full"
+              />
+            </div>
+          )}
+          
+          {item.type === 'number' && (
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Value {item.unit && `(${item.unit})`}
+              </label>
+              <Input
+                type="number"
+                value={data.value !== null ? data.value.toString() : ''}
+                onChange={(e) => handleNumericInput(fullItemId, e.target.value, item)}
+                min={item.min}
+                max={item.max}
+                placeholder={`Enter value ${item.unit ? `(${item.unit})` : ''}`}
+                className="w-48"
+              />
+              {item.min !== undefined && item.max !== undefined && (
+                <p className="text-xs text-gray-500">
+                  Range: {item.min} - {item.max} {item.unit || ''}
+                </p>
+              )}
+            </div>
+          )}
+          
+          {item.type === 'select' && item.options && (
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Select Option
+              </label>
+              <Select
+                options={item.options.map((option: string) => ({ value: option, label: option }))}
+                value={data.value?.toString() || ''}
+                onChange={(value) => updateInspectionItem(fullItemId, 'value', value)}
+                placeholder="Select..."
+                className="w-64"
+              />
+            </div>
+          )}
+          
+          {item.type === 'textarea' && (
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Notes
+              </label>
+              <Textarea
+                value={data.value?.toString() || ''}
+                onChange={(e) => updateInspectionItem(fullItemId, 'value', e.target.value)}
+                placeholder={item.placeholder || 'Enter detailed notes'}
+                rows={3}
+                className="w-full"
+              />
+            </div>
+          )}
+          
+          {item.type === 'date' && (
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700">
+                Date
+              </label>
+              <Input
+                type="date"
+                value={data.value?.toString() || ''}
+                onChange={(e) => updateInspectionItem(fullItemId, 'value', e.target.value)}
+                className="w-48"
+              />
+            </div>
+          )}
+
+          {/* Render additional fields if they exist (complex structure) */}
           {item.fields?.map((field: any) => (
             <div key={field.id} className="space-y-1">
               <label className="block text-sm font-medium text-gray-700">
@@ -404,11 +493,11 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({
             </div>
           ))}
 
-          {/* Comments */}
+          {/* Comments section */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Additional Notes</label>
             <Textarea
-              placeholder="Add any additional notes..."
+              placeholder="Add any additional notes or observations..."
               value={data.comments || ''}
               onChange={(e) => updateInspectionItem(fullItemId, 'comments', e.target.value)}
               className="min-h-[60px]"
