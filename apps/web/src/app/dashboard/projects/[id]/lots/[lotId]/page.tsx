@@ -1,5 +1,4 @@
 import { Metadata } from 'next';
-import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 // import LotDetailClient from './lot-detail-client';
 import LotDetailClientSimple from './lot-detail-client-simple';
@@ -25,8 +24,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function LotDetailPage({ params }: PageProps) {
+  let projectId = '';
+  let lotId = '';
+
   try {
-    const { id: projectId, lotId } = await params;
+    const resolved = await params;
+    projectId = resolved.id;
+    lotId = resolved.lotId;
 
     // Debug: Log the parameters
     console.log('[LotDetailPage] Loading lot:', { projectId, lotId });
