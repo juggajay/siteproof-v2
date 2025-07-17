@@ -294,12 +294,20 @@ export default function LotDetailClientSimple({
                     </div>
                     <div className="flex flex-col items-end space-y-2">
                       <div className="text-sm text-gray-500">{formatDate(instance.created_at)}</div>
-                      <button
-                        onClick={() => router.push(`/dashboard/projects/${projectId}/lots/${lot.id}/itp/${instance.id}`)}
-                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-                      >
-                        Open ITP
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => router.push(`/dashboard/projects/${projectId}/lots/${lot.id}/itp/${instance.id}`)}
+                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                        >
+                          Open ITP
+                        </button>
+                        <button
+                          onClick={() => router.push(`/dashboard/projects/${projectId}/lots/${lot.id}/itp/${instance.id}/enhanced`)}
+                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                        >
+                          Enhanced
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
