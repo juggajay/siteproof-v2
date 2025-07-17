@@ -168,6 +168,8 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
     try {
       console.log('[CreateLotModal] Creating lot for project:', projectId);
       console.log('[CreateLotModal] Lot data:', data);
+      console.log('[CreateLotModal] Selected ITP templates:', selectedItpTemplates);
+      console.log('[CreateLotModal] Files to upload:', files.length);
 
       // Create the lot first
       const response = await fetch(`/api/projects/${projectId}/lots`, {
@@ -178,6 +180,7 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
           description: data.description,
           status: 'pending',
           selectedItpTemplates: selectedItpTemplates,
+          files: [], // Empty initially
         }),
       });
 
@@ -193,9 +196,10 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
       console.log('[CreateLotModal] Lot created:', responseData);
       const { lot } = responseData;
 
-      // Upload files if any
+      // Upload files if any, using the actual lot ID
       if (files.length > 0) {
         const uploadedFiles = await uploadFiles(lot.id);
+        console.log('[CreateLotModal] Files uploaded:', uploadedFiles.length);
 
         // Update lot with file attachments
         const updateResponse = await fetch(`/api/projects/${projectId}/lots/${lot.id}`, {
@@ -208,8 +212,13 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
 
         if (!updateResponse.ok) {
           console.error('Failed to update lot with files');
+        } else {
+          console.log('[CreateLotModal] Lot updated with files');
         }
       }
+
+      // Wait a moment to ensure database operations complete
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       router.refresh();
       onSuccess?.();

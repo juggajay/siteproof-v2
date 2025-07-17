@@ -226,6 +226,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
       })
       .select('*')
       .single();
+      
+    console.log('[Lots API] Lot creation result:', { lot: !!lot, error: error?.message });
 
     if (error) {
       console.error('[Lots API] Failed to create lot:', error);

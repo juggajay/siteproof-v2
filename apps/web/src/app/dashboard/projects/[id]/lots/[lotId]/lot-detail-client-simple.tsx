@@ -166,13 +166,34 @@ export default function LotDetailClientSimple({
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">Actions</h3>
               <div className="space-y-3">
-                <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button 
+                  onClick={() => {
+                    // Navigate to ITP assignment page
+                    router.push(`/dashboard/projects/${projectId}/lots/${lot.id}/itp-assign`);
+                  }}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
                   Assign ITP Template
                 </button>
-                <button className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                <button 
+                  onClick={() => {
+                    // Scroll to files section
+                    const filesSection = document.getElementById('files-section');
+                    if (filesSection) {
+                      filesSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
                   View Files
                 </button>
-                <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <button 
+                  onClick={() => {
+                    // Generate and download report
+                    window.open(`/api/projects/${projectId}/lots/${lot.id}/export`, '_blank');
+                  }}
+                  className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
                   Export Report
                 </button>
               </div>
@@ -181,7 +202,7 @@ export default function LotDetailClientSimple({
         </div>
 
         {/* Files Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
+        <div id="files-section" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900">Files</h2>
             <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
