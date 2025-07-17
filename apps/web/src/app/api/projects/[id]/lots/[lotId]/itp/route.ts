@@ -101,6 +101,7 @@ export async function GET(
         data,
         inspection_status,
         completion_percentage,
+        organization_id,
         created_at,
         updated_at,
         created_by,
