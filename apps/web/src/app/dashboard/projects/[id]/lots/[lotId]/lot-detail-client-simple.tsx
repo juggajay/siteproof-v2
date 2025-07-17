@@ -274,14 +274,16 @@ export default function LotDetailClientSimple({
           ) : (
             <div className="space-y-4">
               {lot.itp_instances.map((instance: any) => (
-                <div key={instance.id} className="border border-gray-200 rounded-lg p-4">
+                <div key={instance.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:bg-blue-50 transition-colors cursor-pointer">
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex-1">
                       <h4 className="font-medium text-gray-900">
                         {instance.itp_templates?.name || 'Unknown Template'}
                       </h4>
                       <p className="text-sm text-gray-500">
-                        Status: {instance.inspection_status || 'Unknown'}
+                        Status: <span className={`font-medium ${getStatusColor(instance.inspection_status)}`}>
+                          {instance.inspection_status || 'Draft'}
+                        </span>
                       </p>
                       <p className="text-sm text-gray-500">
                         Date: {instance.inspection_date ? formatDate(instance.inspection_date) : 'Not set'}
@@ -290,7 +292,15 @@ export default function LotDetailClientSimple({
                         Active: {instance.is_active ? 'Yes' : 'No'}
                       </p>
                     </div>
-                    <div className="text-sm text-gray-500">{formatDate(instance.created_at)}</div>
+                    <div className="flex flex-col items-end space-y-2">
+                      <div className="text-sm text-gray-500">{formatDate(instance.created_at)}</div>
+                      <button
+                        onClick={() => router.push(`/dashboard/projects/${projectId}/lots/${lot.id}/itp/${instance.id}`)}
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                      >
+                        Open ITP
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
