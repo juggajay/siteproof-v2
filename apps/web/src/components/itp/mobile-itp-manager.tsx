@@ -43,7 +43,7 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
           id: instance.id,
           name: instance.name || instance.itp_templates?.name || 'Unknown Template',
           description: instance.itp_templates?.description,
-          status: instance.status || 'draft',
+          status: instance.inspection_status || instance.status || 'draft',
           completion_percentage: instance.completion_percentage || 0,
           template_id: instance.template_id,
         }));

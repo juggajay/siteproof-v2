@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
           project_id: projectId,
           lot_id: lotId,
           data: finalData,
-          status: 'draft',
+          inspection_status: 'draft',
           created_by: user.id,
         });
       } catch (templateError) {

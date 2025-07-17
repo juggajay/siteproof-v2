@@ -99,7 +99,7 @@ export async function GET(
         id,
         template_id,
         data,
-        status,
+        inspection_status,
         completion_percentage,
         created_at,
         updated_at,
