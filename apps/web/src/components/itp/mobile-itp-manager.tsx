@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, ClipboardList } from 'lucide-react';
 import { MobileItpCard } from './mobile-itp-card';
 
@@ -33,32 +33,32 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
   const [loading, setLoading] = useState(true);
   const [assigningTemplate, setAssigningTemplate] = useState(false);
 
-  useEffect(() => {
-    loadItpInstances();
-    loadAvailableTemplates();
-  }, [projectId, lotId]);
-
-  const loadItpInstances = async () => {
+  const loadItpInstances = useCallback(async () => {
     try {
-      // This would be the actual API call to get ITP instances for the lot
-      // For now, using mock data
-      const mockInstances: ITPInstance[] = [
-        {
-          id: '1',
-          name: 'Asphalt Seal',
-          description: 'Inspection checklist for asphalt sealing works',
-          inspection_status: 'in_progress',
-          completion_percentage: 40,
-          template_id: 'template-1',
-        },
-      ];
-      setItpInstances(mockInstances);
+      const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp`);
+      if (response.ok) {
+        const data = await response.json();
+        // Transform the API response to match our interface
+        const instances: ITPInstance[] = (data.instances || []).map((instance: any) => ({
+          id: instance.id,
+          name: instance.itp_templates?.name || 'Unknown Template',
+          description: instance.itp_templates?.description,
+          inspection_status: instance.inspection_status || 'draft',
+          completion_percentage: instance.completion_percentage || 0,
+          template_id: instance.template_id,
+        }));
+        setItpInstances(instances);
+      } else {
+        console.error('Failed to load ITP instances:', response.status);
+        setItpInstances([]);
+      }
     } catch (error) {
       console.error('Error loading ITP instances:', error);
+      setItpInstances([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId, lotId]);
 
   const loadAvailableTemplates = async () => {
     try {
@@ -72,6 +72,11 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
     }
   };
 
+  useEffect(() => {
+    loadItpInstances();
+    loadAvailableTemplates();
+  }, [loadItpInstances]);
+
   const assignTemplate = async (templateId: string) => {
     setAssigningTemplate(true);
     try {
@@ -79,22 +84,25 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          template_id: templateId,
-          project_id: projectId,
-          lot_id: lotId,
+          templateIds: [templateId], // Fix: API expects array of template IDs
+          projectId: projectId,
+          lotId: lotId,
         }),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setItpInstances((prev) => [...prev, data.instance]);
+        // Reload instances to get the updated list
+        await loadItpInstances();
         setShowTemplateSelection(false);
       } else {
-        throw new Error('Failed to assign template');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to assign template');
       }
     } catch (error) {
       console.error('Error assigning template:', error);
-      alert('Failed to assign ITP template. Please try again.');
+      alert(
+        `Failed to assign ITP template: ${error instanceof Error ? error.message : 'Please try again.'}`
+      );
     } finally {
       setAssigningTemplate(false);
     }

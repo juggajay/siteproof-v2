@@ -5,14 +5,21 @@ import { createClient } from '@/lib/supabase/server';
 // Schema for updating ITP instance
 const updateItpInstanceSchema = z.object({
   data: z.record(z.any()).optional(),
-  inspection_status: z.enum(['draft', 'in_progress', 'completed', 'approved', 'rejected']).optional(),
+  inspection_status: z
+    .enum(['draft', 'in_progress', 'completed', 'approved', 'rejected'])
+    .optional(),
   inspection_date: z.string().optional().nullable(),
-  evidence_files: z.array(z.object({
-    url: z.string(),
-    name: z.string(),
-    size: z.number(),
-    type: z.string(),
-  })).optional(),
+  completion_percentage: z.number().min(0).max(100).optional(),
+  evidence_files: z
+    .array(
+      z.object({
+        url: z.string(),
+        name: z.string(),
+        size: z.number(),
+        type: z.string(),
+      })
+    )
+    .optional(),
   sync_status: z.enum(['pending', 'synced', 'failed']).optional(),
 });
 
@@ -26,7 +33,9 @@ export async function GET(
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -34,7 +43,8 @@ export async function GET(
     // Get ITP instance with template
     const { data: itpInstance, error } = await supabase
       .from('itp_instances')
-      .select(`
+      .select(
+        `
         *,
         itp_templates!inner(
           id,
@@ -53,7 +63,8 @@ export async function GET(
             organization_id
           )
         )
-      `)
+      `
+      )
       .eq('id', itpId)
       .eq('lot_id', lotId)
       .single();
@@ -103,7 +114,9 @@ export async function PUT(
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -111,7 +124,8 @@ export async function PUT(
     // Get ITP instance to check permissions
     const { data: itpInstance } = await supabase
       .from('itp_instances')
-      .select(`
+      .select(
+        `
         *,
         itp_templates!inner(
           organization_id
@@ -122,7 +136,8 @@ export async function PUT(
             organization_id
           )
         )
-      `)
+      `
+      )
       .eq('id', itpId)
       .eq('lot_id', lotId)
       .single();
@@ -144,9 +159,8 @@ export async function PUT(
     }
 
     // Can user update this instance?
-    const canUpdate = 
-      itpInstance.created_by === user.id ||
-      ['admin', 'owner'].includes(membership.role);
+    const canUpdate =
+      itpInstance.created_by === user.id || ['admin', 'owner'].includes(membership.role);
 
     if (!canUpdate) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
@@ -154,25 +168,29 @@ export async function PUT(
 
     // Prepare update data
     const updateData: any = {};
-    
+
     if (data.data !== undefined) {
       updateData.data = data.data;
     }
-    
+
     if (data.inspection_status !== undefined) {
       updateData.inspection_status = data.inspection_status;
     }
-    
+
     if (data.inspection_date !== undefined) {
       updateData.inspection_date = data.inspection_date;
     }
-    
+
     if (data.evidence_files !== undefined) {
       updateData.evidence_files = data.evidence_files;
     }
-    
+
     if (data.sync_status !== undefined) {
       updateData.sync_status = data.sync_status;
+    }
+
+    if (data.completion_percentage !== undefined) {
+      updateData.completion_percentage = data.completion_percentage;
     }
 
     updateData.updated_at = new Date().toISOString();
@@ -182,7 +200,8 @@ export async function PUT(
       .from('itp_instances')
       .update(updateData)
       .eq('id', itpId)
-      .select(`
+      .select(
+        `
         *,
         itp_templates!inner(
           id,
@@ -198,7 +217,8 @@ export async function PUT(
             name
           )
         )
-      `)
+      `
+      )
       .single();
 
     if (updateError) {
@@ -226,7 +246,9 @@ export async function DELETE(
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -234,12 +256,14 @@ export async function DELETE(
     // Get ITP instance to check permissions
     const { data: itpInstance } = await supabase
       .from('itp_instances')
-      .select(`
+      .select(
+        `
         created_by,
         itp_templates!inner(
           organization_id
         )
-      `)
+      `
+      )
       .eq('id', itpId)
       .eq('lot_id', lotId)
       .single();
@@ -261,19 +285,15 @@ export async function DELETE(
     }
 
     // Can user delete this instance?
-    const canDelete = 
-      itpInstance.created_by === user.id ||
-      ['admin', 'owner'].includes(membership.role);
+    const canDelete =
+      itpInstance.created_by === user.id || ['admin', 'owner'].includes(membership.role);
 
     if (!canDelete) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
     }
 
     // Delete the ITP instance
-    const { error: deleteError } = await supabase
-      .from('itp_instances')
-      .delete()
-      .eq('id', itpId);
+    const { error: deleteError } = await supabase.from('itp_instances').delete().eq('id', itpId);
 
     if (deleteError) {
       console.error('Error deleting ITP instance:', deleteError);
