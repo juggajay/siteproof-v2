@@ -21,7 +21,7 @@ interface ITPInstance {
   id: string;
   name: string;
   description?: string;
-  inspection_status: string;
+  status: string;
   completion_percentage?: number;
   template_id: string;
 }
@@ -41,9 +41,9 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
         // Transform the API response to match our interface
         const instances: ITPInstance[] = (data.instances || []).map((instance: any) => ({
           id: instance.id,
-          name: instance.itp_templates?.name || 'Unknown Template',
+          name: instance.name || instance.itp_templates?.name || 'Unknown Template',
           description: instance.itp_templates?.description,
-          inspection_status: instance.inspection_status || 'draft',
+          status: instance.status || 'draft',
           completion_percentage: instance.completion_percentage || 0,
           template_id: instance.template_id,
         }));

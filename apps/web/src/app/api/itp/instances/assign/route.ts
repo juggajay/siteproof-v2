@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
       template_id: template.id,
       project_id: projectId,
       lot_id: lotId,
+      name: template.name, // Add required name field
       data: {},
       status: 'draft',
       created_by: user.id,

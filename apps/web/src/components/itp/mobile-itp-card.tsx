@@ -16,7 +16,7 @@ interface MobileItpCardProps {
     id: string;
     name: string;
     description?: string;
-    inspection_status: string;
+    status: string;
     completion_percentage?: number;
     items?: any[];
   };
@@ -88,10 +88,9 @@ export function MobileItpCard({
             {itp.description && <p className="text-sm text-gray-600 mt-1">{itp.description}</p>}
             <div className="flex items-center gap-3 mt-2">
               <span
-                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(itp.inspection_status)}`}
+                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(itp.status)}`}
               >
-                {itp.inspection_status?.charAt(0).toUpperCase() + itp.inspection_status?.slice(1) ||
-                  'Draft'}
+                {itp.status?.charAt(0).toUpperCase() + itp.status?.slice(1) || 'Draft'}
               </span>
               {itp.completion_percentage !== undefined && (
                 <span className="text-sm text-gray-500">{itp.completion_percentage}% complete</span>
