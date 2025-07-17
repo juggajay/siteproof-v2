@@ -166,6 +166,46 @@ test_api_endpoints() {
     done
 }
 
+# Debug ITP API issues specifically
+debug_itp_apis() {
+    print_status "🔍 Debugging ITP API issues..."
+    
+    local container_id=$(docker-compose ps -q web)
+    
+    if [ -z "$container_id" ]; then
+        print_error "Web container not running"
+        return 1
+    fi
+    
+    print_status "Container ID: $container_id"
+    
+    # Check environment variables
+    print_status "Checking Supabase environment variables..."
+    docker exec $container_id sh -c 'echo "SUPABASE_URL: $NEXT_PUBLIC_SUPABASE_URL" && echo "SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY:0:20}..." && echo "SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY:0:20}..."'
+    
+    # Check if the new API routes exist in the built application
+    print_status "Checking if new ITP API routes exist in container..."
+    docker exec $container_id sh -c 'find /app -name "*.js" | grep -E "(itp.*route|route.*itp)" | head -10 || echo "Route files not found in expected locations"'
+    
+    # Check the built Next.js API routes
+    print_status "Checking built Next.js API routes..."
+    docker exec $container_id sh -c 'find /app/apps/web/.next/server/app/api -name "route.js" | grep itp || echo "ITP routes not found in .next build"'
+    
+    # Test internal API calls for ITP endpoints
+    print_status "Testing internal ITP API availability..."
+    docker exec $container_id sh -c 'curl -s -w "%{http_code}" http://localhost:3000/api/itp/templates' && echo ""
+    
+    # Check recent logs for ITP-related errors
+    print_status "Recent ITP-related logs:"
+    docker-compose logs web 2>&1 | grep -i -E "(itp|500|error)" | tail -10 || echo "No ITP-related errors found"
+    
+    # Check if the API routes are properly registered
+    print_status "Checking API route registration..."
+    docker exec $container_id sh -c 'ls -la /app/apps/web/.next/server/app/api/projects/*/lots/*/itp/ 2>/dev/null || echo "ITP route directories not found"'
+    
+    print_success "ITP debugging information collected"
+}
+
 # Test page accessibility
 test_page_accessibility() {
     print_status "Testing page accessibility..."
@@ -239,6 +279,9 @@ main() {
     test_api_endpoints
     test_page_accessibility
     
+    # Debug ITP APIs specifically
+    debug_itp_apis
+    
     # Optional: Run Playwright tests if requested
     if [ "$1" = "--with-playwright" ]; then
         run_playwright_tests
@@ -252,5 +295,21 @@ main() {
     print_status "Use 'docker-compose down' to stop all services"
 }
 
-# Run main function with all arguments
-main "$@"
+# Handle command line arguments
+case "${1:-}" in
+    "debug")
+        print_status "🔍 Running ITP debugging only..."
+        check_docker
+        debug_itp_apis
+        ;;
+    "quick")
+        print_status "🚀 Running quick health checks..."
+        check_docker
+        health_check
+        test_api_endpoints
+        ;;
+    *)
+        # Run main function with all arguments
+        main "$@"
+        ;;
+esac
