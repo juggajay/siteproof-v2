@@ -51,7 +51,7 @@ export async function GET(
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Get ITP instances for this lot
+    // Get ITP instances for this lot (use left join to handle deleted templates)
     const { data: instances, error: instancesError } = await supabase
       .from('itp_instances')
       .select(
@@ -65,7 +65,7 @@ export async function GET(
         created_at,
         updated_at,
         created_by,
-        itp_templates!inner(
+        itp_templates(
           id,
           name,
           description,
