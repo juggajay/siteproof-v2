@@ -1,7 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Loader2 } from 'lucide-react';
 import { MobileItpManager } from '@/components/itp/mobile-itp-manager';
 
 interface LotDetailClientSimpleProps {
@@ -16,6 +17,8 @@ export default function LotDetailClientSimple({
   userRole,
 }: LotDetailClientSimpleProps) {
   const router = useRouter();
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [reportStatus, setReportStatus] = useState<string | null>(null);
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not set';
@@ -40,6 +43,36 @@ export default function LotDetailClientSimple({
         return 'bg-blue-100 text-blue-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleExportReport = async () => {
+    setIsGeneratingReport(true);
+    setReportStatus(null);
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/lots/${lot.id}/export`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate report');
+      }
+
+      // Show success message and redirect to reports page
+      setReportStatus(
+        `Report generation started! Generating report for ${data.completedItps} completed ITP(s). Estimated time: ${data.estimatedTime}`
+      );
+
+      // Redirect to reports page after a short delay
+      setTimeout(() => {
+        router.push('/dashboard/reports');
+      }, 3000);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate report';
+      setReportStatus(`Error: ${errorMessage}`);
+      console.error('Export error:', error);
+    } finally {
+      setIsGeneratingReport(false);
     }
   };
 
@@ -196,14 +229,39 @@ export default function LotDetailClientSimple({
         {/* Export Report - Big Green Button at Bottom */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <button
-            onClick={() => {
-              // Generate and download report
-              window.open(`/api/projects/${projectId}/lots/${lot.id}/export`, '_blank');
-            }}
-            className="w-full h-16 px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-lg font-semibold"
+            onClick={handleExportReport}
+            disabled={isGeneratingReport}
+            className="w-full h-16 px-6 py-4 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-lg font-semibold flex items-center justify-center"
           >
-            Export Report
+            {isGeneratingReport ? (
+              <>
+                <Loader2 className="h-6 w-6 mr-3 animate-spin" />
+                Generating Report...
+              </>
+            ) : (
+              <>
+                <Download className="h-6 w-6 mr-3" />
+                Export ITP Report
+              </>
+            )}
           </button>
+
+          {reportStatus && (
+            <div
+              className={`mt-4 p-4 rounded-lg ${reportStatus.startsWith('Error') ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'}`}
+            >
+              <p
+                className={`text-sm ${reportStatus.startsWith('Error') ? 'text-red-700' : 'text-green-700'}`}
+              >
+                {reportStatus}
+              </p>
+              {!reportStatus.startsWith('Error') && (
+                <p className="text-sm text-green-600 mt-2">
+                  You will be redirected to the Reports page to download your report when ready.
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

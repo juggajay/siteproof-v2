@@ -12,6 +12,7 @@ const generateReportSchema = z.object({
     'financial_summary',
     'safety_report',
     'quality_report',
+    'itp_report',
   ]),
   report_name: z.string(),
   description: z.string().optional(),
@@ -30,8 +31,11 @@ export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const body = await request.json();
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -52,29 +56,33 @@ export async function POST(request: Request) {
 
     // Check permissions for financial reports
     if (validatedData.report_type === 'financial_summary') {
-      const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(member.role);
+      const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(
+        member.role
+      );
       if (!hasFinancialAccess) {
-        return NextResponse.json({ error: 'Insufficient permissions for financial reports' }, { status: 403 });
+        return NextResponse.json(
+          { error: 'Insufficient permissions for financial reports' },
+          { status: 403 }
+        );
       }
     }
 
     // Enqueue the report
-    const { data: reportId, error: enqueueError } = await supabase
-      .rpc('enqueue_report', {
-        p_organization_id: member.organization_id,
-        p_report_type: validatedData.report_type,
-        p_report_name: validatedData.report_name,
-        p_description: validatedData.description,
-        p_format: validatedData.format,
-        p_parameters: {
-          project_id: validatedData.project_id,
-          date_range: validatedData.date_range,
-          include_photos: validatedData.include_photos,
-          include_signatures: validatedData.include_signatures,
-          group_by: validatedData.group_by,
-        },
-        p_requested_by: user.id,
-      });
+    const { data: reportId, error: enqueueError } = await supabase.rpc('enqueue_report', {
+      p_organization_id: member.organization_id,
+      p_report_type: validatedData.report_type,
+      p_report_name: validatedData.report_name,
+      p_description: validatedData.description,
+      p_format: validatedData.format,
+      p_parameters: {
+        project_id: validatedData.project_id,
+        date_range: validatedData.date_range,
+        include_photos: validatedData.include_photos,
+        include_signatures: validatedData.include_signatures,
+        group_by: validatedData.group_by,
+      },
+      p_requested_by: user.id,
+    });
 
     if (enqueueError || !reportId) {
       console.error('Error enqueueing report:', enqueueError);
@@ -104,20 +112,13 @@ export async function POST(request: Request) {
       reportId,
       message: 'Report generation started',
     });
-
   } catch (error) {
     console.error('Error generating report:', error);
-    
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
     }
 
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
