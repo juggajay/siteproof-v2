@@ -96,9 +96,10 @@ export async function GET(
     const description = `Inspection Test Plan report for Lot ${lot.lot_number} containing ${completedItps.length} completed inspection(s)`;
 
     // Enqueue the report using existing system
+    // Temporarily use 'inspection_summary' until 'itp_report' is added to database enum
     const { data: reportId, error: enqueueError } = await supabase.rpc('enqueue_report', {
       p_organization_id: orgId,
-      p_report_type: 'itp_report',
+      p_report_type: 'inspection_summary', // TODO: Change to 'itp_report' after DB enum update
       p_report_name: reportName,
       p_description: description,
       p_format: 'pdf', // ITP reports should be PDFs for professional appearance
@@ -110,6 +111,7 @@ export async function GET(
         organization_name: lot.project?.organization?.name,
         include_photos: true,
         include_signatures: true,
+        report_subtype: 'itp_report', // Add this to identify ITP reports
         itp_instances: completedItps.map((itp: any) => ({
           id: itp.id,
           template_name: itp.itp_templates?.name,
@@ -132,7 +134,7 @@ export async function GET(
       name: 'report.generate',
       payload: {
         reportId,
-        reportType: 'itp_report',
+        reportType: 'inspection_summary', // TODO: Change to 'itp_report' after DB enum update
         format: 'pdf',
         parameters: {
           project_id: projectId,
