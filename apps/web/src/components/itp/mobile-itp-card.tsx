@@ -61,16 +61,25 @@ export function MobileItpCard({
 
   // Get real items from ITP data or fall back to mock items for testing
   const getItpItems = () => {
-    // Try to get items from the data structure
-    if (itp.data?.inspection_results) {
-      return Object.entries(itp.data.inspection_results).map(([itemId, itemData]) => ({
-        id: itemId,
-        title: (itemData as any)?.description || (itemData as any)?.title || `Item ${itemId}`,
-        category: (itemData as any)?.category || 'inspection',
-        status: (itemData as any)?.status || null,
-      }));
+    // Try to get items from the data structure, filtering out metadata fields
+    if (itp.data?.inspection_results && typeof itp.data.inspection_results === 'object') {
+      const inspectionResults = itp.data.inspection_results;
+
+      // Filter out JSONB metadata fields that are not actual inspection items
+      const realItems = Object.entries(inspectionResults).filter(([itemId]) => {
+        return !['overall_status', 'completion_percentage'].includes(itemId);
+      });
+
+      if (realItems.length > 0) {
+        return realItems.map(([itemId, itemData]) => ({
+          id: itemId,
+          title: (itemData as any)?.description || (itemData as any)?.title || `Item ${itemId}`,
+          category: (itemData as any)?.category || 'inspection',
+          status: (itemData as any)?.status || null,
+        }));
+      }
     }
-    
+
     // If no real data, use mock items for demonstration
     return [
       {
@@ -86,7 +95,12 @@ export function MobileItpCard({
         category: 'application',
         status: null,
       },
-      { id: 'AS004', title: 'Aggregate spread rate (m²/m³)', category: 'application', status: null },
+      {
+        id: 'AS004',
+        title: 'Aggregate spread rate (m²/m³)',
+        category: 'application',
+        status: null,
+      },
       {
         id: 'AS005',
         title: 'Aggregate size and grading conformance',
@@ -122,7 +136,11 @@ export function MobileItpCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (confirm('Are you sure you want to delete this ITP? This action cannot be undone.')) {
+                  if (
+                    confirm(
+                      'Are you sure you want to delete this ITP? This action cannot be undone.'
+                    )
+                  ) {
                     onDeleteItp(itp.id);
                   }
                 }}
