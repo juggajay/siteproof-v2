@@ -1,18 +1,18 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { 
-  FileText, 
-  Download, 
-  Clock, 
-  CheckCircle, 
+import {
+  FileText,
+  Download,
+  Clock,
+  CheckCircle,
   XCircle,
   AlertCircle,
   Loader2,
   RefreshCw,
   FileSpreadsheet,
   FileJson,
-  FileType
+  FileType,
 } from 'lucide-react';
 import { Button, StateDisplay } from '@siteproof/design-system';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -96,7 +96,12 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
   const [filter, setFilter] = useState<'all' | 'my' | 'processing'>('all');
 
   // Fetch recent reports
-  const { data: reports, isLoading, error, refetch } = useQuery({
+  const {
+    data: reports,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['reports', filter, limit],
     queryFn: async () => {
       let url = `/api/reports?limit=${limit}`;
@@ -132,25 +137,28 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
         },
         (payload) => {
           console.log('Report status change:', payload);
-          
+
           // Invalidate the query to refetch
           queryClient.invalidateQueries({ queryKey: ['reports'] });
 
           // Show notification for status changes
           if (payload.eventType === 'UPDATE') {
             const report = payload.new as Report;
-            
+
             if (report.status === 'completed') {
               toast.success('Report ready!', {
                 description: `${report.report_name} has been generated successfully`,
                 action: {
                   label: 'Download',
-                  onClick: () => downloadReport(report),
+                  onClick: () => {
+                    downloadReport(report).catch(console.error);
+                  },
                 },
               });
             } else if (report.status === 'failed') {
               toast.error('Report generation failed', {
-                description: report.error_message || 'An error occurred while generating the report',
+                description:
+                  report.error_message || 'An error occurred while generating the report',
               });
             }
           }
@@ -163,12 +171,38 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
     };
   }, [user, supabase, queryClient]);
 
-  const downloadReport = (report: Report) => {
-    if (!report.file_url) return;
-    
-    // In a real app, you would download from the actual storage URL
-    window.open(report.file_url, '_blank');
-    toast.success('Download started');
+  const downloadReport = async (report: Report) => {
+    if (report.status !== 'completed') {
+      toast.error('Report is not ready for download');
+      return;
+    }
+
+    try {
+      // Use the individual report download endpoint
+      const response = await fetch(`/api/reports/${report.id}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to get download URL');
+      }
+
+      if (data.file_url) {
+        // Create a temporary link to trigger download
+        const link = document.createElement('a');
+        link.href = data.file_url;
+        link.download = `${data.report_name}.${data.format}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success('Download started');
+      } else {
+        throw new Error('No download URL available');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error(error instanceof Error ? error.message : 'Download failed');
+    }
   };
 
   const cancelReport = async (reportId: string) => {
@@ -178,7 +212,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
       });
 
       if (!response.ok) throw new Error('Failed to cancel report');
-      
+
       toast.success('Report cancelled');
       refetch();
     } catch (error) {
@@ -193,7 +227,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
       });
 
       if (!response.ok) throw new Error('Failed to retry report');
-      
+
       toast.success('Report generation restarted');
       refetch();
     } catch (error) {
@@ -216,9 +250,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
             onClick={() => setFilter('all')}
             className={cn(
               'px-3 py-1 text-sm font-medium rounded-full transition-colors',
-              filter === 'all'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-900'
+              filter === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900'
             )}
           >
             All Reports
@@ -227,9 +259,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
             onClick={() => setFilter('my')}
             className={cn(
               'px-3 py-1 text-sm font-medium rounded-full transition-colors',
-              filter === 'my'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-900'
+              filter === 'my' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900'
             )}
           >
             My Reports
@@ -245,13 +275,9 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
           >
             In Progress
           </button>
-          
+
           <div className="ml-auto">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => refetch()}
-            >
+            <Button variant="ghost" size="sm" onClick={() => refetch()}>
               <RefreshCw className="w-4 h-4" />
             </Button>
           </div>
@@ -283,22 +309,21 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
                     <div className="flex items-start gap-3">
                       <FormatIcon className="w-5 h-5 text-gray-400 mt-0.5" />
                       <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">
-                          {report.report_name}
-                        </h4>
+                        <h4 className="font-medium text-gray-900">{report.report_name}</h4>
                         {report.description && (
-                          <p className="text-sm text-gray-600 mt-1">
-                            {report.description}
-                          </p>
+                          <p className="text-sm text-gray-600 mt-1">{report.description}</p>
                         )}
-                        
+
                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                           <span>
-                            Requested by {report.requested_by.full_name || report.requested_by.email}
+                            Requested by{' '}
+                            {report.requested_by.full_name || report.requested_by.email}
                           </span>
                           <span>•</span>
                           <span>
-                            {formatDistanceToNow(new Date(report.requested_at), { addSuffix: true })}
+                            {formatDistanceToNow(new Date(report.requested_at), {
+                              addSuffix: true,
+                            })}
                           </span>
                           {report.file_size_bytes && (
                             <>
@@ -341,44 +366,36 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
 
                   <div className="flex items-start gap-2 ml-4">
                     {/* Status Badge */}
-                    <span className={cn(
-                      'px-2 py-1 text-xs font-medium rounded-full flex items-center gap-1',
-                      status.color
-                    )}>
-                      <StatusIcon className={cn(
-                        'w-3 h-3',
-                        status.animation && 'animate-spin'
-                      )} />
+                    <span
+                      className={cn(
+                        'px-2 py-1 text-xs font-medium rounded-full flex items-center gap-1',
+                        status.color
+                      )}
+                    >
+                      <StatusIcon className={cn('w-3 h-3', status.animation && 'animate-spin')} />
                       {status.label}
                     </span>
 
                     {/* Actions */}
-                    {report.status === 'completed' && report.file_url && (
+                    {report.status === 'completed' && (
                       <Button
                         variant="secondary"
                         size="sm"
                         onClick={() => downloadReport(report)}
+                        title="Download Report"
                       >
                         <Download className="w-4 h-4" />
                       </Button>
                     )}
 
                     {report.status === 'processing' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => cancelReport(report.id)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => cancelReport(report.id)}>
                         Cancel
                       </Button>
                     )}
 
                     {report.status === 'failed' && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => retryReport(report.id)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => retryReport(report.id)}>
                         <RefreshCw className="w-4 h-4" />
                       </Button>
                     )}
