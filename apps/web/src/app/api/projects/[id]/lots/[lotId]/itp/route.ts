@@ -91,19 +91,28 @@ export async function GET(
 
     console.log('User membership confirmed:', membership.role);
 
-    // Get ITP instances for this lot (use left join to handle deleted templates)
+    // Get ITP instances for this lot with correct schema and JSONB operators
     const { data: instances, error: instancesError } = await supabase
       .from('itp_instances')
       .select(
         `
         id,
         template_id,
-        data,
-        inspection_status,
+        project_id,
+        lot_id,
         organization_id,
+        created_by,
         created_at,
         updated_at,
-        created_by,
+        deleted_at,
+        data,
+        evidence_files,
+        inspection_status,
+        inspection_date,
+        sync_status,
+        is_active,
+        data->completion_percentage as completion_percentage,
+        data->overall_status as overall_status,
         itp_templates(
           id,
           name,

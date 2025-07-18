@@ -142,14 +142,25 @@ export async function POST(request: NextRequest) {
           finalData = initialData || {};
         }
 
+        // Create proper data structure with completion_percentage inside JSONB
+        const properData = {
+          inspection_results: finalData || {},
+          overall_status: 'pending',
+          completion_percentage: 0,
+        };
+
         itpInstances.push({
           template_id: template.id,
           project_id: projectId,
           lot_id: lotId,
           organization_id: (lot.projects as any).organization_id,
-          data: finalData,
-          inspection_status: 'draft',
           created_by: user.id,
+          inspection_status: 'pending',
+          inspection_date: null,
+          sync_status: 'local',
+          is_active: true,
+          data: properData,
+          evidence_files: null,
         });
       } catch (templateError) {
         console.error('Error processing template', template.name, ':', templateError);
