@@ -25,6 +25,14 @@ interface ITPInstance {
   completion_percentage?: number;
   template_id: string;
   data?: any; // JSONB data from database
+  itp_templates?: {
+    id: string;
+    name: string;
+    description?: string;
+    structure: any; // Template structure JSONB
+    organization_id: string;
+  };
+  _raw?: any; // For debugging
 }
 
 export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
