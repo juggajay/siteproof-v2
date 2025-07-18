@@ -22,13 +22,6 @@ interface MobileItpCardProps {
     items?: any[];
     data?: any; // Include the JSONB data from database
     template_id?: string;
-    itp_templates?: {
-      id: string;
-      name: string;
-      description?: string;
-      structure: any; // Template structure JSONB
-      organization_id: string;
-    };
   };
   onStatusChange: (itemId: string, status: 'pass' | 'fail' | 'na') => void;
   onAddComment: (itemId: string, comment: string) => void;
@@ -66,106 +59,19 @@ export function MobileItpCard({
     }
   };
 
-  // Get real items from ITP template structure and existing inspection results
+  // Get real items from ITP data or fall back to mock items for testing
   const getItpItems = () => {
-    console.log('🔍 getItpItems called with ITP data:', itp);
-
-    // First, try to get items from the template structure if available
-    if (itp.template_id && (itp as any).itp_templates?.structure) {
-      const structure = (itp as any).itp_templates.structure;
-      console.log('📋 Found template structure:', structure);
-
-      let items: any[] = [];
-
-      // Handle sections-based structure format
-      if (structure.sections && Array.isArray(structure.sections)) {
-        structure.sections.forEach((section: any) => {
-          if (section.items && Array.isArray(section.items)) {
-            section.items.forEach((item: any) => {
-              if (item.fields && Array.isArray(item.fields)) {
-                // Each field is a separate inspection point
-                item.fields.forEach((field: any) => {
-                  items.push({
-                    id: field.id,
-                    title: field.label || item.title || `Field ${field.id}`,
-                    category: section.title || 'inspection',
-                    status: getItemStatus(field.id),
-                    description: item.description || field.helperText,
-                    required: field.required || false,
-                    type: field.type || 'checkbox',
-                  });
-                });
-              } else {
-                // Item itself is an inspection point
-                items.push({
-                  id: item.id,
-                  title: item.title || `Item ${item.id}`,
-                  category: section.title || 'inspection',
-                  status: getItemStatus(item.id),
-                  description: item.description,
-                  required: item.required || false,
-                  type: 'checkpoint',
-                });
-              }
-            });
-          }
-        });
-      }
-
-      // Handle inspection_items-based structure format
-      else if (structure.inspection_items && Array.isArray(structure.inspection_items)) {
-        items = structure.inspection_items.map((item: any) => ({
-          id: item.id,
-          title: item.description || `Item ${item.id}`,
-          category: item.category || 'inspection',
-          status: getItemStatus(item.id),
-          description: item.description,
-          required: item.required || false,
-          type: item.type || 'boolean',
-        }));
-      }
-
-      // Handle flat structure with items array
-      else if (structure.items && Array.isArray(structure.items)) {
-        items = structure.items.map((item: any) => ({
-          id: item.id,
-          title: item.title || item.label || `Item ${item.id}`,
-          category: item.category || 'inspection',
-          status: getItemStatus(item.id),
-          description: item.description,
-          required: item.required || false,
-          type: item.type || 'checkbox',
-        }));
-      }
-
-      if (items.length > 0) {
-        console.log(`✅ Found ${items.length} inspection items from template structure`);
-        return items;
-      }
+    // Try to get items from the data structure
+    if (itp.data?.inspection_results) {
+      return Object.entries(itp.data.inspection_results).map(([itemId, itemData]) => ({
+        id: itemId,
+        title: (itemData as any)?.description || (itemData as any)?.title || `Item ${itemId}`,
+        category: (itemData as any)?.category || 'inspection',
+        status: (itemData as any)?.status || null,
+      }));
     }
-
-    // Fallback: check if we have existing inspection_results (for items created with old structure)
-    if (itp.data?.inspection_results && typeof itp.data.inspection_results === 'object') {
-      const inspectionResults = itp.data.inspection_results;
-
-      // Filter out JSONB metadata fields
-      const realItems = Object.entries(inspectionResults).filter(([itemId]) => {
-        return !['overall_status', 'completion_percentage'].includes(itemId);
-      });
-
-      if (realItems.length > 0) {
-        console.log(`✅ Found ${realItems.length} items from existing inspection results`);
-        return realItems.map(([itemId, itemData]) => ({
-          id: itemId,
-          title: (itemData as any)?.description || (itemData as any)?.title || `Item ${itemId}`,
-          category: (itemData as any)?.category || 'inspection',
-          status: (itemData as any)?.status || null,
-        }));
-      }
-    }
-
-    // If no real inspection items exist, use mock items for demonstration
-    console.log('🔧 Using mock ITP items - no real inspection data found');
+    
+    // If no real data, use mock items for demonstration
     return [
       {
         id: 'AS001',
@@ -180,12 +86,7 @@ export function MobileItpCard({
         category: 'application',
         status: null,
       },
-      {
-        id: 'AS004',
-        title: 'Aggregate spread rate (m²/m³)',
-        category: 'application',
-        status: null,
-      },
+      { id: 'AS004', title: 'Aggregate spread rate (m²/m³)', category: 'application', status: null },
       {
         id: 'AS005',
         title: 'Aggregate size and grading conformance',
@@ -193,15 +94,6 @@ export function MobileItpCard({
         status: null,
       },
     ];
-  };
-
-  // Helper function to get item status from inspection results
-  const getItemStatus = (itemId: string) => {
-    if (itp.data?.inspection_results && typeof itp.data.inspection_results === 'object') {
-      const itemResult = itp.data.inspection_results[itemId];
-      return itemResult?.status || null;
-    }
-    return null;
   };
 
   const itpItems = getItpItems();
@@ -230,11 +122,7 @@ export function MobileItpCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  if (
-                    confirm(
-                      'Are you sure you want to delete this ITP? This action cannot be undone.'
-                    )
-                  ) {
+                  if (confirm('Are you sure you want to delete this ITP? This action cannot be undone.')) {
                     onDeleteItp(itp.id);
                   }
                 }}
