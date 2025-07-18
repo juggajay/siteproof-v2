@@ -112,7 +112,8 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
   };
 
   const handleStatusChange = async (itemId: string, status: 'pass' | 'fail' | 'na') => {
-    console.log(`Item ${itemId} status changed to ${status}`);
+    console.log(`🔄 handleStatusChange called: Item ${itemId} status changed to ${status}`);
+    console.log('Current ITP instances:', itpInstances);
     
     // Find which ITP instance this item belongs to
     const currentInstance = itpInstances.find(itp => 
@@ -171,6 +172,28 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
     // TODO: Implement photo upload functionality
   };
 
+  const handleDeleteItp = async (itpId: string) => {
+    console.log(`🗑️ Deleting ITP: ${itpId}`);
+    
+    try {
+      const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${itpId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        console.log(`✅ ITP ${itpId} deleted successfully`);
+        // Reload the instances to get updated list
+        await loadItpInstances();
+      } else {
+        console.error('Failed to delete ITP:', response.status);
+        alert('Failed to delete ITP. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting ITP:', error);
+      alert('Failed to delete ITP. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -203,6 +226,7 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
               onStatusChange={handleStatusChange}
               onAddComment={handleAddComment}
               onAddPhoto={handleAddPhoto}
+              onDeleteItp={handleDeleteItp}
             />
           ))}
         </div>

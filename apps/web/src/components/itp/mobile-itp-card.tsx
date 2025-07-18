@@ -9,6 +9,7 @@ import {
   MinusCircle,
   Camera,
   MessageSquare,
+  Trash2,
 } from 'lucide-react';
 
 interface MobileItpCardProps {
@@ -25,6 +26,7 @@ interface MobileItpCardProps {
   onStatusChange: (itemId: string, status: 'pass' | 'fail' | 'na') => void;
   onAddComment: (itemId: string, comment: string) => void;
   onAddPhoto: (itemId: string) => void;
+  onDeleteItp?: (itpId: string) => void;
 }
 
 export function MobileItpCard({
@@ -32,6 +34,7 @@ export function MobileItpCard({
   onStatusChange,
   onAddComment,
   onAddPhoto,
+  onDeleteItp,
 }: MobileItpCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeCommentItem, setActiveCommentItem] = useState<string | null>(null);
@@ -114,7 +117,21 @@ export function MobileItpCard({
               )}
             </div>
           </div>
-          <div className="ml-4">
+          <div className="ml-4 flex items-center gap-2">
+            {onDeleteItp && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (confirm('Are you sure you want to delete this ITP? This action cannot be undone.')) {
+                    onDeleteItp(itp.id);
+                  }
+                }}
+                className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
+                title="Delete ITP"
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
+            )}
             {isExpanded ? (
               <ChevronUp className="h-6 w-6 text-gray-400" />
             ) : (
@@ -143,7 +160,12 @@ export function MobileItpCard({
                 {/* Large Touch-Friendly Buttons */}
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <button
-                    onClick={() => onStatusChange(item.id, 'pass')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('🟢 PASS button clicked for item:', item.id);
+                      onStatusChange(item.id, 'pass');
+                    }}
                     className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
                       item.status === 'pass'
                         ? 'bg-green-500 border-green-500 text-white shadow-lg'
@@ -155,7 +177,12 @@ export function MobileItpCard({
                   </button>
 
                   <button
-                    onClick={() => onStatusChange(item.id, 'fail')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('🔴 FAIL button clicked for item:', item.id);
+                      onStatusChange(item.id, 'fail');
+                    }}
                     className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
                       item.status === 'fail'
                         ? 'bg-red-500 border-red-500 text-white shadow-lg'
@@ -167,7 +194,12 @@ export function MobileItpCard({
                   </button>
 
                   <button
-                    onClick={() => onStatusChange(item.id, 'na')}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('⚪ N/A button clicked for item:', item.id);
+                      onStatusChange(item.id, 'na');
+                    }}
                     className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
                       item.status === 'na'
                         ? 'bg-gray-500 border-gray-500 text-white shadow-lg'
