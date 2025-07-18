@@ -63,6 +63,8 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
               instance.completion_percentage || instance.data?.completion_percentage || 0,
             template_id: instance.template_id,
             data: instance.data, // Include the raw JSONB data for ITP items
+            // ✅ ADD: Pass the template structure to the card component
+            itp_templates: instance.itp_templates,
             // ADD: Pass the full instance for debugging
             _raw: instance,
           };
