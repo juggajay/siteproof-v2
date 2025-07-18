@@ -111,49 +111,78 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
     }
   };
 
-  const handleStatusChange = async (itemId: string, status: 'pass' | 'fail' | 'na') => {
-    console.log(`🔄 handleStatusChange called: Item ${itemId} status changed to ${status}`);
-    console.log('Current ITP instances:', itpInstances);
-    
-    // Find which ITP instance this item belongs to
-    const currentInstance = itpInstances.find(itp => 
-      itp.id === itemId || // If itemId is actually the ITP instance ID
-      (itp as any).items?.some((item: any) => item.id === itemId) // Or find by item ID
+  const handleStatusChange = async (
+    sectionId: string,
+    itemId: string,
+    status: 'pass' | 'fail' | 'na'
+  ) => {
+    console.log(
+      `🔄 handleStatusChange called: Section ${sectionId}, Item ${itemId} status changed to ${status}`
     );
-    
+    console.log('Current ITP instances:', itpInstances);
+
+    // For mobile component, we need to determine which ITP instance this belongs to
+    // Since mobile shows one ITP at a time, we can find it by checking which one has the template structure
+    const currentInstance = itpInstances.find((itp) => {
+      const template = (itp as any).itp_templates;
+      if (!template?.structure) return false;
+
+      // Check if this section exists in the template
+      if (template.structure.sections) {
+        return template.structure.sections.some((section: any) => section.id === sectionId);
+      }
+
+      // For simple items structure, use default section
+      if (template.structure.items && sectionId === 'default_section') {
+        return true;
+      }
+
+      return false;
+    });
+
     if (!currentInstance) {
-      console.error('Could not find ITP instance for item:', itemId);
+      console.error('Could not find ITP instance for section:', sectionId, 'item:', itemId);
       return;
     }
 
     try {
-      // Update the instance data with the new item status
-      const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${currentInstance.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
+      // Use the same data structure as the desktop component
+      const currentData = currentInstance.data || {};
+      const updatedData = {
+        ...currentData,
+        [sectionId]: {
+          ...currentData[sectionId],
+          [itemId]: {
+            ...currentData[sectionId]?.[itemId],
+            result: status,
+            updated_at: new Date().toISOString(),
+          },
         },
-        body: JSON.stringify({
-          data: {
-            inspection_results: {
-              [itemId]: {
-                status: status,
-                updated_at: new Date().toISOString(),
-                inspector: 'current_user' // TODO: Get actual user info
-              }
-            },
-            overall_status: 'in_progress',
-            completion_percentage: 50 // TODO: Calculate based on completed items
-          }
-        }),
-      });
+      };
+
+      // Update the instance data with the new item status
+      const response = await fetch(
+        `/api/projects/${projectId}/lots/${lotId}/itp/${currentInstance.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            data: updatedData,
+            inspection_status: 'in_progress',
+          }),
+        }
+      );
 
       if (response.ok) {
-        console.log(`✅ Item ${itemId} status updated to ${status}`);
+        console.log(`✅ Section ${sectionId}, Item ${itemId} status updated to ${status}`);
         // Reload the instances to get updated data
         await loadItpInstances();
       } else {
         console.error('Failed to update item status:', response.status);
+        const errorData = await response.json();
+        console.error('Error details:', errorData);
         alert('Failed to update item status. Please try again.');
       }
     } catch (error) {
@@ -174,7 +203,7 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
 
   const handleDeleteItp = async (itpId: string) => {
     console.log(`🗑️ Deleting ITP: ${itpId}`);
-    
+
     try {
       const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${itpId}`, {
         method: 'DELETE',

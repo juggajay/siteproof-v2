@@ -30,7 +30,7 @@ interface MobileItpCardProps {
       organization_id: string;
     };
   };
-  onStatusChange: (itemId: string, status: 'pass' | 'fail' | 'na') => void;
+  onStatusChange: (sectionId: string, itemId: string, status: 'pass' | 'fail' | 'na') => void;
   onAddComment: (itemId: string, comment: string) => void;
   onAddPhoto: (itemId: string) => void;
   onDeleteItp?: (itpId: string) => void;
@@ -84,27 +84,30 @@ export function MobileItpCard({
               // Each item is an inspection checkpoint
               templateItems.push({
                 id: item.id,
+                sectionId: section.id, // ✅ Include section context
                 title: item.title || item.label || `Item ${item.id}`,
                 category: section.title || 'inspection',
                 description: item.description,
                 required: item.required || false,
-                // Get status from inspection_results JSONB data
-                status: getItemStatus(item.id),
+                // Get status from section-based data structure
+                status: getItemStatus(section.id, item.id),
               });
             });
           }
         });
       }
 
-      // Handle simple items array structure
+      // Handle simple items array structure (create a default section)
       else if (structure.items && Array.isArray(structure.items)) {
+        const defaultSectionId = 'default_section';
         templateItems = structure.items.map((item: any) => ({
           id: item.id,
+          sectionId: defaultSectionId, // ✅ Include section context
           title: item.title || item.label || `Item ${item.id}`,
           category: item.category || 'inspection',
           description: item.description,
           required: item.required || false,
-          status: getItemStatus(item.id),
+          status: getItemStatus(defaultSectionId, item.id),
         }));
       }
 
@@ -145,11 +148,14 @@ export function MobileItpCard({
     ];
   };
 
-  // Helper function to get item status from inspection_results JSONB
-  const getItemStatus = (itemId: string) => {
-    if (itp.data?.inspection_results && typeof itp.data.inspection_results === 'object') {
-      const itemResult = itp.data.inspection_results[itemId];
-      return itemResult?.status || null;
+  // Helper function to get item status from section-based data structure
+  const getItemStatus = (sectionId: string, itemId: string) => {
+    if (itp.data && typeof itp.data === 'object') {
+      const sectionData = itp.data[sectionId];
+      if (sectionData && typeof sectionData === 'object') {
+        const itemData = sectionData[itemId];
+        return itemData?.result || null;
+      }
     }
     return null;
   };
@@ -225,8 +231,13 @@ export function MobileItpCard({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log('🟢 PASS button clicked for item:', item.id);
-                      onStatusChange(item.id, 'pass');
+                      console.log(
+                        '🟢 PASS button clicked for section:',
+                        item.sectionId,
+                        'item:',
+                        item.id
+                      );
+                      onStatusChange(item.sectionId, item.id, 'pass');
                     }}
                     className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
                       item.status === 'pass'
@@ -242,8 +253,13 @@ export function MobileItpCard({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log('🔴 FAIL button clicked for item:', item.id);
-                      onStatusChange(item.id, 'fail');
+                      console.log(
+                        '🔴 FAIL button clicked for section:',
+                        item.sectionId,
+                        'item:',
+                        item.id
+                      );
+                      onStatusChange(item.sectionId, item.id, 'fail');
                     }}
                     className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
                       item.status === 'fail'
@@ -259,8 +275,13 @@ export function MobileItpCard({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log('⚪ N/A button clicked for item:', item.id);
-                      onStatusChange(item.id, 'na');
+                      console.log(
+                        '⚪ N/A button clicked for section:',
+                        item.sectionId,
+                        'item:',
+                        item.id
+                      );
+                      onStatusChange(item.sectionId, item.id, 'na');
                     }}
                     className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
                       item.status === 'na'
