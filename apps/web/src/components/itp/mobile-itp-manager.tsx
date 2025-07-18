@@ -168,6 +168,17 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
           }
         }
       }
+
+      // Handle mock items (when using fallback mock data)
+      if (
+        sectionId === 'mock_section' &&
+        ['AS001', 'AS002', 'AS003', 'AS004', 'AS005'].includes(itemId)
+      ) {
+        console.log(`✅ Found mock item ${itemId} in instance ${instance.id}`);
+        targetInstance = instance;
+        foundIn = 'mock_items';
+        break;
+      }
     }
 
     if (!targetInstance) {

@@ -133,30 +133,41 @@ export function MobileItpCard({
 
     console.log('❌ No template structure found, returning empty array');
 
-    // Fallback: use mock items for demonstration
+    // Fallback: use mock items for demonstration (but include sectionId!)
     console.log('🔧 Using mock items - no template structure found');
+    const defaultSectionId = 'mock_section';
     return [
       {
         id: 'AS001',
+        sectionId: defaultSectionId, // ✅ Add missing sectionId
         title: 'Existing pavement surface cleaned and prepared',
         category: 'preparation',
         status: null,
       },
-      { id: 'AS002', title: 'Surface defects repaired', category: 'preparation', status: null },
+      {
+        id: 'AS002',
+        sectionId: defaultSectionId, // ✅ Add missing sectionId
+        title: 'Surface defects repaired',
+        category: 'preparation',
+        status: null,
+      },
       {
         id: 'AS003',
+        sectionId: defaultSectionId, // ✅ Add missing sectionId
         title: 'Prime coat application rate (L/m²)',
         category: 'application',
         status: null,
       },
       {
         id: 'AS004',
+        sectionId: defaultSectionId, // ✅ Add missing sectionId
         title: 'Aggregate spread rate (m²/m³)',
         category: 'application',
         status: null,
       },
       {
         id: 'AS005',
+        sectionId: defaultSectionId, // ✅ Add missing sectionId
         title: 'Aggregate size and grading conformance',
         category: 'materials',
         status: null,
