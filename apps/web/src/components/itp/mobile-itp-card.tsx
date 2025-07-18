@@ -19,6 +19,8 @@ interface MobileItpCardProps {
     status: string;
     completion_percentage?: number;
     items?: any[];
+    data?: any; // Include the JSONB data from database
+    template_id?: string;
   };
   onStatusChange: (itemId: string, status: 'pass' | 'fail' | 'na') => void;
   onAddComment: (itemId: string, comment: string) => void;
@@ -54,29 +56,44 @@ export function MobileItpCard({
     }
   };
 
-  // Mock items for now - in real implementation, this would come from the ITP structure
-  const mockItems = [
-    {
-      id: 'AS001',
-      title: 'Existing pavement surface cleaned and prepared',
-      category: 'preparation',
-      status: null,
-    },
-    { id: 'AS002', title: 'Surface defects repaired', category: 'preparation', status: null },
-    {
-      id: 'AS003',
-      title: 'Prime coat application rate (L/m²)',
-      category: 'application',
-      status: null,
-    },
-    { id: 'AS004', title: 'Aggregate spread rate (m²/m³)', category: 'application', status: null },
-    {
-      id: 'AS005',
-      title: 'Aggregate size and grading conformance',
-      category: 'materials',
-      status: null,
-    },
-  ];
+  // Get real items from ITP data or fall back to mock items for testing
+  const getItpItems = () => {
+    // Try to get items from the data structure
+    if (itp.data?.inspection_results) {
+      return Object.entries(itp.data.inspection_results).map(([itemId, itemData]) => ({
+        id: itemId,
+        title: (itemData as any)?.description || (itemData as any)?.title || `Item ${itemId}`,
+        category: (itemData as any)?.category || 'inspection',
+        status: (itemData as any)?.status || null,
+      }));
+    }
+    
+    // If no real data, use mock items for demonstration
+    return [
+      {
+        id: 'AS001',
+        title: 'Existing pavement surface cleaned and prepared',
+        category: 'preparation',
+        status: null,
+      },
+      { id: 'AS002', title: 'Surface defects repaired', category: 'preparation', status: null },
+      {
+        id: 'AS003',
+        title: 'Prime coat application rate (L/m²)',
+        category: 'application',
+        status: null,
+      },
+      { id: 'AS004', title: 'Aggregate spread rate (m²/m³)', category: 'application', status: null },
+      {
+        id: 'AS005',
+        title: 'Aggregate size and grading conformance',
+        category: 'materials',
+        status: null,
+      },
+    ];
+  };
+
+  const itpItems = getItpItems();
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
@@ -111,7 +128,7 @@ export function MobileItpCard({
       {isExpanded && (
         <div className="border-t border-gray-200">
           <div className="p-4 space-y-4">
-            {mockItems.map((item) => (
+            {itpItems.map((item) => (
               <div key={item.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 {/* Item Header */}
                 <div className="mb-4">

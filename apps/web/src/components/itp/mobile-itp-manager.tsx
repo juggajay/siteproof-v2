@@ -24,6 +24,7 @@ interface ITPInstance {
   status: string;
   completion_percentage?: number;
   template_id: string;
+  data?: any; // JSONB data from database
 }
 
 export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
@@ -47,6 +48,7 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
           completion_percentage:
             instance.completion_percentage || instance.data?.completion_percentage || 0,
           template_id: instance.template_id,
+          data: instance.data, // Include the raw JSONB data for ITP items
         }));
         setItpInstances(instances);
       } else {
@@ -111,7 +113,52 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
 
   const handleStatusChange = async (itemId: string, status: 'pass' | 'fail' | 'na') => {
     console.log(`Item ${itemId} status changed to ${status}`);
-    // TODO: Implement API call to update item status
+    
+    // Find which ITP instance this item belongs to
+    const currentInstance = itpInstances.find(itp => 
+      itp.id === itemId || // If itemId is actually the ITP instance ID
+      (itp as any).items?.some((item: any) => item.id === itemId) // Or find by item ID
+    );
+    
+    if (!currentInstance) {
+      console.error('Could not find ITP instance for item:', itemId);
+      return;
+    }
+
+    try {
+      // Update the instance data with the new item status
+      const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${currentInstance.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: {
+            inspection_results: {
+              [itemId]: {
+                status: status,
+                updated_at: new Date().toISOString(),
+                inspector: 'current_user' // TODO: Get actual user info
+              }
+            },
+            overall_status: 'in_progress',
+            completion_percentage: 50 // TODO: Calculate based on completed items
+          }
+        }),
+      });
+
+      if (response.ok) {
+        console.log(`✅ Item ${itemId} status updated to ${status}`);
+        // Reload the instances to get updated data
+        await loadItpInstances();
+      } else {
+        console.error('Failed to update item status:', response.status);
+        alert('Failed to update item status. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating item status:', error);
+      alert('Failed to update item status. Please try again.');
+    }
   };
 
   const handleAddComment = async (itemId: string, comment: string) => {

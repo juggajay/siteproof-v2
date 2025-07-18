@@ -170,7 +170,17 @@ export async function PUT(
     const updateData: any = {};
 
     if (data.data !== undefined) {
-      updateData.data = data.data;
+      // Merge new data with existing data to preserve other fields
+      const currentData = itpInstance.data || {};
+      updateData.data = {
+        ...currentData,
+        ...data.data,
+        // Merge inspection_results if both exist
+        inspection_results: {
+          ...currentData.inspection_results,
+          ...data.data.inspection_results,
+        },
+      };
     }
 
     if (data.inspection_status !== undefined) {
