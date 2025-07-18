@@ -81,6 +81,8 @@ export function MobileItpCard({
       const structure = (itp as any).itp_templates.structure;
       let templateItems: any[] = [];
 
+      console.log('📋 Template structure keys:', Object.keys(structure));
+
       // Handle sections-based template structure
       if (structure.sections && Array.isArray(structure.sections)) {
         console.log(`📑 Found ${structure.sections.length} sections`);
@@ -113,8 +115,32 @@ export function MobileItpCard({
         });
       }
 
+      // Handle inspection_items array structure (like the current template)
+      else if (structure.inspection_items && Array.isArray(structure.inspection_items)) {
+        console.log(`📑 Found ${structure.inspection_items.length} inspection items`);
+        const defaultSectionId = 'inspection_items';
+
+        templateItems = structure.inspection_items.map((item: any) => {
+          const itemData = {
+            id: item.id,
+            sectionId: defaultSectionId,
+            title: item.title || item.name || item.description || `Item ${item.id}`,
+            description: item.description,
+            category: item.category || 'inspection',
+            type: item.type || 'pass_fail',
+            status: getItemStatus(defaultSectionId, item.id),
+            required: item.required || false,
+            fields: item.fields || [],
+          };
+
+          console.log(`    • Item: ${item.id} - ${itemData.title} (status: ${itemData.status})`);
+          return itemData;
+        });
+      }
+
       // Handle simple items array structure (create a default section)
       else if (structure.items && Array.isArray(structure.items)) {
+        console.log(`📑 Found ${structure.items.length} items`);
         const defaultSectionId = 'default_section';
         templateItems = structure.items.map((item: any) => ({
           id: item.id,

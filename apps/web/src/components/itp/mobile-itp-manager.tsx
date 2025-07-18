@@ -161,19 +161,37 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
       }
 
       // Check if this instance has the template structure
-      if (raw.itp_templates?.structure?.sections) {
-        const sections = raw.itp_templates.structure.sections;
-        console.log(`📑 Instance has ${sections.length} sections`);
+      const templateStructure = raw.itp_templates?.structure;
+      if (templateStructure) {
+        // Handle sections-based structure
+        if (templateStructure.sections) {
+          const sections = templateStructure.sections;
+          console.log(`📑 Instance has ${sections.length} sections`);
 
-        // Look for the section
-        const section = sections.find((s: any) => s.id === sectionId);
-        if (section) {
-          console.log(`✅ Found section ${sectionId} in instance ${instance.id}`);
-          const item = section.items?.find((i: any) => i.id === itemId);
+          // Look for the section
+          const section = sections.find((s: any) => s.id === sectionId);
+          if (section) {
+            console.log(`✅ Found section ${sectionId} in instance ${instance.id}`);
+            const item = section.items?.find((i: any) => i.id === itemId);
+            if (item) {
+              console.log(`✅ Found item ${itemId} in section`);
+              targetInstance = instance;
+              foundIn = 'template_structure_sections';
+              break;
+            }
+          }
+        }
+
+        // Handle inspection_items structure
+        else if (templateStructure.inspection_items && sectionId === 'inspection_items') {
+          console.log(
+            `📑 Instance has ${templateStructure.inspection_items.length} inspection items`
+          );
+          const item = templateStructure.inspection_items.find((i: any) => i.id === itemId);
           if (item) {
-            console.log(`✅ Found item ${itemId} in section`);
+            console.log(`✅ Found item ${itemId} in inspection_items`);
             targetInstance = instance;
-            foundIn = 'template_structure';
+            foundIn = 'template_structure_inspection_items';
             break;
           }
         }
