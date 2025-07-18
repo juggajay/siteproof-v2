@@ -22,6 +22,13 @@ interface MobileItpCardProps {
     items?: any[];
     data?: any; // Include the JSONB data from database
     template_id?: string;
+    itp_templates?: {
+      id: string;
+      name: string;
+      description?: string;
+      structure: any; // Template structure with inspection items
+      organization_id: string;
+    };
   };
   onStatusChange: (itemId: string, status: 'pass' | 'fail' | 'na') => void;
   onAddComment: (itemId: string, comment: string) => void;
@@ -59,28 +66,56 @@ export function MobileItpCard({
     }
   };
 
-  // Get real items from ITP data or fall back to mock items for testing
+  // Get inspection items from template structure, with status from inspection_results
   const getItpItems = () => {
-    // Try to get items from the data structure, filtering out metadata fields
-    if (itp.data?.inspection_results && typeof itp.data.inspection_results === 'object') {
-      const inspectionResults = itp.data.inspection_results;
+    console.log('🔍 Getting ITP items - Template data:', (itp as any).itp_templates);
+    console.log('🔍 Getting ITP items - Inspection data:', itp.data?.inspection_results);
 
-      // Filter out JSONB metadata fields that are not actual inspection items
-      const realItems = Object.entries(inspectionResults).filter(([itemId]) => {
-        return !['overall_status', 'completion_percentage'].includes(itemId);
-      });
+    // Get inspection items from template structure
+    if ((itp as any).itp_templates?.structure) {
+      const structure = (itp as any).itp_templates.structure;
+      let templateItems: any[] = [];
 
-      if (realItems.length > 0) {
-        return realItems.map(([itemId, itemData]) => ({
-          id: itemId,
-          title: (itemData as any)?.description || (itemData as any)?.title || `Item ${itemId}`,
-          category: (itemData as any)?.category || 'inspection',
-          status: (itemData as any)?.status || null,
+      // Handle sections-based template structure
+      if (structure.sections && Array.isArray(structure.sections)) {
+        structure.sections.forEach((section: any) => {
+          if (section.items && Array.isArray(section.items)) {
+            section.items.forEach((item: any) => {
+              // Each item is an inspection checkpoint
+              templateItems.push({
+                id: item.id,
+                title: item.title || item.label || `Item ${item.id}`,
+                category: section.title || 'inspection',
+                description: item.description,
+                required: item.required || false,
+                // Get status from inspection_results JSONB data
+                status: getItemStatus(item.id),
+              });
+            });
+          }
+        });
+      }
+
+      // Handle simple items array structure
+      else if (structure.items && Array.isArray(structure.items)) {
+        templateItems = structure.items.map((item: any) => ({
+          id: item.id,
+          title: item.title || item.label || `Item ${item.id}`,
+          category: item.category || 'inspection',
+          description: item.description,
+          required: item.required || false,
+          status: getItemStatus(item.id),
         }));
+      }
+
+      if (templateItems.length > 0) {
+        console.log(`✅ Found ${templateItems.length} items from template structure`);
+        return templateItems;
       }
     }
 
-    // If no real data, use mock items for demonstration
+    // Fallback: use mock items for demonstration
+    console.log('🔧 Using mock items - no template structure found');
     return [
       {
         id: 'AS001',
@@ -108,6 +143,15 @@ export function MobileItpCard({
         status: null,
       },
     ];
+  };
+
+  // Helper function to get item status from inspection_results JSONB
+  const getItemStatus = (itemId: string) => {
+    if (itp.data?.inspection_results && typeof itp.data.inspection_results === 'object') {
+      const itemResult = itp.data.inspection_results[itemId];
+      return itemResult?.status || null;
+    }
+    return null;
   };
 
   const itpItems = getItpItems();
