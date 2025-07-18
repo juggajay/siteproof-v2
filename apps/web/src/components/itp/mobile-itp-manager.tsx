@@ -303,6 +303,37 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
     }
   };
 
+  const handleSubmitForReview = async (itpId: string) => {
+    console.log(`📤 Submitting ITP for review: ${itpId}`);
+
+    try {
+      const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${itpId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          inspection_status: 'completed',
+          inspection_date: new Date().toISOString(),
+        }),
+      });
+
+      if (response.ok) {
+        console.log(`✅ ITP ${itpId} submitted for review successfully`);
+        alert('ITP submitted for review successfully!');
+        // Reload the instances to get updated status
+        await loadItpInstances();
+        // Redirect back to lot page
+        window.location.href = `/dashboard/projects/${projectId}/lots/${lotId}`;
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to submit ITP:', response.status, errorData);
+        alert(`Failed to submit ITP: ${errorData.error || 'Please try again.'}`);
+      }
+    } catch (error) {
+      console.error('Error submitting ITP:', error);
+      alert('Failed to submit ITP. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -336,6 +367,7 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
               onAddComment={handleAddComment}
               onAddPhoto={handleAddPhoto}
               onDeleteItp={handleDeleteItp}
+              onSubmitForReview={handleSubmitForReview}
             />
           ))}
         </div>

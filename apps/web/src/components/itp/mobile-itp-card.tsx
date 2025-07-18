@@ -34,6 +34,7 @@ interface MobileItpCardProps {
   onAddComment: (itemId: string, comment: string) => void;
   onAddPhoto: (itemId: string) => void;
   onDeleteItp?: (itpId: string) => void;
+  onSubmitForReview?: (itpId: string) => void;
 }
 
 export function MobileItpCard({
@@ -42,6 +43,7 @@ export function MobileItpCard({
   onAddComment,
   onAddPhoto,
   onDeleteItp,
+  onSubmitForReview,
 }: MobileItpCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeCommentItem, setActiveCommentItem] = useState<string | null>(null);
@@ -398,7 +400,11 @@ export function MobileItpCard({
 
           {/* Submit Section */}
           <div className="border-t border-gray-200 p-4">
-            <button className="w-full h-12 bg-blue-600 text-white rounded-lg font-medium text-lg hover:bg-blue-700 transition-colors">
+            <button
+              onClick={() => onSubmitForReview?.(itp.id)}
+              className="w-full h-12 bg-blue-600 text-white rounded-lg font-medium text-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!onSubmitForReview}
+            >
               Submit ITP for Review
             </button>
           </div>
