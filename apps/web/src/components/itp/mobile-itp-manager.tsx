@@ -39,17 +39,34 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
       const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp`);
       if (response.ok) {
         const data = await response.json();
+
+        // DEBUG: Log the raw response
+        console.log('🔍 Raw API Response:', data);
+
         // Transform the API response to match our interface
-        const instances: ITPInstance[] = (data.instances || []).map((instance: any) => ({
-          id: instance.id,
-          name: instance.name || instance.itp_templates?.name || 'Unknown Template',
-          description: instance.itp_templates?.description,
-          status: instance.inspection_status || 'draft',
-          completion_percentage:
-            instance.completion_percentage || instance.data?.completion_percentage || 0,
-          template_id: instance.template_id,
-          data: instance.data, // Include the raw JSONB data for ITP items
-        }));
+        const instances: ITPInstance[] = (data.instances || []).map((instance: any) => {
+          // DEBUG: Log each instance structure
+          console.log('📋 Processing instance:', {
+            id: instance.id,
+            hasTemplate: !!instance.itp_templates,
+            templateStructure: instance.itp_templates?.structure,
+            hasData: !!instance.data,
+            currentData: instance.data,
+          });
+
+          return {
+            id: instance.id,
+            name: instance.name || instance.itp_templates?.name || 'Unknown Template',
+            description: instance.itp_templates?.description,
+            status: instance.inspection_status || 'draft',
+            completion_percentage:
+              instance.completion_percentage || instance.data?.completion_percentage || 0,
+            template_id: instance.template_id,
+            data: instance.data, // Include the raw JSONB data for ITP items
+            // ADD: Pass the full instance for debugging
+            _raw: instance,
+          };
+        });
         setItpInstances(instances);
       } else {
         console.error('Failed to load ITP instances:', response.status);
@@ -116,53 +133,76 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
     itemId: string,
     status: 'pass' | 'fail' | 'na'
   ) => {
-    console.log(
-      `🔄 handleStatusChange called: Section ${sectionId}, Item ${itemId} status changed to ${status}`
-    );
-    console.log('Current ITP instances:', itpInstances);
+    console.log('🎯 handleStatusChange called:', { sectionId, itemId, status });
 
-    // For mobile component, we need to determine which ITP instance this belongs to
-    // Since mobile shows one ITP at a time, we can find it by checking which one has the template structure
-    const currentInstance = itpInstances.find((itp) => {
-      const template = (itp as any).itp_templates;
-      if (!template?.structure) return false;
+    // Find the ITP instance
+    let targetInstance = null;
+    let foundIn = '';
 
-      // Check if this section exists in the template
-      if (template.structure.sections) {
-        return template.structure.sections.some((section: any) => section.id === sectionId);
+    // Check each instance
+    for (const instance of itpInstances) {
+      console.log(`🔍 Checking instance ${instance.id}`);
+
+      // Access the raw instance data
+      const raw = (instance as any)._raw;
+      if (!raw) {
+        console.log('❌ No raw data for instance');
+        continue;
       }
 
-      // For simple items structure, use default section
-      if (template.structure.items && sectionId === 'default_section') {
-        return true;
+      // Check if this instance has the template structure
+      if (raw.itp_templates?.structure?.sections) {
+        const sections = raw.itp_templates.structure.sections;
+        console.log(`📑 Instance has ${sections.length} sections`);
+
+        // Look for the section
+        const section = sections.find((s: any) => s.id === sectionId);
+        if (section) {
+          console.log(`✅ Found section ${sectionId} in instance ${instance.id}`);
+          const item = section.items?.find((i: any) => i.id === itemId);
+          if (item) {
+            console.log(`✅ Found item ${itemId} in section`);
+            targetInstance = instance;
+            foundIn = 'template_structure';
+            break;
+          }
+        }
       }
+    }
 
-      return false;
-    });
-
-    if (!currentInstance) {
-      console.error('Could not find ITP instance for section:', sectionId, 'item:', itemId);
+    if (!targetInstance) {
+      console.error('❌ Could not find instance for section/item:', { sectionId, itemId });
+      console.log('Available instances:', itpInstances);
       return;
     }
 
-    try {
-      // Use the same data structure as the desktop component
-      const currentData = currentInstance.data || {};
-      const updatedData = {
-        ...currentData,
-        [sectionId]: {
-          ...currentData[sectionId],
-          [itemId]: {
-            ...currentData[sectionId]?.[itemId],
-            result: status,
-            updated_at: new Date().toISOString(),
-          },
-        },
-      };
+    console.log(`🎯 Updating instance ${targetInstance.id} via ${foundIn}`);
 
-      // Update the instance data with the new item status
+    // Get the raw instance for the API call
+    const raw = (targetInstance as any)._raw;
+
+    // Build the update data matching desktop structure
+    const currentData = raw.data || {};
+    const updatedData = {
+      ...currentData,
+      [sectionId]: {
+        ...currentData[sectionId],
+        [itemId]: {
+          ...currentData[sectionId]?.[itemId],
+          result: status,
+          updated_at: new Date().toISOString(),
+        },
+      },
+    };
+
+    console.log('📤 Sending update:', {
+      instanceId: targetInstance.id,
+      data: updatedData,
+    });
+
+    try {
       const response = await fetch(
-        `/api/projects/${projectId}/lots/${lotId}/itp/${currentInstance.id}`,
+        `/api/projects/${projectId}/lots/${lotId}/itp/${targetInstance.id}`,
         {
           method: 'PUT',
           headers: {
@@ -175,19 +215,20 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
         }
       );
 
+      console.log('📥 API Response:', {
+        status: response.status,
+        ok: response.ok,
+      });
+
       if (response.ok) {
-        console.log(`✅ Section ${sectionId}, Item ${itemId} status updated to ${status}`);
-        // Reload the instances to get updated data
+        console.log('✅ Update successful');
         await loadItpInstances();
       } else {
-        console.error('Failed to update item status:', response.status);
-        const errorData = await response.json();
-        console.error('Error details:', errorData);
-        alert('Failed to update item status. Please try again.');
+        const error = await response.text();
+        console.error('❌ API Error:', error);
       }
     } catch (error) {
-      console.error('Error updating item status:', error);
-      alert('Failed to update item status. Please try again.');
+      console.error('❌ Network error:', error);
     }
   };
 

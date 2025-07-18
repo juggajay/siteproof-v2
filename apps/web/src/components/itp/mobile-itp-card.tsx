@@ -66,10 +66,15 @@ export function MobileItpCard({
     }
   };
 
-  // Get inspection items from template structure, with status from inspection_results
+  // Get inspection items from template structure, with status from section-based data
   const getItpItems = () => {
-    console.log('🔍 Getting ITP items - Template data:', (itp as any).itp_templates);
-    console.log('🔍 Getting ITP items - Inspection data:', itp.data?.inspection_results);
+    console.log('🔍 getItpItems called for ITP:', itp.id);
+    console.log('📋 ITP data:', {
+      hasTemplates: !!(itp as any).itp_templates,
+      hasStructure: !!(itp as any).itp_templates?.structure,
+      hasData: !!itp.data,
+      currentData: itp.data,
+    });
 
     // Get inspection items from template structure
     if ((itp as any).itp_templates?.structure) {
@@ -78,20 +83,31 @@ export function MobileItpCard({
 
       // Handle sections-based template structure
       if (structure.sections && Array.isArray(structure.sections)) {
+        console.log(`📑 Found ${structure.sections.length} sections`);
+
         structure.sections.forEach((section: any) => {
+          console.log(`📄 Processing section: ${section.id} - ${section.title}`);
+
           if (section.items && Array.isArray(section.items)) {
+            console.log(`  ➤ Section has ${section.items.length} items`);
+
             section.items.forEach((item: any) => {
-              // Each item is an inspection checkpoint
-              templateItems.push({
+              const itemData = {
                 id: item.id,
-                sectionId: section.id, // ✅ Include section context
-                title: item.title || item.label || `Item ${item.id}`,
-                category: section.title || 'inspection',
+                sectionId: section.id,
+                title: item.title || item.name || 'Untitled Item',
                 description: item.description,
-                required: item.required || false,
-                // Get status from section-based data structure
+                category: section.title || 'General',
+                type: item.type || 'pass_fail',
                 status: getItemStatus(section.id, item.id),
-              });
+                required: item.required || false,
+                fields: item.fields || [],
+              };
+
+              console.log(
+                `    • Item: ${item.id} - ${itemData.title} (status: ${itemData.status})`
+              );
+              templateItems.push(itemData);
             });
           }
         });
@@ -111,11 +127,11 @@ export function MobileItpCard({
         }));
       }
 
-      if (templateItems.length > 0) {
-        console.log(`✅ Found ${templateItems.length} items from template structure`);
-        return templateItems;
-      }
+      console.log(`✅ Total items extracted: ${templateItems.length}`);
+      return templateItems;
     }
+
+    console.log('❌ No template structure found, returning empty array');
 
     // Fallback: use mock items for demonstration
     console.log('🔧 Using mock items - no template structure found');
@@ -231,12 +247,10 @@ export function MobileItpCard({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log(
-                        '🟢 PASS button clicked for section:',
-                        item.sectionId,
-                        'item:',
-                        item.id
-                      );
+                      console.log('🟢 PASS button clicked');
+                      console.log('  Section ID:', item.sectionId);
+                      console.log('  Item ID:', item.id);
+                      console.log('  Current status:', item.status);
                       onStatusChange(item.sectionId, item.id, 'pass');
                     }}
                     className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
@@ -253,12 +267,10 @@ export function MobileItpCard({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log(
-                        '🔴 FAIL button clicked for section:',
-                        item.sectionId,
-                        'item:',
-                        item.id
-                      );
+                      console.log('🔴 FAIL button clicked');
+                      console.log('  Section ID:', item.sectionId);
+                      console.log('  Item ID:', item.id);
+                      console.log('  Current status:', item.status);
                       onStatusChange(item.sectionId, item.id, 'fail');
                     }}
                     className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
@@ -275,12 +287,10 @@ export function MobileItpCard({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log(
-                        '⚪ N/A button clicked for section:',
-                        item.sectionId,
-                        'item:',
-                        item.id
-                      );
+                      console.log('⚪ N/A button clicked');
+                      console.log('  Section ID:', item.sectionId);
+                      console.log('  Item ID:', item.id);
+                      console.log('  Current status:', item.status);
                       onStatusChange(item.sectionId, item.id, 'na');
                     }}
                     className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center ${
