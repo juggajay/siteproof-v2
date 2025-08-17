@@ -5,10 +5,7 @@ import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 
 // GET /api/reports/[id]/download - Generate and download report directly
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id: reportId } = params;
     const supabase = await createClient();
@@ -32,14 +29,58 @@ export async function GET(
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    // Check if report is completed or if we need to generate it on-the-fly
-    if (report.status !== 'completed' && report.status !== 'processing') {
-      return NextResponse.json({ error: 'Report is not ready' }, { status: 400 });
+    // Auto-fix stuck reports (queued or processing)
+    if (report.status === 'queued' || report.status === 'processing') {
+      const timeSinceRequest = new Date().getTime() - new Date(report.requested_at).getTime();
+
+      // If report is stuck (more than 30 seconds old), fix it
+      if (timeSinceRequest > 30 * 1000) {
+        console.log(`Report ${reportId} is stuck in ${report.status}, auto-fixing...`);
+
+        // Update the report to completed
+        const { error: updateError } = await supabase
+          .from('report_queue')
+          .update({
+            status: 'completed',
+            progress: 100,
+            file_url: 'on-demand',
+            completed_at: new Date().toISOString(),
+            error_message: null,
+          })
+          .eq('id', reportId);
+
+        if (!updateError) {
+          // Update local report object
+          report.status = 'completed';
+          report.progress = 100;
+          report.file_url = 'on-demand';
+          console.log(`Report ${reportId} auto-fixed and ready for download`);
+        } else {
+          console.error('Failed to auto-fix report:', updateError);
+        }
+      } else {
+        return NextResponse.json(
+          {
+            error: 'Report is being generated, please try again in a moment',
+          },
+          { status: 202 }
+        );
+      }
+    }
+
+    // Check if report can be generated
+    if (report.status === 'failed') {
+      return NextResponse.json(
+        {
+          error: report.error_message || 'Report generation failed',
+        },
+        { status: 400 }
+      );
     }
 
     // Get project data for the report
     const { project_id, date_range } = report.parameters;
-    
+
     const { data: project } = await supabase
       .from('projects')
       .select('*')
@@ -58,14 +99,14 @@ export async function GET(
         .eq('project_id', project_id)
         .gte('diary_date', date_range.start)
         .lte('diary_date', date_range.end),
-      
+
       supabase
         .from('inspections')
         .select('*')
         .eq('project_id', project_id)
         .gte('created_at', date_range.start)
         .lte('created_at', date_range.end),
-      
+
       supabase
         .from('ncrs')
         .select('*')
@@ -122,12 +163,18 @@ export async function GET(
         break;
 
       case 'json':
-        fileBuffer = Buffer.from(JSON.stringify({
-          project,
-          diaries,
-          inspections,
-          ncrs,
-        }, null, 2));
+        fileBuffer = Buffer.from(
+          JSON.stringify(
+            {
+              project,
+              diaries,
+              inspections,
+              ncrs,
+            },
+            null,
+            2
+          )
+        );
         fileName = `${report.report_name}.json`;
         mimeType = 'application/json';
         break;
@@ -145,7 +192,6 @@ export async function GET(
         'Content-Length': fileBuffer.length.toString(),
       },
     });
-
   } catch (error) {
     console.error('Error generating report:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -156,10 +202,10 @@ async function generateSimplePDF(data: any): Promise<Buffer> {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
   const { width, height } = page.getSize();
-  
+
   const titleFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  
+
   let y = height - 50;
 
   // Title
@@ -250,13 +296,19 @@ async function generateSimplePDF(data: any): Promise<Buffer> {
 
     const recentDiaries = data.diaries.slice(0, 5);
     for (const diary of recentDiaries) {
-      page.drawText(`• ${format(new Date(diary.diary_date), 'dd/MM/yyyy')} - ${diary.activities || 'No activities'}`.substring(0, 80), {
-        x: 70,
-        y,
-        size: 10,
-        font,
-        color: rgb(0.3, 0.3, 0.3),
-      });
+      page.drawText(
+        `• ${format(new Date(diary.diary_date), 'dd/MM/yyyy')} - ${diary.activities || 'No activities'}`.substring(
+          0,
+          80
+        ),
+        {
+          x: 70,
+          y,
+          size: 10,
+          font,
+          color: rgb(0.3, 0.3, 0.3),
+        }
+      );
       y -= 18;
     }
   }
@@ -336,17 +388,17 @@ function generateExcel(data: any): Buffer {
 
 function generateCSV(data: any): Buffer {
   const rows: string[] = [];
-  
+
   rows.push('Project Summary Report');
   rows.push(`Project: ${data.project.name}`);
   rows.push('');
-  
+
   rows.push('Statistics');
   rows.push(`Daily Diaries,${data.diaries.length}`);
   rows.push(`Inspections,${data.inspections.length}`);
   rows.push(`NCRs,${data.ncrs.length}`);
   rows.push('');
-  
+
   if (data.diaries.length > 0) {
     rows.push('Daily Diaries');
     rows.push('Date,Activities,Workers');
@@ -356,6 +408,6 @@ function generateCSV(data: any): Buffer {
       rows.push(`${date},"${activities}",${d.workforce_count || 0}`);
     });
   }
-  
+
   return Buffer.from(rows.join('\n'));
 }

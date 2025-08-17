@@ -67,17 +67,24 @@ export async function POST(request: Request) {
       }
     }
 
-    // Check if Trigger.dev is properly configured
+    // Determine if report can be generated synchronously
+    const isSimpleReport = ['project_summary', 'daily_diary_export', 'inspection_summary'].includes(
+      validatedData.report_type
+    );
+
+    // Check if Trigger.dev is properly configured for complex reports
     const hasTriggerConfig =
       process.env.TRIGGER_API_KEY &&
       process.env.TRIGGER_API_KEY !== 'test-trigger-key' &&
       process.env.TRIGGER_API_URL;
 
-    // Create report record with appropriate initial status
-    const initialStatus = hasTriggerConfig ? 'queued' : 'failed';
-    const initialError = hasTriggerConfig
-      ? null
-      : 'Report processing system not configured - reports must be generated manually';
+    // For simple reports, mark as completed immediately (will generate on download)
+    // For complex reports, only queue if Trigger is available
+    const initialStatus = isSimpleReport ? 'completed' : hasTriggerConfig ? 'queued' : 'failed';
+    const initialError =
+      !isSimpleReport && !hasTriggerConfig
+        ? 'Complex report processing not available - please contact support'
+        : null;
 
     const { data: report, error: insertError } = await supabase
       .from('report_queue')
@@ -96,10 +103,12 @@ export async function POST(request: Request) {
         },
         requested_by: user.id,
         status: initialStatus,
-        progress: hasTriggerConfig ? 0 : 0,
+        progress: initialStatus === 'completed' ? 100 : 0,
         error_message: initialError,
         requested_at: new Date().toISOString(),
-        completed_at: hasTriggerConfig ? null : new Date().toISOString(),
+        completed_at: initialStatus === 'completed' ? new Date().toISOString() : null,
+        // Mark simple reports as ready for on-demand generation
+        file_url: isSimpleReport ? 'on-demand' : null,
       })
       .select()
       .single();
@@ -109,8 +118,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to create report' }, { status: 500 });
     }
 
-    // Only try to trigger background job if properly configured
-    if (hasTriggerConfig) {
+    // Only try to trigger background job for complex reports that need it
+    if (!isSimpleReport && hasTriggerConfig) {
       try {
         await client.sendEvent({
           name: 'report.generate',
@@ -142,6 +151,11 @@ export async function POST(request: Request) {
           .eq('id', report.id);
       }
     }
+
+    // Log report creation type
+    console.log(
+      `Report created: ${report.id} - Type: ${validatedData.report_type} - Status: ${initialStatus} - Generation: ${isSimpleReport ? 'on-demand' : 'background'}`
+    );
 
     return NextResponse.json({
       reportId: report.id,
