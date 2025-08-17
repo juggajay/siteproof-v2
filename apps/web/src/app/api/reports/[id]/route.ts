@@ -52,16 +52,53 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     }
 
     // Delete the report
-    const { error: deleteError } = await supabase.from('report_queue').delete().eq('id', reportId);
+    console.log('Attempting to delete report:', reportId);
+    const { data: deletedData, error: deleteError } = await supabase
+      .from('report_queue')
+      .delete()
+      .eq('id', reportId)
+      .select();
 
     if (deleteError) {
       console.error('Error deleting report:', deleteError);
-      return NextResponse.json({ error: 'Failed to delete report' }, { status: 500 });
+      return NextResponse.json(
+        { error: `Failed to delete report: ${deleteError.message}` },
+        { status: 500 }
+      );
+    }
+
+    // Check if any rows were actually deleted
+    if (!deletedData || deletedData.length === 0) {
+      console.error('No rows deleted for report:', reportId);
+      // This might be due to RLS policies, so let's try with a more specific query
+
+      // Check if the report still exists
+      const { data: checkReport } = await supabase
+        .from('report_queue')
+        .select('id')
+        .eq('id', reportId)
+        .single();
+
+      if (checkReport) {
+        return NextResponse.json(
+          {
+            error:
+              'Failed to delete report - it may be protected by database policies. Please contact support.',
+          },
+          { status: 500 }
+        );
+      }
+
+      // Report doesn't exist anymore (maybe was already deleted)
+      console.log('Report was already deleted or did not exist:', reportId);
+    } else {
+      console.log('Successfully deleted report:', reportId, 'Deleted rows:', deletedData.length);
     }
 
     return NextResponse.json({
       success: true,
       message: 'Report deleted successfully',
+      deletedCount: deletedData?.length || 0,
     });
   } catch (error) {
     console.error('Error in delete report endpoint:', error);
