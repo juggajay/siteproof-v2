@@ -67,7 +67,18 @@ export async function POST(request: Request) {
       }
     }
 
-    // Create report record directly in the database
+    // Check if Trigger.dev is properly configured
+    const hasTriggerConfig =
+      process.env.TRIGGER_API_KEY &&
+      process.env.TRIGGER_API_KEY !== 'test-trigger-key' &&
+      process.env.TRIGGER_API_URL;
+
+    // Create report record with appropriate initial status
+    const initialStatus = hasTriggerConfig ? 'queued' : 'failed';
+    const initialError = hasTriggerConfig
+      ? null
+      : 'Report processing system not configured - reports must be generated manually';
+
     const { data: report, error: insertError } = await supabase
       .from('report_queue')
       .insert({
@@ -84,10 +95,11 @@ export async function POST(request: Request) {
           group_by: validatedData.group_by,
         },
         requested_by: user.id,
-        status: 'completed', // Mark as completed immediately since we generate on-demand
-        progress: 100,
+        status: initialStatus,
+        progress: hasTriggerConfig ? 0 : 0,
+        error_message: initialError,
         requested_at: new Date().toISOString(),
-        completed_at: new Date().toISOString(),
+        completed_at: hasTriggerConfig ? null : new Date().toISOString(),
       })
       .select()
       .single();
@@ -97,28 +109,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to create report' }, { status: 500 });
     }
 
-    // Try to trigger background job if available, but don't fail if it doesn't work
-    try {
-      await client.sendEvent({
-        name: 'report.generate',
-        payload: {
-          reportId: report.id,
-          reportType: validatedData.report_type,
-          format: validatedData.format,
-          parameters: {
-            project_id: validatedData.project_id,
-            date_range: validatedData.date_range,
-            include_photos: validatedData.include_photos,
-            include_signatures: validatedData.include_signatures,
-            group_by: validatedData.group_by,
+    // Only try to trigger background job if properly configured
+    if (hasTriggerConfig) {
+      try {
+        await client.sendEvent({
+          name: 'report.generate',
+          payload: {
+            reportId: report.id,
+            reportType: validatedData.report_type,
+            format: validatedData.format,
+            parameters: {
+              project_id: validatedData.project_id,
+              date_range: validatedData.date_range,
+              include_photos: validatedData.include_photos,
+              include_signatures: validatedData.include_signatures,
+              group_by: validatedData.group_by,
+            },
+            organizationId: member.organization_id,
+            requestedBy: user.id,
           },
-          organizationId: member.organization_id,
-          requestedBy: user.id,
-        },
-      });
-    } catch (triggerError) {
-      // Log but don't fail - report is already created and can be downloaded
-      console.log('Trigger.dev not configured, report will be generated on-demand');
+        });
+      } catch (triggerError) {
+        console.error('Trigger.dev failed:', triggerError);
+        // Update report to failed status
+        await supabase
+          .from('report_queue')
+          .update({
+            status: 'failed',
+            error_message: 'Failed to submit to background processing',
+            completed_at: new Date().toISOString(),
+          })
+          .eq('id', report.id);
+      }
     }
 
     return NextResponse.json({
