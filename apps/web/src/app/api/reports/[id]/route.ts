@@ -1,6 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+// DELETE /api/reports/[id] - Delete a report
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { id: reportId } = params;
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get user's organization
+    const { data: member, error: memberError } = await supabase
+      .from('organization_members')
+      .select('organization_id, role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (memberError || !member) {
+      return NextResponse.json({ error: 'No organization found' }, { status: 404 });
+    }
+
+    // Get the report to check permissions
+    const { data: report, error: reportError } = await supabase
+      .from('report_queue')
+      .select('*')
+      .eq('id', reportId)
+      .eq('organization_id', member.organization_id)
+      .single();
+
+    if (reportError || !report) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    }
+
+    // Check if user can delete this report
+    const canDelete =
+      report.requested_by === user.id || // User created it
+      ['owner', 'admin', 'project_manager'].includes(member.role); // Or has admin permissions
+
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: 'You do not have permission to delete this report' },
+        { status: 403 }
+      );
+    }
+
+    // Delete the report
+    const { error: deleteError } = await supabase.from('report_queue').delete().eq('id', reportId);
+
+    if (deleteError) {
+      console.error('Error deleting report:', deleteError);
+      return NextResponse.json({ error: 'Failed to delete report' }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Report deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error in delete report endpoint:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 // GET /api/reports/[id] - Download individual report
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {

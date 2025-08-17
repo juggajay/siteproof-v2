@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 
@@ -17,28 +17,122 @@ const updateProjectSchema = z.object({
   password: z.string().optional(),
 });
 
+// DELETE /api/projects/[id] - Delete a project
+export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const { id: projectId } = params;
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get user's organization
+    const { data: member, error: memberError } = await supabase
+      .from('organization_members')
+      .select('organization_id, role')
+      .eq('user_id', user.id)
+      .single();
+
+    if (memberError || !member) {
+      return NextResponse.json({ error: 'No organization found' }, { status: 404 });
+    }
+
+    // Get the project to check permissions
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .eq('organization_id', member.organization_id)
+      .single();
+
+    if (projectError || !project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    // Check if user can delete projects
+    const canDelete = ['owner', 'admin'].includes(member.role);
+    if (!canDelete) {
+      return NextResponse.json(
+        {
+          error:
+            'You do not have permission to delete projects. Only owners and admins can delete projects.',
+        },
+        { status: 403 }
+      );
+    }
+
+    // Check for dependencies - lots, inspections, reports, etc.
+    const [lotsResult, inspectionsResult, reportsResult, diariesResult] = await Promise.all([
+      supabase.from('lots').select('id').eq('project_id', projectId).limit(1),
+      supabase.from('inspections').select('id').eq('project_id', projectId).limit(1),
+      supabase.from('report_queue').select('id').eq('parameters->project_id', projectId).limit(1),
+      supabase.from('daily_diaries').select('id').eq('project_id', projectId).limit(1),
+    ]);
+
+    const hasLots = lotsResult.data && lotsResult.data.length > 0;
+    const hasInspections = inspectionsResult.data && inspectionsResult.data.length > 0;
+    const hasReports = reportsResult.data && reportsResult.data.length > 0;
+    const hasDiaries = diariesResult.data && diariesResult.data.length > 0;
+
+    if (hasLots || hasInspections || hasReports || hasDiaries) {
+      const dependencies = [];
+      if (hasLots) dependencies.push('lots');
+      if (hasInspections) dependencies.push('inspections');
+      if (hasReports) dependencies.push('reports');
+      if (hasDiaries) dependencies.push('daily diaries');
+
+      return NextResponse.json(
+        {
+          error: `Cannot delete project with associated ${dependencies.join(', ')}. Please delete all related data first.`,
+          dependencies,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Delete the project
+    const { error: deleteError } = await supabase.from('projects').delete().eq('id', projectId);
+
+    if (deleteError) {
+      console.error('Error deleting project:', deleteError);
+      return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Project deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error in delete project endpoint:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 // GET /api/projects/[id] - Get a single project
-export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_request: Request, { params }: { params: { id: string } }) {
   try {
     const projectId = params?.id;
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     // Fetch project with organization info
     const { data: project, error } = await supabase
       .from('projects')
-      .select(`
+      .select(
+        `
         *,
         organization:organizations (
           id,
@@ -51,15 +145,13 @@ export async function GET(
           email,
           avatar_url
         )
-      `)
+      `
+      )
       .eq('id', projectId)
       .single();
 
     if (error || !project) {
-      return NextResponse.json(
-        { message: 'Project not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: 'Project not found' }, { status: 404 });
     }
 
     // Check if user has access to this project
@@ -87,14 +179,16 @@ export async function GET(
     // Get recent lots
     const { data: recentLots } = await supabase
       .from('lots')
-      .select(`
+      .select(
+        `
         id,
         lot_number,
         name,
         status,
         created_at,
         updated_at
-      `)
+      `
+      )
       .eq('project_id', projectId)
       .order('created_at', { ascending: false })
       .limit(5);
@@ -103,17 +197,19 @@ export async function GET(
       {
         project: {
           ...project,
-          stats: stats ? {
-            totalLots: stats.total_lots,
-            pendingLots: stats.pending_lots,
-            inReviewLots: stats.in_review_lots,
-            approvedLots: stats.approved_lots,
-            rejectedLots: stats.rejected_lots,
-            totalComments: stats.total_comments,
-            unresolvedComments: stats.unresolved_comments,
-            progressPercentage: stats.progress_percentage,
-            lastActivityAt: stats.last_activity_at,
-          } : null,
+          stats: stats
+            ? {
+                totalLots: stats.total_lots,
+                pendingLots: stats.pending_lots,
+                inReviewLots: stats.in_review_lots,
+                approvedLots: stats.approved_lots,
+                rejectedLots: stats.rejected_lots,
+                totalComments: stats.total_comments,
+                unresolvedComments: stats.unresolved_comments,
+                progressPercentage: stats.progress_percentage,
+                lastActivityAt: stats.last_activity_at,
+              }
+            : null,
           recentLots: recentLots || [],
           userRole: membership.role,
         },
@@ -122,22 +218,16 @@ export async function GET(
     );
   } catch (error) {
     console.error('Get project error:', error);
-    return NextResponse.json(
-      { message: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'An unexpected error occurred' }, { status: 500 });
   }
 }
 
 // PUT /api/projects/[id] - Update a project
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
     const projectId = params?.id;
     const body = await request.json();
-    
+
     // Validate request body
     const validationResult = updateProjectSchema.safeParse(body);
     if (!validationResult.success) {
@@ -151,12 +241,11 @@ export async function PUT(
     const supabase = await createClient();
 
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     // Get project to check permissions
@@ -167,10 +256,7 @@ export async function PUT(
       .single();
 
     if (!project) {
-      return NextResponse.json(
-        { message: 'Project not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ message: 'Project not found' }, { status: 404 });
     }
 
     // Check permissions
@@ -232,10 +318,7 @@ export async function PUT(
 
     if (error) {
       console.error('Failed to update project:', error);
-      return NextResponse.json(
-        { message: 'Failed to update project' },
-        { status: 500 }
-      );
+      return NextResponse.json({ message: 'Failed to update project' }, { status: 500 });
     }
 
     // Refresh the materialized view
@@ -250,94 +333,6 @@ export async function PUT(
     );
   } catch (error) {
     console.error('Update project error:', error);
-    return NextResponse.json(
-      { message: 'An unexpected error occurred' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE /api/projects/[id] - Delete a project (soft delete)
-export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const projectId = params?.id;
-    const supabase = await createClient();
-
-    // Get current user
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json(
-        { message: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    // Get project to check permissions
-    const { data: project } = await supabase
-      .from('projects')
-      .select('organization_id, created_by')
-      .eq('id', projectId)
-      .single();
-
-    if (!project) {
-      return NextResponse.json(
-        { message: 'Project not found' },
-        { status: 404 }
-      );
-    }
-
-    // Check permissions
-    const { data: membership } = await supabase
-      .from('organization_members')
-      .select('role')
-      .eq('organization_id', project.organization_id)
-      .eq('user_id', user.id)
-      .single();
-
-    if (!membership) {
-      return NextResponse.json(
-        { message: 'You do not have access to this project' },
-        { status: 403 }
-      );
-    }
-
-    // Only project creator, admins, and owners can delete
-    if (project.created_by !== user.id && !['admin', 'owner'].includes(membership.role)) {
-      return NextResponse.json(
-        { message: 'You do not have permission to delete this project' },
-        { status: 403 }
-      );
-    }
-
-    // Soft delete the project
-    const { error } = await supabase
-      .from('projects')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', projectId);
-
-    if (error) {
-      console.error('Failed to delete project:', error);
-      return NextResponse.json(
-        { message: 'Failed to delete project' },
-        { status: 500 }
-      );
-    }
-
-    // Refresh the materialized view
-    await supabase.rpc('refresh_project_dashboard_stats');
-
-    return NextResponse.json(
-      { message: 'Project deleted successfully' },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('Delete project error:', error);
-    return NextResponse.json(
-      { message: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: 'An unexpected error occurred' }, { status: 500 });
   }
 }

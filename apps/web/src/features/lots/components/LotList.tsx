@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Calendar, CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
+import { FileText, Calendar, CheckCircle, Clock, XCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface LotListProps {
@@ -99,6 +99,34 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
     }
   };
 
+  const deleteLot = async (lotId: string, lotName: string) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete lot "${lotName}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/lots/${lotId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete lot');
+      }
+
+      // Refresh the lot list
+      fetchLots();
+      console.log('Lot deleted successfully:', lotId);
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete lot');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -143,7 +171,11 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
           <div
             key={lot.id}
             className="block bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => {
+            onClick={(e) => {
+              // Don't navigate if clicking on delete button
+              if ((e.target as HTMLElement).closest('[data-delete-button]')) {
+                return;
+              }
               console.log('[LotList] Navigating with router.push to:', lotUrl);
               router.push(lotUrl);
             }}
@@ -179,6 +211,19 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
                   )}
                 </div>
               </div>
+
+              {/* Delete button */}
+              <button
+                data-delete-button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteLot(lot.id, `Lot #${lot.lot_number}${lot.name ? `: ${lot.name}` : ''}`);
+                }}
+                className="ml-4 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                title="Delete Lot"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           </div>
         );

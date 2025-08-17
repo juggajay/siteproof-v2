@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   FileJson,
   FileType,
+  Trash2,
 } from 'lucide-react';
 import { Button, StateDisplay } from '@siteproof/design-system';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -118,7 +119,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
       const response = await fetch(url, {
         credentials: 'include', // Include cookies for authentication
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
       });
 
@@ -127,7 +128,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Reports fetch failed:', response.status, errorText);
-        
+
         if (response.status === 401) {
           throw new Error('Authentication failed. Please log in again.');
         } else if (response.status === 403) {
@@ -149,7 +150,10 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
     },
     retry: (failureCount, error) => {
       // Don't retry on authentication errors
-      if (error instanceof Error && (error.message.includes('Authentication') || error.message.includes('permission'))) {
+      if (
+        error instanceof Error &&
+        (error.message.includes('Authentication') || error.message.includes('permission'))
+      ) {
         return false;
       }
       return failureCount < 3;
@@ -209,7 +213,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
 
   const downloadReport = async (report: Report) => {
     console.log('downloadReport called for report:', report.id, report.report_name);
-    
+
     if (report.status !== 'completed' && report.status !== 'processing') {
       console.log('Report not ready, status:', report.status);
       toast.error('Report is not ready for download');
@@ -225,16 +229,17 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
 
     try {
       console.log('Starting download for report:', report.id);
-      
+
       // Show loading state
       toast.loading('Preparing download...', { id: `download-${report.id}` });
-      
+
       // Generate and download the report directly
       const response = await fetch(`/api/reports/${report.id}/download`, {
         method: 'GET',
         credentials: 'include', // Ensure cookies are included
         headers: {
-          'Accept': 'application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/json,*/*',
+          Accept:
+            'application/pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/json,*/*',
         },
       });
 
@@ -243,16 +248,16 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
 
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        
+
         try {
           const errorData = await response.json();
           errorMessage = errorData.error || errorMessage;
         } catch (jsonError) {
           console.log('Could not parse error response as JSON');
         }
-        
+
         console.error('Download failed with status:', response.status, errorMessage);
-        
+
         if (response.status === 401) {
           errorMessage = 'Authentication failed. Please log in again.';
         } else if (response.status === 403) {
@@ -260,7 +265,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
         } else if (response.status === 404) {
           errorMessage = 'Report not found or has been deleted.';
         }
-        
+
         throw new Error(errorMessage);
       }
 
@@ -268,26 +273,26 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
       const contentType = response.headers.get('content-type') || 'application/octet-stream';
       const contentLength = response.headers.get('content-length');
       console.log('Download content type:', contentType, 'length:', contentLength);
-      
+
       const blob = await response.blob();
       console.log('Downloaded blob size:', blob.size, 'type:', blob.type);
-      
+
       if (blob.size === 0) {
         throw new Error('Downloaded file is empty');
       }
-      
+
       // Create a download link
       const url = window.URL.createObjectURL(blob);
       const fileName = `${report.report_name}.${report.format}`;
-      
+
       const link = document.createElement('a');
       link.href = url;
       link.download = fileName;
       link.style.display = 'none';
-      
+
       document.body.appendChild(link);
       link.click();
-      
+
       // Clean up
       setTimeout(() => {
         document.body.removeChild(link);
@@ -296,12 +301,11 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
 
       console.log('Download completed successfully for:', fileName);
       toast.success('Report downloaded successfully', { id: `download-${report.id}` });
-      
     } catch (error) {
       console.error('Download error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Download failed';
       toast.error(errorMessage, { id: `download-${report.id}` });
-      
+
       // Also log the full error for debugging
       console.error('Full download error details:', {
         error,
@@ -340,6 +344,36 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
       refetch();
     } catch (error) {
       toast.error('Failed to retry report');
+    }
+  };
+
+  const deleteReport = async (reportId: string, reportName: string) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${reportName}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      console.log('Deleting report:', reportId);
+
+      const response = await fetch(`/api/reports/${reportId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete report');
+      }
+
+      toast.success('Report deleted successfully');
+      refetch(); // Refresh the list
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete report');
     }
   };
 
@@ -413,13 +447,13 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
                 className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow cursor-pointer"
                 onClick={(e) => {
                   console.log('Report card clicked:', report.id, report.status);
-                  
+
                   // Don't trigger if clicking on buttons
                   if ((e.target as HTMLElement).closest('button')) {
                     console.log('Clicked on button, not triggering card click');
                     return;
                   }
-                  
+
                   if (report.status === 'completed' || report.status === 'processing') {
                     console.log('Triggering download for report:', report.id);
                     downloadReport(report);
@@ -524,9 +558,9 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
                     )}
 
                     {report.status === 'processing' && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           cancelReport(report.id);
@@ -537,17 +571,32 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
                     )}
 
                     {report.status === 'failed' && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           retryReport(report.id);
                         }}
+                        title="Retry Report"
                       >
                         <RefreshCw className="w-4 h-4" />
                       </Button>
                     )}
+
+                    {/* Delete button - available for all reports */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteReport(report.id, report.report_name);
+                      }}
+                      title="Delete Report"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </div>

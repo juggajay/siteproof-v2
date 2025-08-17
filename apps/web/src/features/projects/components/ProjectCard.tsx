@@ -3,14 +3,15 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Calendar, MessageSquare, CheckCircle, Clock, Building } from 'lucide-react';
+import { Calendar, MessageSquare, CheckCircle, Clock, Building, Trash2 } from 'lucide-react';
 import type { Project } from '../hooks/useProjects';
 
 interface ProjectCardProps {
   project: Project;
+  onDelete?: (projectId: string) => void;
 }
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, onDelete }: ProjectCardProps) {
   const statusColors = {
     active: 'bg-green-100 text-green-800',
     completed: 'bg-blue-100 text-blue-800',
@@ -38,19 +39,43 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const isOverdue =
     project.dueDate && project.status === 'active' && new Date(project.dueDate) < new Date();
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (
+      window.confirm(
+        `Are you sure you want to delete "${project.name}"? This action cannot be undone.`
+      )
+    ) {
+      onDelete?.(project.id);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
       whileHover={{ y: -4 }}
-      className="group"
+      className="group relative"
     >
+      {/* Delete button - positioned absolutely */}
+      {onDelete && (
+        <button
+          onClick={handleDelete}
+          className="absolute top-2 right-2 z-10 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors opacity-0 group-hover:opacity-100"
+          title="Delete Project"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+
       <Link href={`/dashboard/projects/${project.id}`}>
         <div className="h-full bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
+            <div className="flex-1 pr-8">
               <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
                 {project.name}
               </h3>

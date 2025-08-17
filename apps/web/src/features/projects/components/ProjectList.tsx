@@ -15,7 +15,9 @@ interface ProjectListProps {
 export function ProjectList({ organizationId, onCreateProject }: ProjectListProps) {
   const [search, setSearch] = React.useState('');
   const [status, setStatus] = React.useState<'active' | 'completed' | 'archived' | undefined>();
-  const [sortBy, setSortBy] = React.useState<'last_activity_at' | 'name' | 'due_date'>('last_activity_at');
+  const [sortBy, setSortBy] = React.useState<'last_activity_at' | 'name' | 'due_date'>(
+    'last_activity_at'
+  );
   const [page, setPage] = React.useState(1);
 
   const { data, isLoading, error, refetch } = useProjects({
@@ -26,6 +28,27 @@ export function ProjectList({ organizationId, onCreateProject }: ProjectListProp
     page,
     limit: 12,
   });
+
+  const handleDeleteProject = async (projectId: string) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete project');
+      }
+
+      // Refresh the project list
+      refetch();
+      console.log('Project deleted successfully:', projectId);
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to delete project');
+    }
+  };
 
   const handleSearchChange = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
@@ -95,7 +118,7 @@ export function ProjectList({ organizationId, onCreateProject }: ProjectListProp
           <select
             value={status || ''}
             onChange={(e) => {
-              setStatus(e.target.value as any || undefined);
+              setStatus((e.target.value as any) || undefined);
               setPage(1);
             }}
             className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -153,7 +176,7 @@ export function ProjectList({ organizationId, onCreateProject }: ProjectListProp
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
-                <ProjectCard project={project} />
+                <ProjectCard project={project} onDelete={handleDeleteProject} />
               </motion.div>
             ))}
           </motion.div>
@@ -165,7 +188,7 @@ export function ProjectList({ organizationId, onCreateProject }: ProjectListProp
         <div className="flex items-center justify-center space-x-2">
           <Button
             variant="ghost"
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
           >
             Previous
@@ -175,7 +198,7 @@ export function ProjectList({ organizationId, onCreateProject }: ProjectListProp
           </span>
           <Button
             variant="ghost"
-            onClick={() => setPage(p => p + 1)}
+            onClick={() => setPage((p) => p + 1)}
             disabled={page >= Math.ceil(data.total / data.limit)}
           >
             Next
