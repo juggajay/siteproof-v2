@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams?.get('limit') || '20');
     const offset = (page - 1) * limit;
 
-    // Check if user has financial access
+    // Check if user has financial access (still needed for filtering financial data)
     const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(
       member.role
     );
