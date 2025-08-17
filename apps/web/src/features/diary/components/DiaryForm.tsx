@@ -1,91 +1,31 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Cloud,
-  Users,
-  Save,
-  Loader2,
-  ChevronDown,
-  ChevronUp,
-  Settings,
-  Truck,
-  Package,
-  DollarSign,
-} from 'lucide-react';
+import { Users, Save, Truck, Package } from 'lucide-react';
 import { Button, Input } from '@siteproof/design-system';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { weatherService } from '../services/weatherService';
 import type { Project, DailyDiary } from '@siteproof/database';
-import { WorkforceEntry } from '@/features/financials/components/WorkforceEntry';
-import { EquipmentSection } from './DiaryForm/EquipmentSection';
 import { LabourSection } from './DiaryForm/LabourSection';
 import { PlantSection } from './DiaryForm/PlantSection';
 import { MaterialsSection } from './DiaryForm/MaterialsSection';
+import { LiveSummaryPanel } from './DiaryForm/LiveSummaryPanel';
+import { SimplifiedWeatherSection } from './DiaryForm/SimplifiedWeatherSection';
 
 const diarySchema = z.object({
   diary_date: z.string().min(1, 'Date is required'),
-  site_conditions: z.string().optional(),
-  work_areas: z.array(z.string()).default([]),
-  access_issues: z.string().optional(),
   work_summary: z.string().min(10, 'Work summary must be at least 10 characters'),
-  trades_on_site: z
-    .array(
-      z.object({
-        trade: z.string().min(1, 'Trade is required'),
-        company: z.string().min(1, 'Company is required'),
-        workers: z.number().min(1),
-        start_time: z.string().optional(),
-        end_time: z.string().optional(),
-        total_hours: z.number().optional(),
-        hourly_rate: z.number().optional(),
-        daily_rate: z.number().optional(),
-        total_cost: z.number().optional(),
-        notes: z.string().optional(),
-        activities: z.array(z.string()).default([]),
-      })
-    )
-    .default([]),
-  total_workers: z.number().min(0),
-  key_personnel: z
-    .array(
-      z.object({
-        name: z.string().min(1, 'Name is required'),
-        role: z.string().min(1, 'Role is required'),
-        company: z.string(),
-        hours: z.object({
-          start: z.string(),
-          end: z.string(),
-        }),
-      })
-    )
-    .default([]),
-  equipment_on_site: z
-    .array(
-      z.object({
-        type: z.string(),
-        description: z.string(),
-        supplier: z.string(),
-        hours_used: z.number(),
-      })
-    )
-    .default([]),
-  material_deliveries: z
-    .array(
-      z.object({
-        material: z.string(),
-        quantity: z.string(),
-        supplier: z.string(),
-        time: z.string(),
-        location: z.string(),
-      })
-    )
-    .default([]),
+  // Simplified weather fields
+  weather_conditions: z.string().optional(),
+  temperature_min: z.number().optional(),
+  temperature_max: z.number().optional(),
+  wind_conditions: z.string().optional(),
+  site_conditions: z.string().optional(),
+  access_issues: z.string().optional(),
+  // Keep some optional fields for future use
   delays: z
     .array(
       z.object({
@@ -106,31 +46,12 @@ const diarySchema = z.object({
       })
     )
     .default([]),
-  inspections: z
-    .array(
-      z.object({
-        type: z.enum(['Safety', 'Quality', 'Client', 'Authority']),
-        inspector: z.string(),
-        organization: z.string(),
-        findings: z.string(),
-        time: z.string(),
-      })
-    )
-    .default([]),
-  visitors: z
-    .array(
-      z.object({
-        name: z.string(),
-        company: z.string(),
-        purpose: z.string(),
-        time_in: z.string(),
-        time_out: z.string(),
-      })
-    )
-    .default([]),
-  milestones_achieved: z.array(z.string()).default([]),
   general_notes: z.string().optional(),
   tomorrow_planned_work: z.string().optional(),
+  // New fields for cost tracking
+  labour_entries: z.array(z.any()).optional(),
+  plant_entries: z.array(z.any()).optional(),
+  material_entries: z.array(z.any()).optional(),
 });
 
 type DiaryFormData = z.infer<typeof diarySchema>;
@@ -154,19 +75,6 @@ export function DiaryForm({
   onSuccess,
   onCancel,
 }: DiaryFormProps) {
-  const [expandedSections, setExpandedSections] = useState({
-    weather: true,
-    work: true,
-    personnel: false,
-    equipment: true,
-    materials: true,
-    issues: false,
-    inspections: false,
-    progress: false,
-    costs: true, // New section for Labour, Plant, Materials
-  });
-  const [weatherData, setWeatherData] = useState<any>(null);
-  const [isLoadingWeather, setIsLoadingWeather] = useState(true);
   const [costTab, setCostTab] = useState<'labour' | 'plant' | 'materials'>('labour');
 
   // State for the new sections - initialize from diary if editing
@@ -177,25 +85,13 @@ export function DiaryForm({
   const {
     register,
     handleSubmit,
-    watch,
-    setValue,
-    control,
     formState: { errors, isSubmitting },
   } = useForm<DiaryFormData>({
     resolver: zodResolver(diarySchema),
     defaultValues: {
       diary_date: date.toISOString().split('T')[0],
-      work_areas: [],
-      trades_on_site: [],
-      total_workers: 0,
-      key_personnel: [],
-      equipment_on_site: [],
-      material_deliveries: [],
       delays: [],
       safety_incidents: [],
-      inspections: [],
-      visitors: [],
-      milestones_achieved: [],
       ...(diary
         ? {
             ...diary,
@@ -209,46 +105,6 @@ export function DiaryForm({
     },
   });
 
-  // Field arrays for equipment and materials
-  const equipmentField = useFieldArray({
-    control,
-    name: 'equipment_on_site',
-  });
-
-  const deliveriesField = useFieldArray({
-    control,
-    name: 'material_deliveries',
-  });
-
-  // Auto-calculate total workers
-  const trades = watch('trades_on_site');
-  useEffect(() => {
-    const total = trades.reduce((sum, trade) => sum + (trade.workers || 0), 0);
-    setValue('total_workers', total);
-  }, [trades, setValue]);
-
-  // Fetch weather data when component mounts or date changes
-  useEffect(() => {
-    const fetchWeather = async () => {
-      setIsLoadingWeather(true);
-      try {
-        // Get project location - in real app, this would come from project data
-        const location = project.client_company || 'London, UK';
-        const weather = await weatherService.getWeatherByLocation(location, date);
-
-        if (weather) {
-          setWeatherData(weather);
-        }
-      } catch (error) {
-        console.error('Failed to fetch weather:', error);
-      } finally {
-        setIsLoadingWeather(false);
-      }
-    };
-
-    fetchWeather();
-  }, [project, date]);
-
   const createDiary = useMutation({
     mutationFn: async (data: DiaryFormData) => {
       const response = await fetch('/api/diaries', {
@@ -257,7 +113,6 @@ export function DiaryForm({
         body: JSON.stringify({
           ...data,
           project_id: project.id,
-          weather: weatherData,
           labour_entries: labourEntries,
           plant_entries: plantEntries,
           material_entries: materialEntries,
@@ -287,7 +142,6 @@ export function DiaryForm({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...data,
-          weather: weatherData,
           labour_entries: labourEntries,
           plant_entries: plantEntries,
           material_entries: materialEntries,
@@ -318,13 +172,9 @@ export function DiaryForm({
     }
   };
 
-  const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
-  };
-
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Header */}
+      {/* Project Details Header */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
@@ -357,330 +207,119 @@ export function DiaryForm({
         </div>
       </div>
 
-      {/* Weather Section */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <button
-          type="button"
-          onClick={() => toggleSection('weather')}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Cloud className="w-5 h-5 text-blue-600" />
-            <h3 className="text-lg font-medium text-gray-900">Weather Conditions</h3>
-            {weatherData && (
-              <span className="text-sm text-gray-500">
-                {weatherData.conditions} • {weatherData.temperature.max}°
-                {weatherData.temperature.unit}
-              </span>
-            )}
-          </div>
-          {expandedSections.weather ? <ChevronUp /> : <ChevronDown />}
-        </button>
+      {/* Simplified Weather Section */}
+      <SimplifiedWeatherSection register={register} errors={errors} />
 
-        <AnimatePresence>
-          {expandedSections.weather && (
-            <motion.div
-              initial={{ height: 0 }}
-              animate={{ height: 'auto' }}
-              exit={{ height: 0 }}
-              className="overflow-hidden"
+      {/* Main Content: Large Prominent Tabs */}
+      <div className="bg-white rounded-lg border border-gray-200">
+        {/* Tab Headers */}
+        <div className="border-b border-gray-200">
+          <div className="flex">
+            <button
+              type="button"
+              onClick={() => setCostTab('labour')}
+              className={`flex-1 px-6 py-4 text-left font-medium transition-colors ${
+                costTab === 'labour'
+                  ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
             >
-              <div className="px-6 pb-6 border-t">
-                {isLoadingWeather ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-                    <span className="ml-2 text-gray-500">Fetching weather data...</span>
-                  </div>
-                ) : weatherData ? (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500">Temperature</p>
-                      <p className="text-lg font-semibold">
-                        {weatherData.temperature.min}° - {weatherData.temperature.max}°
-                        {weatherData.temperature.unit}
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500">Conditions</p>
-                      <p className="text-lg font-semibold">{weatherData.conditions}</p>
-                      <p className="text-xs text-gray-600">{weatherData.description}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500">Wind</p>
-                      <p className="text-lg font-semibold">
-                        {weatherData.wind.speed} {weatherData.wind.unit}{' '}
-                        {weatherData.wind.direction}
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500">Humidity</p>
-                      <p className="text-lg font-semibold">{weatherData.humidity}%</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500">Precipitation</p>
-                      <p className="text-lg font-semibold">
-                        {weatherData.precipitation.probability}%
-                      </p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500">UV Index</p>
-                      <p className="text-lg font-semibold">{weatherData.uv_index}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500">Sunrise</p>
-                      <p className="text-lg font-semibold">{weatherData.sunrise}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs text-gray-500">Sunset</p>
-                      <p className="text-lg font-semibold">{weatherData.sunset}</p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">Weather data not available</div>
-                )}
-
-                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Site Conditions
-                    </label>
-                    <textarea
-                      {...register('site_conditions')}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Describe how weather affected site conditions..."
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Access Issues
-                    </label>
-                    <textarea
-                      {...register('access_issues')}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Any access issues due to weather or other factors..."
-                    />
-                  </div>
+              <div className="flex items-center gap-3">
+                <Users className="w-5 h-5" />
+                <div>
+                  <div className="text-lg">Labour</div>
+                  <div className="text-sm opacity-75">{labourEntries.length} workers</div>
                 </div>
               </div>
-            </motion.div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCostTab('plant')}
+              className={`flex-1 px-6 py-4 text-left font-medium transition-colors ${
+                costTab === 'plant'
+                  ? 'bg-orange-50 text-orange-700 border-b-2 border-orange-600'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Truck className="w-5 h-5" />
+                <div>
+                  <div className="text-lg">Plant & Equipment</div>
+                  <div className="text-sm opacity-75">{plantEntries.length} items</div>
+                </div>
+              </div>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCostTab('materials')}
+              className={`flex-1 px-6 py-4 text-left font-medium transition-colors ${
+                costTab === 'materials'
+                  ? 'bg-green-50 text-green-700 border-b-2 border-green-600'
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Package className="w-5 h-5" />
+                <div>
+                  <div className="text-lg">Materials</div>
+                  <div className="text-sm opacity-75">{materialEntries.length} deliveries</div>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        <div className="p-6">
+          {costTab === 'labour' && (
+            <LabourSection
+              entries={labourEntries}
+              onChange={setLabourEntries}
+              showFinancials={true}
+            />
           )}
-        </AnimatePresence>
+          {costTab === 'plant' && (
+            <PlantSection entries={plantEntries} onChange={setPlantEntries} showFinancials={true} />
+          )}
+          {costTab === 'materials' && (
+            <MaterialsSection
+              entries={materialEntries}
+              onChange={setMaterialEntries}
+              showFinancials={true}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Work Summary Section */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <button
-          type="button"
-          onClick={() => toggleSection('work')}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-green-600" />
-            <h3 className="text-lg font-medium text-gray-900">Work Summary</h3>
-            <span className="text-sm text-gray-500">
-              {trades.length} trades • {watch('total_workers')} workers
-            </span>
-          </div>
-          {expandedSections.work ? <ChevronUp /> : <ChevronDown />}
-        </button>
+      {/* Live Summary Panel */}
+      <LiveSummaryPanel
+        labourEntries={labourEntries}
+        plantEntries={plantEntries}
+        materialEntries={materialEntries}
+        showFinancials={true}
+      />
 
-        <AnimatePresence>
-          {expandedSections.work && (
-            <motion.div
-              initial={{ height: 0 }}
-              animate={{ height: 'auto' }}
-              exit={{ height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="px-6 pb-6 border-t">
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Work Summary <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    {...register('work_summary')}
-                    rows={4}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                      errors.work_summary
-                        ? 'border-red-300 focus:ring-red-500'
-                        : 'border-gray-300 focus:ring-blue-500'
-                    }`}
-                    placeholder="Summarize the day's work activities..."
-                  />
-                  {errors.work_summary && (
-                    <p className="mt-1 text-sm text-red-600">{errors.work_summary.message}</p>
-                  )}
-                </div>
-
-                {/* Trades on Site */}
-                <div className="mt-6">
-                  <WorkforceEntry
-                    trades={watch('trades_on_site')}
-                    onChange={(trades) => setValue('trades_on_site', trades)}
-                    date={new Date(watch('diary_date'))}
-                    projectId={project.id}
-                    readOnly={false}
-                  />
-                </div>
-
-                {/* Total Workers (auto-calculated) */}
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                  <p className="text-sm font-medium text-blue-900">
-                    Total Workers on Site:{' '}
-                    <span className="text-2xl">{watch('total_workers')}</span>
-                  </p>
-                </div>
-              </div>
-            </motion.div>
+      {/* Work Summary */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Work Summary</h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Work Summary <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            {...register('work_summary')}
+            rows={4}
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
+              errors.work_summary
+                ? 'border-red-300 focus:ring-red-500'
+                : 'border-gray-300 focus:ring-blue-500'
+            }`}
+            placeholder="Summarize the day's work activities..."
+          />
+          {errors.work_summary && (
+            <p className="mt-1 text-sm text-red-600">{errors.work_summary.message}</p>
           )}
-        </AnimatePresence>
-      </div>
-
-      {/* Labour, Plant & Materials Costs Section */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <button
-          type="button"
-          onClick={() => toggleSection('costs')}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <DollarSign className="w-5 h-5 text-green-600" />
-            <h3 className="text-lg font-medium text-gray-900">Labour, Plant & Materials</h3>
-            <span className="text-sm text-gray-500">
-              {labourEntries.length} workers • {plantEntries.length} equipment •{' '}
-              {materialEntries.length} materials
-            </span>
-          </div>
-          {expandedSections.costs ? <ChevronUp /> : <ChevronDown />}
-        </button>
-
-        <AnimatePresence>
-          {expandedSections.costs && (
-            <motion.div
-              initial={{ height: 0 }}
-              animate={{ height: 'auto' }}
-              exit={{ height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="px-6 pb-6 border-t">
-                {/* Tabs for Labour, Plant, Materials */}
-                <div className="mt-4 border-b border-gray-200">
-                  <div className="flex space-x-8">
-                    <button
-                      type="button"
-                      onClick={() => setCostTab('labour')}
-                      className={`py-2 border-b-2 font-medium text-sm transition-colors ${
-                        costTab === 'labour'
-                          ? 'border-blue-600 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        Labour ({labourEntries.length})
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCostTab('plant')}
-                      className={`py-2 border-b-2 font-medium text-sm transition-colors ${
-                        costTab === 'plant'
-                          ? 'border-blue-600 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Truck className="w-4 h-4" />
-                        Plant & Equipment ({plantEntries.length})
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCostTab('materials')}
-                      className={`py-2 border-b-2 font-medium text-sm transition-colors ${
-                        costTab === 'materials'
-                          ? 'border-blue-600 text-blue-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Package className="w-4 h-4" />
-                        Materials ({materialEntries.length})
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Tab Content */}
-                <div className="mt-6">
-                  {costTab === 'labour' && (
-                    <LabourSection
-                      entries={labourEntries}
-                      onChange={setLabourEntries}
-                      showFinancials={true} // You can check user role here
-                    />
-                  )}
-                  {costTab === 'plant' && (
-                    <PlantSection
-                      entries={plantEntries}
-                      onChange={setPlantEntries}
-                      showFinancials={true} // You can check user role here
-                    />
-                  )}
-                  {costTab === 'materials' && (
-                    <MaterialsSection
-                      entries={materialEntries}
-                      onChange={setMaterialEntries}
-                      showFinancials={true} // You can check user role here
-                    />
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Equipment and Materials Section */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <button
-          type="button"
-          onClick={() => toggleSection('equipment')}
-          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <Settings className="w-5 h-5 text-orange-600" />
-            <h3 className="text-lg font-medium text-gray-900">Equipment & Materials</h3>
-            <span className="text-sm text-gray-500">
-              {watch('equipment_on_site')?.length || 0} equipment •{' '}
-              {watch('material_deliveries')?.length || 0} deliveries
-            </span>
-          </div>
-          {expandedSections.equipment ? <ChevronUp /> : <ChevronDown />}
-        </button>
-
-        <AnimatePresence>
-          {expandedSections.equipment && (
-            <motion.div
-              initial={{ height: 0 }}
-              animate={{ height: 'auto' }}
-              exit={{ height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="px-6 pb-6 border-t">
-                <div className="mt-6">
-                  <EquipmentSection
-                    register={register}
-                    deliveriesField={deliveriesField}
-                    equipmentField={equipmentField}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </div>
       </div>
 
       {/* Actions */}
