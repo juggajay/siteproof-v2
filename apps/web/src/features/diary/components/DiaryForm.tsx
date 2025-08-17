@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -14,6 +14,7 @@ import { PlantSection } from './DiaryForm/PlantSection';
 import { MaterialsSection } from './DiaryForm/MaterialsSection';
 import { LiveSummaryPanel } from './DiaryForm/LiveSummaryPanel';
 import { SimplifiedWeatherSection } from './DiaryForm/SimplifiedWeatherSection';
+import { WorkSummaryTabs } from './DiaryForm/WorkSummaryTabs';
 
 const diarySchema = z.object({
   diary_date: z.string().min(1, 'Date is required'),
@@ -48,6 +49,7 @@ const diarySchema = z.object({
     .default([]),
   general_notes: z.string().optional(),
   tomorrow_planned_work: z.string().optional(),
+  notes_for_tomorrow: z.string().optional(),
   // New fields for cost tracking
   labour_entries: z.array(z.any()).optional(),
   plant_entries: z.array(z.any()).optional(),
@@ -81,6 +83,44 @@ export function DiaryForm({
   const [labourEntries, setLabourEntries] = useState<any[]>(diary?.labour_entries || []);
   const [plantEntries, setPlantEntries] = useState<any[]>(diary?.plant_entries || []);
   const [materialEntries, setMaterialEntries] = useState<any[]>(diary?.material_entries || []);
+
+  // State for incidents and delays
+  const [incidents, setIncidents] = useState<any[]>(diary?.safety_incidents || []);
+  const [delays, setDelays] = useState<any[]>(diary?.delays || []);
+
+  // State for previous day notes (will be populated by API call)
+  const [previousDayNotes, setPreviousDayNotes] = useState<string>('');
+
+  // Fetch previous day's notes
+  useEffect(() => {
+    const fetchPreviousDayNotes = async () => {
+      try {
+        const currentDate = new Date(date);
+        const previousDate = new Date(currentDate);
+        previousDate.setDate(currentDate.getDate() - 1);
+
+        const formattedDate = previousDate.toISOString().split('T')[0];
+
+        const response = await fetch(
+          `/api/diaries/by-date?project_id=${project.id}&date=${formattedDate}`
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.diary && data.diary.notes_for_tomorrow) {
+            setPreviousDayNotes(data.diary.notes_for_tomorrow);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch previous day notes:', error);
+      }
+    };
+
+    // Only fetch if we're not editing an existing diary
+    if (!diary) {
+      fetchPreviousDayNotes();
+    }
+  }, [project.id, date, diary]);
 
   const {
     register,
@@ -116,6 +156,8 @@ export function DiaryForm({
           labour_entries: labourEntries,
           plant_entries: plantEntries,
           material_entries: materialEntries,
+          safety_incidents: incidents,
+          delays: delays,
         }),
       });
 
@@ -145,6 +187,8 @@ export function DiaryForm({
           labour_entries: labourEntries,
           plant_entries: plantEntries,
           material_entries: materialEntries,
+          safety_incidents: incidents,
+          delays: delays,
         }),
       });
 
@@ -174,13 +218,14 @@ export function DiaryForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Project Details Header */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Daily Diary for {project.name}
-            </h3>
+      {/* Header Row - Date & Project Details */}
+      <div className="flex justify-between items-start gap-6 mb-6">
+        {/* Date Section - Left */}
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Daily Diary for {project.name}
+          </h3>
+          <div className="max-w-xs">
             <Input
               type="date"
               label="Date"
@@ -190,22 +235,32 @@ export function DiaryForm({
               fullWidth
             />
           </div>
-          <div>
-            <h4 className="text-sm font-medium text-gray-700 mb-2">Project Details</h4>
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>
-                <strong>Client:</strong> {project.client_name || 'N/A'}
-              </p>
-              <p>
-                <strong>Location:</strong> {project.client_company || 'N/A'}
-              </p>
-              <p>
-                <strong>Project Manager:</strong> John Smith
-              </p>
-            </div>
+        </div>
+
+        {/* Project Details Box - Top Right */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 min-w-80">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Project Details</h4>
+          <div className="space-y-2 text-sm text-gray-600">
+            <p>
+              <strong>Client:</strong> {project.client_name || 'N/A'}
+            </p>
+            <p>
+              <strong>Location:</strong> {project.client_company || 'N/A'}
+            </p>
+            <p>
+              <strong>Project Manager:</strong> John Smith
+            </p>
           </div>
         </div>
       </div>
+
+      {/* Daily Summary Panel - Top Position */}
+      <LiveSummaryPanel
+        labourEntries={labourEntries}
+        plantEntries={plantEntries}
+        materialEntries={materialEntries}
+        showFinancials={true}
+      />
 
       {/* Simplified Weather Section */}
       <SimplifiedWeatherSection register={register} errors={errors} />
@@ -291,36 +346,16 @@ export function DiaryForm({
         </div>
       </div>
 
-      {/* Live Summary Panel */}
-      <LiveSummaryPanel
-        labourEntries={labourEntries}
-        plantEntries={plantEntries}
-        materialEntries={materialEntries}
-        showFinancials={true}
+      {/* Work Summary Tabs */}
+      <WorkSummaryTabs
+        register={register}
+        errors={errors}
+        incidents={incidents}
+        delays={delays}
+        onIncidentsChange={setIncidents}
+        onDelaysChange={setDelays}
+        previousDayNotes={previousDayNotes}
       />
-
-      {/* Work Summary */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Work Summary</h3>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Work Summary <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            {...register('work_summary')}
-            rows={4}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-              errors.work_summary
-                ? 'border-red-300 focus:ring-red-500'
-                : 'border-gray-300 focus:ring-blue-500'
-            }`}
-            placeholder="Summarize the day's work activities..."
-          />
-          {errors.work_summary && (
-            <p className="mt-1 text-sm text-red-600">{errors.work_summary.message}</p>
-          )}
-        </div>
-      </div>
 
       {/* Actions */}
       <div className="flex justify-end gap-3">
