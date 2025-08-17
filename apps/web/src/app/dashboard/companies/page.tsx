@@ -29,12 +29,7 @@ export default function CompaniesPage() {
   );
   const canManage = ['owner', 'admin'].includes(role?.role || '');
 
-  const {
-    data: companies,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['companies', filter],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -47,7 +42,8 @@ export default function CompaniesPage() {
     },
   });
 
-  const filteredCompanies = companies?.filter((company: any) => {
+  const companies = data?.companies || [];
+  const filteredCompanies = companies.filter((company: any) => {
     if (!filter.search) return true;
     const searchLower = filter.search.toLowerCase();
     return (
@@ -117,13 +113,13 @@ export default function CompaniesPage() {
       <StateDisplay
         loading={isLoading}
         error={error}
-        empty={!filteredCompanies?.length}
+        empty={!filteredCompanies.length}
         onRetry={refetch}
         emptyTitle="No companies found"
         emptyDescription="Add your first company to start tracking workforce and costs"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCompanies?.map((company: any) => (
+          {filteredCompanies.map((company: any) => (
             <div
               key={company.id}
               onClick={() => {
