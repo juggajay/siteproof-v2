@@ -22,9 +22,9 @@ export async function GET() {
     const refreshResults: Array<{ view: string; status: 'success' | 'error'; error?: string }> = [];
 
     // List of materialized views to refresh
-    const materializedViews = [
-      'daily_workforce_costs',
-      'project_dashboard_stats',
+    const materializedViews: string[] = [
+      // 'daily_workforce_costs', // TODO: Create this view first
+      // 'project_dashboard_stats', // TODO: Create this view first
       // Add other materialized views here as needed
     ];
 

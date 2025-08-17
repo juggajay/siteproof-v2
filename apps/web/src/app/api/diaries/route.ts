@@ -60,16 +60,8 @@ export async function GET(request: NextRequest) {
       member.role
     );
 
-    // Build query based on financial access
-    const selectString = hasFinancialAccess
-      ? `
-        *,
-        project:projects(id, name, client_name),
-        createdBy:users!daily_diaries_created_by_fkey(id, email, full_name),
-        approvedBy:users!daily_diaries_approved_by_fkey(id, email, full_name),
-        daily_workforce_costs(workforce_costs, total_daily_cost)
-      `
-      : `
+    // Build query - removed daily_workforce_costs until it's properly set up
+    const selectString = `
         *,
         project:projects(id, name, client_name),
         createdBy:users!daily_diaries_created_by_fkey(id, email, full_name),

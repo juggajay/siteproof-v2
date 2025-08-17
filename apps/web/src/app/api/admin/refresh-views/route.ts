@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
     const requestedViews = body.views as string[] | undefined;
 
     // Default list of materialized views
-    const allViews = ['daily_workforce_costs', 'project_dashboard_stats'];
+    // TODO: Add these views once they're created in the database
+    const allViews: string[] = []; // ['daily_workforce_costs', 'project_dashboard_stats'];
 
     // Determine which views to refresh
     const viewsToRefresh =

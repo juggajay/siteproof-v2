@@ -90,16 +90,18 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const effectiveIncludeFinancials = includeFinancials && hasFinancialAccess;
 
     // Get financial data if user has access
-    let workforceCosts = null;
-    if (effectiveIncludeFinancials) {
-      const { data: costs } = await supabase
-        .from('daily_workforce_costs')
-        .select('workforce_costs, total_daily_cost')
-        .eq('diary_id', diaryId)
-        .single();
-
-      workforceCosts = costs;
-    }
+    // TODO: Implement daily_workforce_costs view/table
+    // let workforceCosts = null;
+    // Commented out until daily_workforce_costs is properly set up
+    // if (effectiveIncludeFinancials) {
+    //   const { data: costs } = await supabase
+    //     .from('daily_workforce_costs')
+    //     .select('workforce_costs, total_daily_cost')
+    //     .eq('diary_id', diaryId)
+    //     .single();
+    //
+    //   workforceCosts = costs;
+    // }
 
     // Prepare export data
     const exportData: DiaryExportData = {
@@ -123,7 +125,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       milestones_achieved: diary.milestones_achieved || [],
       general_notes: diary.general_notes,
       tomorrow_planned_work: diary.tomorrow_planned_work,
-      total_daily_cost: workforceCosts?.total_daily_cost,
+      total_daily_cost: undefined, // workforceCosts?.total_daily_cost, // TODO: Implement when view is created
       createdBy: diary.createdBy,
       approvedBy: diary.approvedBy,
       approved_at: diary.approved_at,
