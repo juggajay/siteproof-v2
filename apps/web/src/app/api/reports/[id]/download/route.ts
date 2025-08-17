@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // GET /api/reports/[id]/download - Generate and download report directly
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
@@ -76,6 +77,11 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
         },
         { status: 400 }
       );
+    }
+
+    // Handle ITP reports differently
+    if (report.report_type === 'itp_report') {
+      return generateITPReport(report, supabase);
     }
 
     // Get project data for the report
@@ -410,4 +416,171 @@ function generateCSV(data: any): Buffer {
   }
 
   return Buffer.from(rows.join('\n'));
+}
+
+async function generateITPReport(report: any, _supabase: SupabaseClient): Promise<NextResponse> {
+  try {
+    // For ITP reports, generate a simple PDF summary
+    const { lot_number, project_name, organization_name, itp_instances } = report.parameters;
+
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+    const { width, height } = page.getSize();
+
+    const titleFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    let y = height - 50;
+
+    // Title
+    page.drawText('ITP Report', {
+      x: 50,
+      y,
+      size: 24,
+      font: titleFont,
+      color: rgb(0, 0, 0),
+    });
+    y -= 40;
+
+    // Project and Lot info
+    page.drawText(`Project: ${project_name || 'Unknown'}`, {
+      x: 50,
+      y,
+      size: 14,
+      font: titleFont,
+      color: rgb(0, 0, 0),
+    });
+    y -= 25;
+
+    page.drawText(`Lot Number: ${lot_number || 'N/A'}`, {
+      x: 50,
+      y,
+      size: 12,
+      font,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+    y -= 20;
+
+    page.drawText(`Organization: ${organization_name || 'Unknown'}`, {
+      x: 50,
+      y,
+      size: 12,
+      font,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+    y -= 30;
+
+    // Line separator
+    page.drawLine({
+      start: { x: 50, y },
+      end: { x: width - 50, y },
+      thickness: 1,
+      color: rgb(0.8, 0.8, 0.8),
+    });
+    y -= 30;
+
+    // ITP Summary
+    page.drawText('Inspection Summary', {
+      x: 50,
+      y,
+      size: 16,
+      font: titleFont,
+      color: rgb(0, 0, 0),
+    });
+    y -= 25;
+
+    if (itp_instances && itp_instances.length > 0) {
+      page.drawText(`Total Inspections: ${itp_instances.length}`, {
+        x: 70,
+        y,
+        size: 12,
+        font,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+      y -= 20;
+
+      const completed = itp_instances.filter(
+        (i: any) => i.inspection_status === 'completed'
+      ).length;
+      page.drawText(`Completed: ${completed}`, {
+        x: 70,
+        y,
+        size: 12,
+        font,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+      y -= 30;
+
+      // List ITPs
+      page.drawText('Inspection Details:', {
+        x: 50,
+        y,
+        size: 14,
+        font: titleFont,
+        color: rgb(0, 0, 0),
+      });
+      y -= 25;
+
+      for (const itp of itp_instances.slice(0, 10)) {
+        // Show first 10
+        const date = itp.inspection_date
+          ? format(new Date(itp.inspection_date), 'dd/MM/yyyy')
+          : 'N/A';
+        const name = itp.template_name || 'Unnamed Inspection';
+        const status = itp.inspection_status || 'pending';
+
+        page.drawText(`• ${name}`, {
+          x: 70,
+          y,
+          size: 11,
+          font: titleFont,
+          color: rgb(0.1, 0.1, 0.1),
+        });
+        y -= 18;
+
+        page.drawText(`  Date: ${date} | Status: ${status}`, {
+          x: 70,
+          y,
+          size: 10,
+          font,
+          color: rgb(0.4, 0.4, 0.4),
+        });
+        y -= 22;
+
+        if (y < 100) break; // Stop if running out of space
+      }
+    } else {
+      page.drawText('No inspection data available', {
+        x: 70,
+        y,
+        size: 12,
+        font,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+    }
+
+    // Footer
+    page.drawText(`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, {
+      x: 50,
+      y: 30,
+      size: 9,
+      font,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const fileBuffer = Buffer.from(pdfBytes);
+
+    return new NextResponse(fileBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${report.report_name}.pdf"`,
+        'Content-Length': fileBuffer.length.toString(),
+      },
+    });
+  } catch (error) {
+    console.error('Error generating ITP report:', error);
+    return NextResponse.json({ error: 'Failed to generate ITP report' }, { status: 500 });
+  }
 }
