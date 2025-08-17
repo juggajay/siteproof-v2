@@ -94,6 +94,11 @@ export function DiaryForm({
   // Fetch previous day's notes
   useEffect(() => {
     const fetchPreviousDayNotes = async () => {
+      // Ensure project.id exists before making the API call
+      if (!project?.id) {
+        return;
+      }
+
       try {
         const currentDate = new Date(date);
         const previousDate = new Date(currentDate);
@@ -116,11 +121,11 @@ export function DiaryForm({
       }
     };
 
-    // Only fetch if we're not editing an existing diary
-    if (!diary) {
+    // Only fetch if we're not editing an existing diary and project exists
+    if (!diary && project?.id) {
       fetchPreviousDayNotes();
     }
-  }, [project.id, date, diary]);
+  }, [project?.id, date, diary]);
 
   const {
     register,
@@ -147,6 +152,11 @@ export function DiaryForm({
 
   const createDiary = useMutation({
     mutationFn: async (data: DiaryFormData) => {
+      // Ensure project.id exists
+      if (!project?.id) {
+        throw new Error('Project ID is required');
+      }
+
       const response = await fetch('/api/diaries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -205,6 +215,12 @@ export function DiaryForm({
   });
 
   const onSubmit = (data: DiaryFormData) => {
+    // Validate that project exists
+    if (!project?.id) {
+      toast.error('Project information is missing. Please refresh the page.');
+      return;
+    }
+
     // Include the incidents and delays in the form data
     const completeData = {
       ...data,
@@ -226,7 +242,7 @@ export function DiaryForm({
         {/* Date Section - Left */}
         <div className="flex-1">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">
-            Daily Diary for {project.name}
+            Daily Diary for {project?.name || 'Project'}
           </h3>
           <div className="max-w-xs">
             <Input
@@ -245,10 +261,10 @@ export function DiaryForm({
           <h4 className="text-sm font-medium text-gray-700 mb-3">Project Details</h4>
           <div className="space-y-2 text-sm text-gray-600">
             <p>
-              <strong>Client:</strong> {project.client_name || 'N/A'}
+              <strong>Client:</strong> {project?.client_name || 'N/A'}
             </p>
             <p>
-              <strong>Location:</strong> {project.client_company || 'N/A'}
+              <strong>Location:</strong> {project?.client_company || 'N/A'}
             </p>
             <p>
               <strong>Project Manager:</strong> John Smith
