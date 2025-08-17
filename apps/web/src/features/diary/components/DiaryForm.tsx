@@ -156,8 +156,6 @@ export function DiaryForm({
           labour_entries: labourEntries,
           plant_entries: plantEntries,
           material_entries: materialEntries,
-          safety_incidents: incidents,
-          delays: delays,
         }),
       });
 
@@ -187,8 +185,6 @@ export function DiaryForm({
           labour_entries: labourEntries,
           plant_entries: plantEntries,
           material_entries: materialEntries,
-          safety_incidents: incidents,
-          delays: delays,
         }),
       });
 
@@ -209,10 +205,17 @@ export function DiaryForm({
   });
 
   const onSubmit = (data: DiaryFormData) => {
+    // Include the incidents and delays in the form data
+    const completeData = {
+      ...data,
+      safety_incidents: incidents,
+      delays: delays,
+    };
+
     if (diary) {
-      updateDiary.mutate(data);
+      updateDiary.mutate(completeData);
     } else {
-      createDiary.mutate(data);
+      createDiary.mutate(completeData);
     }
   };
 
