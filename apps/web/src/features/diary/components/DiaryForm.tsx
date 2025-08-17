@@ -80,19 +80,30 @@ export function DiaryForm({
   const [costTab, setCostTab] = useState<'labour' | 'plant' | 'materials'>('labour');
 
   // State for the new sections - initialize from diary if editing
-  const [labourEntries, setLabourEntries] = useState<any[]>(diary?.labour_entries || []);
-  const [plantEntries, setPlantEntries] = useState<any[]>(diary?.plant_entries || []);
-  const [materialEntries, setMaterialEntries] = useState<any[]>(diary?.material_entries || []);
+  const [labourEntries, setLabourEntries] = useState<any[]>(() => diary?.labour_entries || []);
+  const [plantEntries, setPlantEntries] = useState<any[]>(() => diary?.plant_entries || []);
+  const [materialEntries, setMaterialEntries] = useState<any[]>(
+    () => diary?.material_entries || []
+  );
 
   // State for incidents and delays
-  const [incidents, setIncidents] = useState<any[]>(diary?.safety_incidents || []);
-  const [delays, setDelays] = useState<any[]>(diary?.delays || []);
+  const [incidents, setIncidents] = useState<any[]>(() => diary?.safety_incidents || []);
+  const [delays, setDelays] = useState<any[]>(() => diary?.delays || []);
 
   // State for previous day notes (will be populated by API call)
   const [previousDayNotes, setPreviousDayNotes] = useState<string>('');
+  const [isClient, setIsClient] = useState(false);
+
+  // Ensure we're on the client before running effects that could cause hydration mismatches
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Fetch previous day's notes
   useEffect(() => {
+    // Only run on client side to avoid hydration issues
+    if (!isClient) return;
+
     const fetchPreviousDayNotes = async () => {
       // Ensure project.id exists before making the API call
       if (!project?.id) {
@@ -125,7 +136,7 @@ export function DiaryForm({
     if (!diary && project?.id) {
       fetchPreviousDayNotes();
     }
-  }, [project?.id, date, diary]);
+  }, [isClient, project?.id, date, diary]);
 
   const {
     register,
@@ -134,7 +145,13 @@ export function DiaryForm({
   } = useForm<DiaryFormData>({
     resolver: zodResolver(diarySchema),
     defaultValues: {
-      diary_date: date.toISOString().split('T')[0],
+      diary_date: (() => {
+        try {
+          return date.toISOString().split('T')[0];
+        } catch {
+          return new Date().toISOString().split('T')[0];
+        }
+      })(),
       delays: [],
       safety_incidents: [],
       ...(diary
