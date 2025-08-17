@@ -10,28 +10,37 @@ import { useOrganizationRole } from '@/features/organizations/hooks/useOrganizat
 import { CompanyCard } from '@/features/financials/components/CompanyCard';
 import { CompanyForm } from '@/features/financials/components/CompanyForm';
 import { RateHistoryModal } from '@/features/financials/components/RateHistoryModal';
+import { CompanyDetailModal } from '@/features/financials/components/CompanyDetailModal';
 
 export default function CompaniesPage() {
   const { data: role } = useOrganizationRole();
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<any | null>(null);
   const [showRateHistory, setShowRateHistory] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [filter, setFilter] = useState({
     type: '',
     search: '',
     activeOnly: true,
   });
 
-  const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(role?.role || '');
+  const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(
+    role?.role || ''
+  );
   const canManage = ['owner', 'admin'].includes(role?.role || '');
 
-  const { data: companies, isLoading, error, refetch } = useQuery({
+  const {
+    data: companies,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['companies', filter],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filter.activeOnly) params.append('active', 'true');
       if (filter.type) params.append('type', filter.type);
-      
+
       const response = await fetch(`/api/companies?${params}`);
       if (!response.ok) throw new Error('Failed to fetch companies');
       return response.json();
@@ -55,9 +64,7 @@ export default function CompaniesPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Company Management</h1>
-            <p className="mt-2 text-gray-600">
-              Manage contractors, suppliers, and their rates
-            </p>
+            <p className="mt-2 text-gray-600">Manage contractors, suppliers, and their rates</p>
           </div>
           {canManage && (
             <Button onClick={() => setShowCreateForm(true)}>
@@ -76,14 +83,14 @@ export default function CompaniesPage() {
                 type="text"
                 placeholder="Search companies..."
                 value={filter.search}
-                onChange={(e) => setFilter(prev => ({ ...prev, search: e.target.value }))}
+                onChange={(e) => setFilter((prev) => ({ ...prev, search: e.target.value }))}
                 className="pl-10 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-            
+
             <select
               value={filter.type}
-              onChange={(e) => setFilter(prev => ({ ...prev, type: e.target.value }))}
+              onChange={(e) => setFilter((prev) => ({ ...prev, type: e.target.value }))}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">All Types</option>
@@ -92,12 +99,12 @@ export default function CompaniesPage() {
               <option value="consultant">Consultants</option>
               <option value="employee">Employees</option>
             </select>
-            
+
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={filter.activeOnly}
-                onChange={(e) => setFilter(prev => ({ ...prev, activeOnly: e.target.checked }))}
+                onChange={(e) => setFilter((prev) => ({ ...prev, activeOnly: e.target.checked }))}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <span className="text-sm text-gray-700">Active only</span>
@@ -117,20 +124,30 @@ export default function CompaniesPage() {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCompanies?.map((company: any) => (
-            <CompanyCard
+            <div
               key={company.id}
-              company={company}
-              onEdit={() => {
-                setSelectedCompany(company.id);
-                setShowCreateForm(true);
+              onClick={() => {
+                setSelectedCompany(company);
+                setShowDetailModal(true);
               }}
-              onViewRates={() => {
-                setSelectedCompany(company.id);
-                setShowRateHistory(true);
-              }}
-              canManage={canManage}
-              showFinancials={hasFinancialAccess}
-            />
+              className="cursor-pointer"
+            >
+              <CompanyCard
+                company={company}
+                onEdit={(e) => {
+                  e?.stopPropagation();
+                  setSelectedCompany(company.id);
+                  setShowCreateForm(true);
+                }}
+                onViewRates={(e) => {
+                  e?.stopPropagation();
+                  setSelectedCompany(company.id);
+                  setShowRateHistory(true);
+                }}
+                canManage={canManage}
+                showFinancials={hasFinancialAccess}
+              />
+            </div>
           ))}
         </div>
       </StateDisplay>
@@ -159,6 +176,19 @@ export default function CompaniesPage() {
             setShowRateHistory(false);
             setSelectedCompany(null);
           }}
+        />
+      )}
+
+      {/* Company Detail Modal */}
+      {showDetailModal && selectedCompany && (
+        <CompanyDetailModal
+          company={selectedCompany}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedCompany(null);
+          }}
+          canManage={canManage}
+          showFinancials={hasFinancialAccess}
         />
       )}
     </div>
