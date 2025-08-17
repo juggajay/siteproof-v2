@@ -64,6 +64,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/pnpm-workspace.yaml ./pnpm-worksp
 # Copy packages
 COPY --from=builder --chown=nextjs:nodejs /app/packages ./packages
 
+# Enable pnpm for runtime user
+RUN corepack enable pnpm
+
 USER nextjs
 
 EXPOSE 3000
@@ -75,5 +78,4 @@ ENV HOSTNAME "0.0.0.0"
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
-WORKDIR /app/apps/web
-CMD ["node", "../../node_modules/next/dist/bin/next", "start"]
+CMD ["node", "/app/node_modules/.bin/next", "start", "/app/apps/web"]

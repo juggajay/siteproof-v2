@@ -80,6 +80,8 @@ export const generateReportJob = client.defineJob({
               format,
               organizationId,
               io,
+              reportId,
+              requestedBy,
             });
             
             fileUrl = result.fileUrl;
