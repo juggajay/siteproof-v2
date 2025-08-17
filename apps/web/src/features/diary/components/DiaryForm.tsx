@@ -5,7 +5,18 @@ import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Cloud, Users, Save, Loader2, ChevronDown, ChevronUp, Settings } from 'lucide-react';
+import {
+  Cloud,
+  Users,
+  Save,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  Settings,
+  Truck,
+  Package,
+  DollarSign,
+} from 'lucide-react';
 import { Button, Input } from '@siteproof/design-system';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -13,6 +24,9 @@ import { weatherService } from '../services/weatherService';
 import type { Project, DailyDiary } from '@siteproof/database';
 import { WorkforceEntry } from '@/features/financials/components/WorkforceEntry';
 import { EquipmentSection } from './DiaryForm/EquipmentSection';
+import { LabourSection } from './DiaryForm/LabourSection';
+import { PlantSection } from './DiaryForm/PlantSection';
+import { MaterialsSection } from './DiaryForm/MaterialsSection';
 
 const diarySchema = z.object({
   diary_date: z.string().min(1, 'Date is required'),
@@ -123,7 +137,11 @@ type DiaryFormData = z.infer<typeof diarySchema>;
 
 interface DiaryFormProps {
   project: Project;
-  diary?: DailyDiary;
+  diary?: DailyDiary & {
+    labour_entries?: any[];
+    plant_entries?: any[];
+    material_entries?: any[];
+  };
   date?: Date;
   onSuccess?: (diaryId: string) => void;
   onCancel?: () => void;
@@ -145,9 +163,16 @@ export function DiaryForm({
     issues: false,
     inspections: false,
     progress: false,
+    costs: true, // New section for Labour, Plant, Materials
   });
   const [weatherData, setWeatherData] = useState<any>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(true);
+  const [costTab, setCostTab] = useState<'labour' | 'plant' | 'materials'>('labour');
+
+  // State for the new sections - initialize from diary if editing
+  const [labourEntries, setLabourEntries] = useState<any[]>(diary?.labour_entries || []);
+  const [plantEntries, setPlantEntries] = useState<any[]>(diary?.plant_entries || []);
+  const [materialEntries, setMaterialEntries] = useState<any[]>(diary?.material_entries || []);
 
   const {
     register,
@@ -233,6 +258,9 @@ export function DiaryForm({
           ...data,
           project_id: project.id,
           weather: weatherData,
+          labour_entries: labourEntries,
+          plant_entries: plantEntries,
+          material_entries: materialEntries,
         }),
       });
 
@@ -260,6 +288,9 @@ export function DiaryForm({
         body: JSON.stringify({
           ...data,
           weather: weatherData,
+          labour_entries: labourEntries,
+          plant_entries: plantEntries,
+          material_entries: materialEntries,
         }),
       });
 
@@ -500,6 +531,111 @@ export function DiaryForm({
                     Total Workers on Site:{' '}
                     <span className="text-2xl">{watch('total_workers')}</span>
                   </p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Labour, Plant & Materials Costs Section */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => toggleSection('costs')}
+          className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <DollarSign className="w-5 h-5 text-green-600" />
+            <h3 className="text-lg font-medium text-gray-900">Labour, Plant & Materials</h3>
+            <span className="text-sm text-gray-500">
+              {labourEntries.length} workers • {plantEntries.length} equipment •{' '}
+              {materialEntries.length} materials
+            </span>
+          </div>
+          {expandedSections.costs ? <ChevronUp /> : <ChevronDown />}
+        </button>
+
+        <AnimatePresence>
+          {expandedSections.costs && (
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: 'auto' }}
+              exit={{ height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="px-6 pb-6 border-t">
+                {/* Tabs for Labour, Plant, Materials */}
+                <div className="mt-4 border-b border-gray-200">
+                  <div className="flex space-x-8">
+                    <button
+                      type="button"
+                      onClick={() => setCostTab('labour')}
+                      className={`py-2 border-b-2 font-medium text-sm transition-colors ${
+                        costTab === 'labour'
+                          ? 'border-blue-600 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Labour ({labourEntries.length})
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCostTab('plant')}
+                      className={`py-2 border-b-2 font-medium text-sm transition-colors ${
+                        costTab === 'plant'
+                          ? 'border-blue-600 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4" />
+                        Plant & Equipment ({plantEntries.length})
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCostTab('materials')}
+                      className={`py-2 border-b-2 font-medium text-sm transition-colors ${
+                        costTab === 'materials'
+                          ? 'border-blue-600 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Package className="w-4 h-4" />
+                        Materials ({materialEntries.length})
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Tab Content */}
+                <div className="mt-6">
+                  {costTab === 'labour' && (
+                    <LabourSection
+                      entries={labourEntries}
+                      onChange={setLabourEntries}
+                      showFinancials={true} // You can check user role here
+                    />
+                  )}
+                  {costTab === 'plant' && (
+                    <PlantSection
+                      entries={plantEntries}
+                      onChange={setPlantEntries}
+                      showFinancials={true} // You can check user role here
+                    />
+                  )}
+                  {costTab === 'materials' && (
+                    <MaterialsSection
+                      entries={materialEntries}
+                      onChange={setMaterialEntries}
+                      showFinancials={true} // You can check user role here
+                    />
+                  )}
                 </div>
               </div>
             </motion.div>

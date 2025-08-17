@@ -83,10 +83,31 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       p_user_id: user.id,
     });
 
+    // Fetch labour entries
+    const { data: labourEntries } = await supabase
+      .from('diary_labour_entries')
+      .select('*')
+      .eq('diary_id', params.id);
+
+    // Fetch plant entries
+    const { data: plantEntries } = await supabase
+      .from('diary_plant_entries')
+      .select('*')
+      .eq('diary_id', params.id);
+
+    // Fetch material entries
+    const { data: materialEntries } = await supabase
+      .from('diary_material_entries')
+      .select('*')
+      .eq('diary_id', params.id);
+
     return NextResponse.json({
       diary: {
         ...diary,
         trades_on_site: filteredTrades || diary.trades_on_site,
+        labour_entries: labourEntries || [],
+        plant_entries: plantEntries || [],
+        material_entries: materialEntries || [],
         project,
         createdBy,
         approvedBy,
@@ -145,11 +166,14 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     //   return NextResponse.json({ error: 'Diary is locked and cannot be edited' }, { status: 403 });
     // }
 
+    // Extract entry arrays from body
+    const { labour_entries, plant_entries, material_entries, ...diaryData } = body;
+
     // Update diary
     const { data: diary, error } = await supabase
       .from('daily_diaries')
       .update({
-        ...body,
+        ...diaryData,
         updated_at: new Date().toISOString(),
       })
       .eq('id', params.id)
@@ -159,6 +183,73 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     if (error) {
       console.error('Error updating diary:', error);
       return NextResponse.json({ error: 'Failed to update diary' }, { status: 500 });
+    }
+
+    // Update labour entries
+    if (labour_entries !== undefined) {
+      // Delete existing entries
+      await supabase.from('diary_labour_entries').delete().eq('diary_id', params.id);
+
+      // Insert new entries
+      if (labour_entries && labour_entries.length > 0) {
+        const labourData = labour_entries.map((entry: any) => ({
+          ...entry,
+          diary_id: params.id,
+          created_by: user.id,
+        }));
+
+        const { error: labourError } = await supabase
+          .from('diary_labour_entries')
+          .insert(labourData);
+
+        if (labourError) {
+          console.error('Error updating labour entries:', labourError);
+        }
+      }
+    }
+
+    // Update plant entries
+    if (plant_entries !== undefined) {
+      // Delete existing entries
+      await supabase.from('diary_plant_entries').delete().eq('diary_id', params.id);
+
+      // Insert new entries
+      if (plant_entries && plant_entries.length > 0) {
+        const plantData = plant_entries.map((entry: any) => ({
+          ...entry,
+          diary_id: params.id,
+          created_by: user.id,
+        }));
+
+        const { error: plantError } = await supabase.from('diary_plant_entries').insert(plantData);
+
+        if (plantError) {
+          console.error('Error updating plant entries:', plantError);
+        }
+      }
+    }
+
+    // Update material entries
+    if (material_entries !== undefined) {
+      // Delete existing entries
+      await supabase.from('diary_material_entries').delete().eq('diary_id', params.id);
+
+      // Insert new entries
+      if (material_entries && material_entries.length > 0) {
+        const materialData = material_entries.map((entry: any) => ({
+          ...entry,
+          diary_id: params.id,
+          created_by: user.id,
+        }));
+
+        const { error: materialError } = await supabase
+          .from('diary_material_entries')
+          .insert(materialData);
+
+        if (materialError) {
+          console.error('Error updating material entries:', materialError);
+        }
+      }
     }
 
     // Refresh materialized view if trades were updated

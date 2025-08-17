@@ -23,6 +23,10 @@ const createDiarySchema = z.object({
   milestones_achieved: z.array(z.string()).default([]),
   general_notes: z.string().optional(),
   tomorrow_planned_work: z.string().optional(),
+  // New fields for cost tracking
+  labour_entries: z.array(z.any()).optional(),
+  plant_entries: z.array(z.any()).optional(),
+  material_entries: z.array(z.any()).optional(),
 });
 
 export async function GET(request: NextRequest) {
@@ -218,11 +222,13 @@ export async function POST(request: NextRequest) {
       p_diary_date: validatedData.diary_date,
     });
 
-    // Create diary
+    // Create diary (exclude the entry arrays from main diary)
+    const { labour_entries, plant_entries, material_entries, ...diaryData } = validatedData;
+
     const { data: diary, error: diaryError } = await supabase
       .from('daily_diaries')
       .insert({
-        ...validatedData,
+        ...diaryData,
         organization_id: project.organization_id,
         diary_number: diaryNumber,
         created_by: user.id,
@@ -232,6 +238,53 @@ export async function POST(request: NextRequest) {
 
     if (diaryError) {
       throw diaryError;
+    }
+
+    // Insert labour entries if provided
+    if (labour_entries && labour_entries.length > 0) {
+      const labourData = labour_entries.map((entry: any) => ({
+        ...entry,
+        diary_id: diary.id,
+        created_by: user.id,
+      }));
+
+      const { error: labourError } = await supabase.from('diary_labour_entries').insert(labourData);
+
+      if (labourError) {
+        console.error('Error inserting labour entries:', labourError);
+      }
+    }
+
+    // Insert plant entries if provided
+    if (plant_entries && plant_entries.length > 0) {
+      const plantData = plant_entries.map((entry: any) => ({
+        ...entry,
+        diary_id: diary.id,
+        created_by: user.id,
+      }));
+
+      const { error: plantError } = await supabase.from('diary_plant_entries').insert(plantData);
+
+      if (plantError) {
+        console.error('Error inserting plant entries:', plantError);
+      }
+    }
+
+    // Insert material entries if provided
+    if (material_entries && material_entries.length > 0) {
+      const materialData = material_entries.map((entry: any) => ({
+        ...entry,
+        diary_id: diary.id,
+        created_by: user.id,
+      }));
+
+      const { error: materialError } = await supabase
+        .from('diary_material_entries')
+        .insert(materialData);
+
+      if (materialError) {
+        console.error('Error inserting material entries:', materialError);
+      }
     }
 
     return NextResponse.json({
