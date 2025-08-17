@@ -172,33 +172,36 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
   }, [user, supabase, queryClient]);
 
   const downloadReport = async (report: Report) => {
-    if (report.status !== 'completed') {
+    if (report.status !== 'completed' && report.status !== 'processing') {
       toast.error('Report is not ready for download');
       return;
     }
 
     try {
-      // Use the individual report download endpoint
-      const response = await fetch(`/api/reports/${report.id}`);
-      const data = await response.json();
+      // Generate and download the report directly
+      const response = await fetch(`/api/reports/${report.id}/download`);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to get download URL');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to download report');
       }
 
-      if (data.file_url) {
-        // Create a temporary link to trigger download
-        const link = document.createElement('a');
-        link.href = data.file_url;
-        link.download = `${data.report_name}.${data.format}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      // Get the blob from the response
+      const blob = await response.blob();
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${report.report_name}.${report.format}`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
 
-        toast.success('Download started');
-      } else {
-        throw new Error('No download URL available');
-      }
+      toast.success('Report downloaded successfully');
     } catch (error) {
       console.error('Download error:', error);
       toast.error(error instanceof Error ? error.message : 'Download failed');
@@ -302,7 +305,12 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
             return (
               <div
                 key={report.id}
-                className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow"
+                className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow cursor-pointer"
+                onClick={() => {
+                  if (report.status === 'completed' || report.status === 'processing') {
+                    downloadReport(report);
+                  }
+                }}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -377,11 +385,14 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
                     </span>
 
                     {/* Actions */}
-                    {report.status === 'completed' && (
+                    {(report.status === 'completed' || report.status === 'processing') && (
                       <Button
                         variant="secondary"
                         size="sm"
-                        onClick={() => downloadReport(report)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadReport(report);
+                        }}
                         title="Download Report"
                       >
                         <Download className="w-4 h-4" />
@@ -389,13 +400,27 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
                     )}
 
                     {report.status === 'processing' && (
-                      <Button variant="ghost" size="sm" onClick={() => cancelReport(report.id)}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          cancelReport(report.id);
+                        }}
+                      >
                         Cancel
                       </Button>
                     )}
 
                     {report.status === 'failed' && (
-                      <Button variant="ghost" size="sm" onClick={() => retryReport(report.id)}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          retryReport(report.id);
+                        }}
+                      >
                         <RefreshCw className="w-4 h-4" />
                       </Button>
                     )}
