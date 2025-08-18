@@ -14,7 +14,7 @@ export default function NewNCRPage() {
   const searchParams = useSearchParams();
   const projectId = searchParams?.get('project_id');
   const inspectionId = searchParams?.get('inspection_id');
-  const lotId = searchParams?.get('lot_id');
+  // const lotId = searchParams?.get('lot_id'); // Reserved for future use
 
   const [selectedProjectId, setSelectedProjectId] = useState<string>(projectId || '');
 

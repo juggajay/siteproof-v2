@@ -33,7 +33,7 @@ export default function NcrsPage() {
   const [severityFilter, setSeverityFilter] = useState<NCRSeverity | ''>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [page, setPage] = useState(1);
+  // const [page, setPage] = useState(1);
 
   // Fetch current user from auth
   const { data: currentUser } = useQuery({
@@ -54,7 +54,7 @@ export default function NcrsPage() {
     error,
     refetch,
   } = useNcrs({
-    projectId,
+    projectId: projectId || undefined,
     status: statusFilter || undefined,
     severity: severityFilter || undefined,
   });
