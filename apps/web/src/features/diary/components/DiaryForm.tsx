@@ -239,10 +239,21 @@ export function DiaryForm({
     }
 
     // Include the incidents and delays in the form data
+    // Also include fields required by the API with default values
     const completeData = {
       ...data,
       safety_incidents: incidents,
       delays: delays,
+      // Add required fields with defaults for API compatibility
+      total_workers: labourEntries.length,
+      work_areas: [],
+      trades_on_site: [],
+      key_personnel: [],
+      equipment_on_site: [],
+      material_deliveries: [],
+      inspections: [],
+      visitors: [],
+      milestones_achieved: [],
     };
 
     if (diary) {
