@@ -16,13 +16,14 @@ export default function NewDiaryClient() {
   const date = dateParam ? new Date(dateParam) : new Date();
 
   // Fetch project data
-  const { data: project, isLoading } = useQuery({
+  const { data: projectData, isLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: async () => {
       if (!projectId) return null;
       const response = await fetch(`/api/projects/${projectId}`);
       if (!response.ok) throw new Error('Failed to fetch project');
-      return response.json();
+      const data = await response.json();
+      return data.project; // Extract the project from the response
     },
     enabled: !!projectId,
   });
@@ -55,7 +56,7 @@ export default function NewDiaryClient() {
             </Button>
           </Link>
         </div>
-        
+
         <h1 className="text-3xl font-bold text-gray-900">New Daily Diary</h1>
         <p className="mt-2 text-sm text-gray-600">
           Record daily activities, workforce, and costs for {date.toLocaleDateString()}
@@ -64,9 +65,9 @@ export default function NewDiaryClient() {
 
       {/* Form */}
       <div className="bg-white shadow rounded-lg">
-        {project ? (
+        {projectData ? (
           <DiaryForm
-            project={project}
+            project={projectData}
             date={date}
             onSuccess={handleSuccess}
             onCancel={() => router.push('/dashboard/diaries')}
@@ -75,13 +76,19 @@ export default function NewDiaryClient() {
           <div className="p-8 text-center">
             <p className="text-gray-500 mb-4">Please select a project to create a diary entry</p>
             {projects && projects.length > 0 && (
-              <select 
+              <select
                 className="border rounded px-4 py-2"
-                onChange={(e) => router.push(`/dashboard/diaries/new?project_id=${e.target.value}&date=${date.toISOString()}`)}
+                onChange={(e) =>
+                  router.push(
+                    `/dashboard/diaries/new?project_id=${e.target.value}&date=${date.toISOString()}`
+                  )
+                }
               >
                 <option value="">Select a project</option>
                 {projects.map((p: any) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
             )}

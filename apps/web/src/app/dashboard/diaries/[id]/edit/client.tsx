@@ -25,13 +25,14 @@ export default function EditDiaryClient({ diaryId }: EditDiaryClientProps) {
   const canEdit = ['owner', 'admin', 'project_manager'].includes(role?.role || '');
 
   // Fetch project data
-  const { data: project, isLoading: projectLoading } = useQuery({
+  const { data: projectData, isLoading: projectLoading } = useQuery({
     queryKey: ['project', diary?.project_id],
     queryFn: async () => {
       if (!diary?.project_id) return null;
       const response = await fetch(`/api/projects/${diary.project_id}`);
       if (!response.ok) throw new Error('Failed to fetch project');
-      return response.json();
+      const data = await response.json();
+      return data.project; // Extract the project from the response
     },
     enabled: !!diary?.project_id,
   });
@@ -114,9 +115,9 @@ export default function EditDiaryClient({ diaryId }: EditDiaryClientProps) {
           emptyTitle="Diary not found"
           emptyDescription="The diary you're looking for doesn't exist or has been deleted."
         >
-          {diary && project && (
+          {diary && projectData && (
             <DiaryForm
-              project={project}
+              project={projectData}
               diary={
                 {
                   ...diary,
