@@ -177,9 +177,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate NCR number
-    const { data: ncrNumber } = await supabase.rpc('generate_ncr_number', {
-      p_organization_id: project.organization_id,
-    });
+    // Count existing NCRs for this organization to generate sequential number
+    const { count } = await supabase
+      .from('ncrs')
+      .select('id', { count: 'exact', head: true })
+      .eq('organization_id', project.organization_id);
+
+    const sequenceNumber = (count || 0) + 1;
+    const ncrNumber = `NCR-${new Date().getFullYear()}-${String(sequenceNumber).padStart(4, '0')}`;
 
     // Upload evidence files if any
     const evidence: Record<string, string> = {};
@@ -217,17 +222,13 @@ export async function POST(request: NextRequest) {
       throw ncrError;
     }
 
-    // Queue notifications
+    // Create notification for assigned user (if any)
     if (validatedData.assigned_to) {
-      await supabase.rpc('queue_notification', {
-        p_type: 'ncr_assigned',
-        p_entity_type: 'ncr',
-        p_entity_id: ncr.id,
-        p_recipient_id: validatedData.assigned_to,
-        p_subject: `New NCR assigned: ${ncr.ncr_number}`,
-        p_body: `You have been assigned a new NCR: "${validatedData.title}" with ${validatedData.severity} severity.`,
-        p_priority: validatedData.severity === 'critical' ? 'urgent' : 'high',
-      });
+      // For now, we'll skip notifications until the notification system is set up
+      // In the future, this would create a notification record
+      console.log(
+        `Notification would be sent to user ${validatedData.assigned_to} for NCR ${ncr.ncr_number}`
+      );
     }
 
     return NextResponse.json({

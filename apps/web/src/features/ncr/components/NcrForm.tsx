@@ -121,11 +121,18 @@ export function NcrForm({
 
   // Fetch contractors
   const { data: contractors } = useQuery({
-    queryKey: ['contractors', project.organization_id],
+    queryKey: ['contractors', project.id],
     queryFn: async () => {
-      // This would fetch associated contractors
-      return [];
+      // Fetch contractors associated with the project
+      const response = await fetch(`/api/projects/${project.id}/contractors`);
+      if (!response.ok) {
+        console.error('Failed to fetch contractors');
+        return [];
+      }
+      const data = await response.json();
+      return data.contractors || [];
     },
+    enabled: !!project.id,
   });
 
   const createOrUpdateNCR = useMutation({
@@ -153,8 +160,11 @@ export function NcrForm({
 
         // Add form fields
         Object.entries(data).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            if (Array.isArray(value)) {
+          if (value !== undefined && value !== null && value !== '') {
+            if (key === 'tags') {
+              // Send tags as JSON string
+              formData.append(key, JSON.stringify(customTags));
+            } else if (Array.isArray(value)) {
               formData.append(key, JSON.stringify(value));
             } else {
               formData.append(key, String(value));
