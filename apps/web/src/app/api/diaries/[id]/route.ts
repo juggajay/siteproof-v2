@@ -1,24 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import type { DailyDiary, Project, User } from '@siteproof/database';
-
-// Type for the diary data returned by the RPC function
-interface DiaryWithFinancialData extends DailyDiary {
-  workforce_costs?: any;
-  total_daily_cost?: number;
-  // Additional fields from RPC that might not exist in base table
-  instructions_received?: any;
-  rfi_submitted?: any;
-  quality_issues?: any;
-  environmental_conditions?: any;
-  hot_works?: any;
-  permits?: any;
-  temporary_works?: any;
-  photos?: any;
-  attachments?: any;
-  is_locked?: boolean;
-  notes?: string | null;
-}
+import type { Project, User } from '@siteproof/database';
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   try {
@@ -43,17 +25,21 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       return NextResponse.json({ error: 'No organization found' }, { status: 404 });
     }
 
-    // Use the database function to get diary with financial data based on role
+    // Fetch diary directly from table
     const { data: diary, error } = await supabase
-      .rpc('get_diary_with_financial_data', {
-        p_diary_id: params?.id,
-        p_user_id: user.id,
-      })
-      .single<DiaryWithFinancialData>();
+      .from('daily_diaries')
+      .select('*')
+      .eq('id', params?.id)
+      .single();
 
     if (error || !diary) {
       console.error('Error fetching diary:', error);
       return NextResponse.json({ error: 'Diary not found' }, { status: 404 });
+    }
+
+    // Check if user belongs to the same organization
+    if (diary.organization_id !== member.organization_id) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // Get related data
@@ -77,11 +63,18 @@ export async function GET(_request: Request, { params }: { params: { id: string 
           .single<Pick<User, 'id' | 'email' | 'full_name'>>()
       : { data: null };
 
-    // Use the database function to get filtered trades data
-    const { data: filteredTrades } = await supabase.rpc('get_trades_for_diary', {
-      p_diary_id: params?.id,
-      p_user_id: user.id,
-    });
+    // Filter trades data based on user role
+    const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(
+      member.role
+    );
+    const filteredTrades = hasFinancialAccess
+      ? diary.trades_on_site
+      : diary.trades_on_site?.map((trade: any) => ({
+          ...trade,
+          hourly_rate: undefined,
+          daily_rate: undefined,
+          total_cost: undefined,
+        }));
 
     // Fetch labour entries
     const { data: labourEntries } = await supabase
@@ -252,10 +245,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       }
     }
 
-    // Refresh materialized view if trades were updated
-    if (body.trades_on_site) {
-      await supabase.rpc('refresh_workforce_costs');
-    }
+    // Note: Workforce cost recalculation would happen here if the RPC function existed
+    // For now, costs are calculated on the fly when needed
 
     return NextResponse.json({ diary });
   } catch (error) {
