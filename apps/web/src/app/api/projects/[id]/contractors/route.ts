@@ -34,18 +34,32 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Fetch contractors - for now, return project contractors if they exist
-    // In a full implementation, this would join with a contractors table
+    // Fetch companies that are contractors from the companies table
     const { data: contractors, error } = await supabase
-      .from('contractors')
+      .from('companies')
       .select('*')
-      .eq('organization_id', project.organization_id)
+      .eq('company_type', 'contractor')
       .order('name');
 
     if (error) {
-      // If contractors table doesn't exist, return empty array
-      console.log('Contractors table not found, returning empty array');
-      return NextResponse.json({ contractors: [] });
+      // If companies table doesn't exist or error, try fetching from organizations
+      console.log('Companies table error, trying organizations:', error);
+
+      // Fetch organizations that might be contractors
+      // For now, return all organizations except the current one
+      const { data: orgs } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .neq('id', project.organization_id)
+        .order('name');
+
+      return NextResponse.json({
+        contractors: (orgs || []).map((org) => ({
+          id: org.id,
+          name: org.name,
+          company_type: 'contractor',
+        })),
+      });
     }
 
     return NextResponse.json({ contractors: contractors || [] });

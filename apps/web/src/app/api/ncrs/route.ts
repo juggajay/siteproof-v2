@@ -50,18 +50,10 @@ export async function GET(request: NextRequest) {
     // Build base query for counting
     let countQuery = supabase.from('ncrs').select('id', { count: 'exact', head: true });
 
-    // Build data query
+    // Build data query - simplified without joins for now
     let dataQuery = supabase
       .from('ncrs')
-      .select(
-        `
-        *,
-        raisedBy:users!ncrs_raised_by_fkey(id, email, full_name),
-        assignedTo:users!ncrs_assigned_to_fkey(id, email, full_name),
-        project:projects(id, name),
-        lot:lots(id, lot_number, name)
-      `
-      )
+      .select('*')
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -106,8 +98,41 @@ export async function GET(request: NextRequest) {
     const totalCount = countResult.count || 0;
     const totalPages = Math.ceil(totalCount / limit);
 
+    // Fetch related data for NCRs if any exist
+    const ncrs = dataResult.data || [];
+    if (ncrs.length > 0) {
+      // Get unique IDs
+      const projectIds = [...new Set(ncrs.map((n) => n.project_id).filter(Boolean))];
+      const userIds = [
+        ...new Set([
+          ...ncrs.map((n) => n.raised_by).filter(Boolean),
+          ...ncrs.map((n) => n.assigned_to).filter(Boolean),
+        ]),
+      ];
+
+      // Fetch related data in parallel
+      const [projectsResult, usersResult] = await Promise.all([
+        projectIds.length > 0
+          ? supabase.from('projects').select('id, name').in('id', projectIds)
+          : { data: [] },
+        userIds.length > 0
+          ? supabase.from('users').select('id, email, full_name').in('id', userIds)
+          : { data: [] },
+      ]);
+
+      const projectsMap = new Map((projectsResult.data || []).map((p) => [p.id, p]));
+      const usersMap = new Map((usersResult.data || []).map((u) => [u.id, u]));
+
+      // Attach related data to NCRs
+      ncrs.forEach((ncr) => {
+        ncr.project = projectsMap.get(ncr.project_id) || null;
+        ncr.raisedBy = usersMap.get(ncr.raised_by) || null;
+        ncr.assignedTo = usersMap.get(ncr.assigned_to) || null;
+      });
+    }
+
     return NextResponse.json({
-      ncrs: dataResult.data || [],
+      ncrs,
       pagination: {
         page,
         limit,
