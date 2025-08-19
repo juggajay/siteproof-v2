@@ -7,12 +7,16 @@ const createDiarySchema = z.object({
   project_id: z.string().uuid(),
   diary_date: z.string(),
   weather: z.any().optional(),
+  weather_conditions: z.string().optional(),
+  temperature_min: z.number().optional(),
+  temperature_max: z.number().optional(),
+  wind_conditions: z.string().optional(),
   site_conditions: z.string().optional(),
   work_areas: z.array(z.string()).default([]),
   access_issues: z.string().optional(),
   work_summary: z.string().min(10),
   trades_on_site: z.array(z.any()).default([]),
-  total_workers: z.number().min(0),
+  total_workers: z.number().min(0).default(0),
   key_personnel: z.array(z.any()).default([]),
   equipment_on_site: z.array(z.any()).default([]),
   material_deliveries: z.array(z.any()).default([]),
@@ -23,6 +27,7 @@ const createDiarySchema = z.object({
   milestones_achieved: z.array(z.string()).default([]),
   general_notes: z.string().optional(),
   tomorrow_planned_work: z.string().optional(),
+  notes_for_tomorrow: z.string().optional(),
   // New fields for cost tracking
   labour_entries: z.array(z.any()).optional(),
   plant_entries: z.array(z.any()).optional(),
@@ -216,19 +221,65 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'A diary already exists for this date' }, { status: 400 });
     }
 
-    // Generate diary number
-    const { data: diaryNumber } = await supabase.rpc('generate_diary_number', {
-      p_project_id: validatedData.project_id,
-      p_diary_date: validatedData.diary_date,
-    });
+    // Generate diary number (fallback if RPC doesn't exist)
+    let diaryNumber: string;
+    try {
+      const { data: rpcNumber, error: rpcError } = await supabase.rpc('generate_diary_number', {
+        p_project_id: validatedData.project_id,
+        p_diary_date: validatedData.diary_date,
+      });
+      
+      if (rpcError) {
+        // Fallback: Generate diary number manually
+        const dateStr = validatedData.diary_date.replace(/-/g, '');
+        const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+        diaryNumber = `DD-${dateStr}-${randomSuffix}`;
+      } else {
+        diaryNumber = rpcNumber;
+      }
+    } catch (error) {
+      // Fallback: Generate diary number manually
+      const dateStr = validatedData.diary_date.replace(/-/g, '');
+      const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+      diaryNumber = `DD-${dateStr}-${randomSuffix}`;
+    }
 
     // Create diary (exclude the entry arrays from main diary)
-    const { labour_entries, plant_entries, material_entries, ...diaryData } = validatedData;
+    const { 
+      labour_entries, 
+      plant_entries, 
+      material_entries,
+      weather_conditions,
+      temperature_min,
+      temperature_max,
+      wind_conditions,
+      ...diaryData 
+    } = validatedData;
+
+    // Build weather object if weather fields are provided
+    let weatherData = diaryData.weather;
+    if (weather_conditions || temperature_min || temperature_max || wind_conditions) {
+      weatherData = {
+        conditions: weather_conditions,
+        temperature: {
+          min: temperature_min,
+          max: temperature_max
+        },
+        wind: wind_conditions
+      };
+    }
+
+    // Calculate total workers from labour entries if not provided
+    const totalWorkers = diaryData.total_workers || 
+      (labour_entries ? labour_entries.reduce((sum: number, entry: any) => 
+        sum + (entry.workers || 1), 0) : 0);
 
     const { data: diary, error: diaryError } = await supabase
       .from('daily_diaries')
       .insert({
         ...diaryData,
+        weather: weatherData,
+        total_workers: totalWorkers,
         organization_id: project.organization_id,
         diary_number: diaryNumber,
         created_by: user.id,
@@ -341,9 +392,18 @@ export async function POST(request: NextRequest) {
     console.error('Error creating diary:', error);
 
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
+      console.error('Validation errors:', error.errors);
+      return NextResponse.json({ 
+        error: 'Invalid input', 
+        details: error.errors,
+        message: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+      }, { status: 400 });
     }
 
-    return NextResponse.json({ error: 'Failed to create diary' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ 
+      error: 'Failed to create diary',
+      message: errorMessage 
+    }, { status: 500 });
   }
 }
