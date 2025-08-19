@@ -34,16 +34,18 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Fetch companies that are contractors from the companies table
+    // Fetch companies that are contractors from the company_profiles table
+    // Get all contractors that the organization has access to
     const { data: contractors, error } = await supabase
-      .from('companies')
-      .select('*')
+      .from('company_profiles')
+      .select('id, company_name, company_type, organization_id')
       .eq('company_type', 'contractor')
-      .order('name');
+      .eq('is_active', true)
+      .order('company_name');
 
     if (error) {
-      // If companies table doesn't exist or error, try fetching from organizations
-      console.log('Companies table error, trying organizations:', error);
+      // If company_profiles table doesn't exist or error, try fetching from organizations
+      console.log('Company profiles table error, trying organizations:', error);
 
       // Fetch organizations that might be contractors
       // For now, return all organizations except the current one
@@ -57,12 +59,21 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
         contractors: (orgs || []).map((org) => ({
           id: org.id,
           name: org.name,
+          company_name: org.name,
           company_type: 'contractor',
         })),
       });
     }
 
-    return NextResponse.json({ contractors: contractors || [] });
+    // Map the results to have consistent field names
+    return NextResponse.json({
+      contractors: (contractors || []).map((c) => ({
+        id: c.id,
+        name: c.company_name,
+        company_name: c.company_name,
+        company_type: c.company_type,
+      })),
+    });
   } catch (error) {
     console.error('Error fetching contractors:', error);
     return NextResponse.json({ contractors: [] }); // Return empty array on error
