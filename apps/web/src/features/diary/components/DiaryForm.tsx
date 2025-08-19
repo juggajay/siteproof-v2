@@ -188,7 +188,8 @@ export function DiaryForm({
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.message || 'Failed to create diary');
+        console.error('Diary creation error:', error);
+        throw new Error(error.message || error.error || 'Failed to create diary');
       }
 
       return response.json();

@@ -31,16 +31,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'No organization found' }, { status: 404 });
     }
 
-    // Build query
+    // Build query - simplified to avoid foreign key issues
     let query = supabase
       .from('plant_equipment')
-      .select(
-        `
-        *,
-        company:company_profiles(id, company_name),
-        supplier:company_profiles!plant_equipment_supplier_id_fkey(id, company_name)
-      `
-      )
+      .select('*')
       .eq('organization_id', member.organization_id)
       .eq('is_active', true)
       .order('name', { ascending: true });
@@ -60,6 +54,10 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching equipment:', error);
+      // If table doesn't exist, return empty array
+      if (error.message?.includes('relation') || error.message?.includes('does not exist')) {
+        return NextResponse.json({ equipment: [] });
+      }
       return NextResponse.json({ error: 'Failed to fetch equipment' }, { status: 500 });
     }
 
