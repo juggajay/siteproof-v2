@@ -4,12 +4,11 @@ export const dynamic = 'force-dynamic';
 
 import React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Edit, Download, Calendar, Users, DollarSign } from 'lucide-react';
+import { ArrowLeft, Edit, Download, Calendar, Users } from 'lucide-react';
 import { Button, StateDisplay } from '@siteproof/design-system';
 import { useDiary } from '@/features/diary/hooks/useDiary';
 import { useOrganizationRole } from '@/features/organizations/hooks/useOrganization';
 import { WeatherDisplay } from '@/features/diary/components/WeatherDisplay';
-import { WorkforceEntry } from '@/features/financials/components/WorkforceEntry';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -164,36 +163,145 @@ export default function DiaryDetailPage() {
               <p className="text-gray-700 whitespace-pre-wrap">{diary.work_summary}</p>
             </div>
 
-            {/* Workforce Section */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Workforce on Site</h2>
-
-              {/* Show WorkforceEntry with financial data based on role */}
-              <WorkforceEntry
-                trades={diary.trades_on_site}
-                onChange={() => {}} // Read-only
-                date={new Date(diary.diary_date)}
-                projectId={diary.project_id}
-                readOnly={true}
-              />
-
-              {/* Show total cost summary if user has financial access */}
-              {hasFinancialAccess && diary.workforce_costs && (
-                <div className="mt-6 p-4 bg-green-50 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="w-5 h-5 text-green-600" />
-                      <span className="text-sm font-medium text-green-900">
-                        Total Daily Labor Cost
-                      </span>
-                    </div>
-                    <span className="text-xl font-bold text-green-900">
-                      ${diary.total_daily_cost?.toFixed(2) || '0.00'}
-                    </span>
-                  </div>
+            {/* Labour Section */}
+            {diary.labour_entries && diary.labour_entries.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Labour</h2>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Trade
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Company
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Workers
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Hours
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Work Performed
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {diary.labour_entries.map((record: any, index: number) => (
+                        <tr key={index}>
+                          <td className="px-4 py-3 text-sm text-gray-900">{record.trade}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{record.company}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{record.workers}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{record.hours}</td>
+                          <td className="px-4 py-3 text-sm text-gray-700">
+                            {record.work_performed}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-            </div>
+                {/* Show total workers if available */}
+                {diary.total_workers > 0 && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded">
+                    <span className="text-sm font-medium text-gray-700">
+                      Total Workers on Site:{' '}
+                    </span>
+                    <span className="text-sm font-bold text-gray-900">{diary.total_workers}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Plant & Equipment Section */}
+            {diary.plant_entries && diary.plant_entries.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Plant & Equipment</h2>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Equipment
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Type
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Quantity
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Hours Used
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Notes
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {diary.plant_entries.map((item: any, index: number) => (
+                        <tr key={index}>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.name}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.type}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.quantity}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {item.hours_used || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700">{item.notes || '-'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Materials Section */}
+            {diary.material_entries && diary.material_entries.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Materials</h2>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Material
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Quantity
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Unit
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Supplier
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                          Notes
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {diary.material_entries.map((material: any, index: number) => (
+                        <tr key={index}>
+                          <td className="px-4 py-3 text-sm text-gray-900">{material.name}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{material.quantity}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{material.unit}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {material.supplier || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-700">
+                            {material.notes || '-'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
 
             {/* Delays Section */}
             {diary.delays && diary.delays.length > 0 && (

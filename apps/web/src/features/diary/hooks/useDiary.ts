@@ -10,6 +10,9 @@ export interface DiaryWithRelations extends Omit<DailyDiary, 'createdBy' | 'appr
   workforce_costs?: any;
   total_daily_cost?: number;
   notes?: string | null; // Some RPC functions might return 'notes' instead of 'general_notes'
+  labour_entries?: any[];
+  plant_entries?: any[];
+  material_entries?: any[];
 }
 
 interface UseDiariesOptions {
@@ -23,7 +26,7 @@ export function useDiaries(options: UseDiariesOptions = {}) {
     queryKey: ['diaries', options],
     queryFn: async () => {
       const params = new URLSearchParams();
-      
+
       if (options.projectId) params.append('project_id', options.projectId);
       if (options.startDate) params.append('start_date', options.startDate);
       if (options.endDate) params.append('end_date', options.endDate);
@@ -75,7 +78,9 @@ export function useCreateDiary() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['diaries'] });
-      toast.success(`Daily diary created for ${new Date(data.diary.diary_date).toLocaleDateString()}`);
+      toast.success(
+        `Daily diary created for ${new Date(data.diary.diary_date).toLocaleDateString()}`
+      );
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -114,14 +119,14 @@ export function useUpdateDiary(diaryId: string) {
 
 export function useDiaryForDate(projectId: string, date: Date) {
   const dateString = date.toISOString().split('T')[0];
-  
+
   return useQuery({
     queryKey: ['diary', projectId, dateString],
     queryFn: async () => {
       const response = await fetch(
         `/api/diaries/by-date?project_id=${projectId}&date=${dateString}`
       );
-      
+
       if (!response.ok) {
         if (response.status === 404) {
           return null; // No diary exists for this date
