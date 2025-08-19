@@ -10,6 +10,7 @@ interface LabourEntry {
   id?: string;
   employee_id?: string;
   company_id: string;
+  company: string;
   worker_name: string;
   trade: string;
   start_time: string;
@@ -60,9 +61,11 @@ export function LabourSection({ entries, onChange, showFinancials = false }: Lab
   const companies = companiesData?.companies || [];
 
   const addLabourEntry = (employee: any) => {
+    const selectedCompanyData = companies?.find((c: any) => c.id === selectedCompany);
     const newEntry: LabourEntry = {
       employee_id: employee.id,
       company_id: selectedCompany,
+      company: selectedCompanyData?.name || '',
       worker_name: `${employee.first_name} ${employee.last_name}`,
       trade: employee.trade || employee.role || '',
       start_time: '07:00',

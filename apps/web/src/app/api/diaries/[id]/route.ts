@@ -186,8 +186,23 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       // Insert new entries
       if (labour_entries && labour_entries.length > 0) {
         const labourData = labour_entries.map((entry: any) => ({
-          ...entry,
           diary_id: params.id,
+          employee_id: entry.employee_id || null,
+          trade: entry.trade || '',
+          company_id: entry.company_id || null,
+          worker_name: entry.worker_name || '',
+          company: entry.company || '',
+          workers: entry.workers || 1,
+          start_time: entry.start_time || null,
+          end_time: entry.end_time || null,
+          break_duration: entry.break_duration ? `${entry.break_duration} minutes` : null,
+          total_hours: entry.total_hours || 0,
+          overtime_hours: entry.overtime_hours || 0,
+          standard_rate: entry.standard_rate || null,
+          overtime_rate: entry.overtime_rate || null,
+          total_cost: entry.total_cost || null,
+          work_performed: entry.work_performed || '',
+          location: entry.location || null,
           created_by: user.id,
         }));
 
@@ -209,8 +224,25 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       // Insert new entries
       if (plant_entries && plant_entries.length > 0) {
         const plantData = plant_entries.map((entry: any) => ({
-          ...entry,
           diary_id: params.id,
+          equipment_id: entry.equipment_id || null,
+          equipment_name: entry.equipment_name || entry.name || '',
+          name: entry.name || '',
+          type: entry.type || '',
+          quantity: entry.quantity || 1,
+          supplier_id: entry.supplier_id || null,
+          start_time: entry.start_time || null,
+          end_time: entry.end_time || null,
+          total_hours: entry.total_hours || entry.hours_used || null,
+          hours_used: entry.hours_used || entry.total_hours || null,
+          operator_id: entry.operator_id || null,
+          operator_name: entry.operator_name || null,
+          hourly_rate: entry.hourly_rate || null,
+          fuel_cost: entry.fuel_cost || null,
+          total_cost: entry.total_cost || null,
+          work_performed: entry.work_performed || '',
+          location: entry.location || null,
+          notes: entry.notes || null,
           created_by: user.id,
         }));
 
@@ -230,8 +262,22 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       // Insert new entries
       if (material_entries && material_entries.length > 0) {
         const materialData = material_entries.map((entry: any) => ({
-          ...entry,
           diary_id: params.id,
+          material_id: entry.material_id || null,
+          material_name: entry.material_name || entry.name || '',
+          name: entry.name || '',
+          supplier_id: entry.supplier_id || null,
+          supplier: entry.supplier || '',
+          quantity: entry.quantity || 0,
+          unit_of_measure: entry.unit_of_measure || entry.unit || '',
+          unit: entry.unit || entry.unit_of_measure || '',
+          unit_cost: entry.unit_cost || null,
+          total_cost: entry.total_cost || null,
+          delivery_time: entry.delivery_time || null,
+          delivery_location: entry.delivery_location || null,
+          delivery_note: entry.delivery_note || null,
+          docket_number: entry.docket_number || null,
+          notes: entry.notes || null,
           created_by: user.id,
         }));
 

@@ -191,12 +191,18 @@ export default function DiaryDetailPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {diary.labour_entries.map((record: any, index: number) => (
                         <tr key={index}>
-                          <td className="px-4 py-3 text-sm text-gray-900">{record.trade}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{record.company}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{record.workers}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{record.hours}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{record.trade || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {record.company || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {record.worker_name || record.workers || 1}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {record.total_hours || record.hours || '-'}
+                          </td>
                           <td className="px-4 py-3 text-sm text-gray-700">
-                            {record.work_performed}
+                            {record.work_performed || '-'}
                           </td>
                         </tr>
                       ))}
@@ -243,11 +249,13 @@ export default function DiaryDetailPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {diary.plant_entries.map((item: any, index: number) => (
                         <tr key={index}>
-                          <td className="px-4 py-3 text-sm text-gray-900">{item.name}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{item.type}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{item.quantity}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">
-                            {item.hours_used || '-'}
+                            {item.name || item.equipment_name || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.type || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{item.quantity || 1}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {item.hours_used || item.total_hours || '-'}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-700">{item.notes || '-'}</td>
                         </tr>
@@ -286,9 +294,15 @@ export default function DiaryDetailPage() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {diary.material_entries.map((material: any, index: number) => (
                         <tr key={index}>
-                          <td className="px-4 py-3 text-sm text-gray-900">{material.name}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{material.quantity}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{material.unit}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {material.name || material.material_name || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {material.quantity || '-'}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            {material.unit || material.unit_of_measure || '-'}
+                          </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
                             {material.supplier || '-'}
                           </td>
