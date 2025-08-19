@@ -119,12 +119,12 @@ test.describe('Daily Diary Data Persistence', () => {
 
       // Fill labour entry fields
       const lastLabourEntry = page.locator('[data-testid="labour-entry"]').last();
-      await lastLabourEntry.fill('input[placeholder*="worker name"]', labour.workerName);
-      await lastLabourEntry.fill('input[placeholder*="trade"]', labour.trade);
-      await lastLabourEntry.fill('input[type="time"]:first', labour.startTime);
-      await lastLabourEntry.fill('input[type="time"]:last', labour.endTime);
-      await lastLabourEntry.fill('input[placeholder*="break"]', labour.breakDuration);
-      await lastLabourEntry.fill('input[placeholder*="work performed"]', labour.workPerformed);
+      await lastLabourEntry.locator('input[placeholder*="worker name"]').fill(labour.workerName);
+      await lastLabourEntry.locator('input[placeholder*="trade"]').fill(labour.trade);
+      await lastLabourEntry.locator('input[type="time"]').first().fill(labour.startTime);
+      await lastLabourEntry.locator('input[type="time"]').last().fill(labour.endTime);
+      await lastLabourEntry.locator('input[placeholder*="break"]').fill(labour.breakDuration);
+      await lastLabourEntry.locator('input[placeholder*="work performed"]').fill(labour.workPerformed);
     }
 
     // Switch to Plant & Equipment tab
@@ -135,11 +135,11 @@ test.describe('Daily Diary Data Persistence', () => {
       await page.click('text=Add Plant');
 
       const lastPlantEntry = page.locator('[data-testid="plant-entry"]').last();
-      await lastPlantEntry.fill('input[placeholder*="equipment name"]', plant.name);
-      await lastPlantEntry.fill('input[placeholder*="type"]', plant.type);
-      await lastPlantEntry.fill('input[placeholder*="quantity"]', plant.quantity);
-      await lastPlantEntry.fill('input[placeholder*="hours"]', plant.hoursUsed);
-      await lastPlantEntry.fill('input[placeholder*="notes"]', plant.notes);
+      await lastPlantEntry.locator('input[placeholder*="equipment name"]').fill(plant.name);
+      await lastPlantEntry.locator('input[placeholder*="type"]').fill(plant.type);
+      await lastPlantEntry.locator('input[placeholder*="quantity"]').fill(plant.quantity);
+      await lastPlantEntry.locator('input[placeholder*="hours"]').fill(plant.hoursUsed);
+      await lastPlantEntry.locator('input[placeholder*="notes"]').fill(plant.notes);
     }
 
     // Switch to Materials tab
@@ -150,11 +150,11 @@ test.describe('Daily Diary Data Persistence', () => {
       await page.click('text=Add Material');
 
       const lastMaterialEntry = page.locator('[data-testid="material-entry"]').last();
-      await lastMaterialEntry.fill('input[placeholder*="material name"]', material.name);
-      await lastMaterialEntry.fill('input[placeholder*="quantity"]', material.quantity);
-      await lastMaterialEntry.fill('input[placeholder*="unit"]', material.unit);
-      await lastMaterialEntry.fill('input[placeholder*="supplier"]', material.supplier);
-      await lastMaterialEntry.fill('input[placeholder*="notes"]', material.notes);
+      await lastMaterialEntry.locator('input[placeholder*="material name"]').fill(material.name);
+      await lastMaterialEntry.locator('input[placeholder*="quantity"]').fill(material.quantity);
+      await lastMaterialEntry.locator('input[placeholder*="unit"]').fill(material.unit);
+      await lastMaterialEntry.locator('input[placeholder*="supplier"]').fill(material.supplier);
+      await lastMaterialEntry.locator('input[placeholder*="notes"]').fill(material.notes);
     }
 
     // Fill additional notes
@@ -260,9 +260,9 @@ test.describe('Daily Diary Data Persistence', () => {
     await page.click('text=Add Labour');
     const newLabour = generateLabourEntry();
     const lastLabourEntry = page.locator('[data-testid="labour-entry"]').last();
-    await lastLabourEntry.fill('input[placeholder*="worker name"]', newLabour.workerName);
-    await lastLabourEntry.fill('input[placeholder*="trade"]', newLabour.trade);
-    await lastLabourEntry.fill('input[placeholder*="work performed"]', newLabour.workPerformed);
+    await lastLabourEntry.locator('input[placeholder*="worker name"]').fill(newLabour.workerName);
+    await lastLabourEntry.locator('input[placeholder*="trade"]').fill(newLabour.trade);
+    await lastLabourEntry.locator('input[placeholder*="work performed"]').fill(newLabour.workPerformed);
 
     // Save changes
     await page.click('button:has-text("Save Changes")');
@@ -367,17 +367,17 @@ test.describe('Daily Diary Validation', () => {
     const labourEntry = page.locator('[data-testid="labour-entry"]').last();
 
     // Set times: 7am to 5pm = 10 hours
-    await labourEntry.fill('input[type="time"]:first', '07:00');
-    await labourEntry.fill('input[type="time"]:last', '17:00');
+    await labourEntry.locator('input[type="time"]').first().fill('07:00');
+    await labourEntry.locator('input[type="time"]').last().fill('17:00');
 
     // Set 1 hour break
-    await labourEntry.fill('input[placeholder*="break"]', '60');
+    await labourEntry.locator('input[placeholder*="break"]').fill('60');
 
     // Should show 9 hours total (10 - 1 break)
     await expect(labourEntry.locator('text=9.0h')).toBeVisible();
 
     // Change to overtime hours (more than 8)
-    await labourEntry.fill('input[type="time"]:last', '19:00'); // 7am to 7pm = 12 hours
+    await labourEntry.locator('input[type="time"]').last().fill('19:00'); // 7am to 7pm = 12 hours
 
     // Should show 11 hours total with 3 hours overtime
     await expect(labourEntry.locator('text=11.0h')).toBeVisible();
