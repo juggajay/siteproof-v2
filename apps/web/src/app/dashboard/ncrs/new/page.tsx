@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
-import { NcrForm } from '@/features/ncr/components/NcrForm';
+import { NcrFormV2 } from '@/features/ncr/components/NcrFormV2';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -146,11 +146,11 @@ export default function NewNCRPage() {
               </div>
             </div>
           ) : project ? (
-            <NcrForm
-              project={project}
-              inspection={inspection}
-              inspectionItemRef={searchParams?.get('item_ref') || undefined}
-              onSuccess={handleSuccess}
+            <NcrFormV2
+              projectId={project.id}
+              lotId={searchParams?.get('lot_id') || undefined}
+              inspectionId={inspectionId || undefined}
+              onSuccess={(ncr) => handleSuccess(ncr.id)}
               onCancel={handleCancel}
             />
           ) : null}

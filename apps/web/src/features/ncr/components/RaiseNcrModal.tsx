@@ -4,7 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, AlertTriangle } from 'lucide-react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
-import { NcrForm } from './NcrForm';
+import { NcrFormV2 } from './NcrFormV2';
 import type { Inspection, Project } from '@siteproof/database';
 
 interface RaiseNcrModalProps {
@@ -76,14 +76,14 @@ export function RaiseNcrModal({
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-6 py-4">
-              <NcrForm
-                inspection={inspection}
-                project={project}
-                inspectionItemRef={inspectionItemRef}
-                onSuccess={(ncrId) => {
+              <NcrFormV2
+                projectId={project.id}
+                lotId={undefined}
+                inspectionId={inspection?.id}
+                onSuccess={(ncr) => {
                   onClose();
                   // Optionally navigate to NCR details
-                  window.location.href = `/dashboard/ncrs/${ncrId}`;
+                  window.location.href = `/dashboard/ncrs/${ncr.id}`;
                 }}
                 onCancel={onClose}
               />

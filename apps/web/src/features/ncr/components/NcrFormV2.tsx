@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Input, Textarea } from '@siteproof/design-system';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface NcrFormV2Props {
   projectId: string;
@@ -17,6 +18,9 @@ interface NcrFormV2Props {
 export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel }: NcrFormV2Props) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [contractors, setContractors] = useState<any[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -31,7 +35,67 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
     estimated_cost: '',
     cost_notes: '',
     tags: [] as string[],
+    assigned_to: '',
+    contractor_id: '',
   });
+
+  // Fetch users and contractors on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      const supabase = createClient();
+
+      try {
+        // Get project details to find organization
+        const { data: project } = await supabase
+          .from('projects')
+          .select('organization_id')
+          .eq('id', projectId)
+          .single();
+
+        if (project) {
+          // Fetch users in the same organization
+          const { data: orgMembers } = await supabase
+            .from('organization_members')
+            .select(`
+              user_id,
+              users!inner(
+                id,
+                email,
+                display_name,
+                full_name
+              )
+            `)
+            .eq('organization_id', project.organization_id);
+
+          if (orgMembers) {
+            const userList = orgMembers.map((member: any) => ({
+              id: member.users.id,
+              email: member.users.email,
+              name: member.users.display_name || member.users.full_name || member.users.email,
+            }));
+            setUsers(userList);
+          }
+
+          // Fetch contractors (organizations of type 'contractor')
+          const { data: contractorOrgs } = await supabase
+            .from('organizations')
+            .select('id, name')
+            .eq('type', 'contractor')
+            .order('name');
+
+          if (contractorOrgs) {
+            setContractors(contractorOrgs);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching users and contractors:', error);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    fetchData();
+  }, [projectId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,6 +154,15 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
 
       if (formData.tags.length > 0) {
         formDataToSend.append('tags', JSON.stringify(formData.tags));
+      }
+
+      // Add assignee and contractor if selected
+      if (formData.assigned_to) {
+        formDataToSend.append('assigned_to', formData.assigned_to);
+      }
+
+      if (formData.contractor_id) {
+        formDataToSend.append('contractor_id', formData.contractor_id);
       }
 
       // Log what we're sending (for debugging)
@@ -341,6 +414,54 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
             placeholder="Additional cost information"
             disabled={isSubmitting}
           />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Assignee */}
+        <div className="space-y-2">
+          <label htmlFor="assigned_to" className="block text-sm font-medium">
+            Assign To
+          </label>
+          <select
+            id="assigned_to"
+            value={formData.assigned_to}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setFormData((prev) => ({ ...prev, assigned_to: e.target.value }))
+            }
+            disabled={isSubmitting || loadingData}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">No one assigned</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Contractor */}
+        <div className="space-y-2">
+          <label htmlFor="contractor_id" className="block text-sm font-medium">
+            Contractor
+          </label>
+          <select
+            id="contractor_id"
+            value={formData.contractor_id}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setFormData((prev) => ({ ...prev, contractor_id: e.target.value }))
+            }
+            disabled={isSubmitting || loadingData}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">No contractor selected</option>
+            {contractors.map((contractor) => (
+              <option key={contractor.id} value={contractor.id}>
+                {contractor.name}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

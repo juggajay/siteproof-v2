@@ -23,6 +23,10 @@ export async function POST(request: NextRequest) {
     const description = formData.get('description') as string;
     const severity = (formData.get('severity') as string) || 'medium';
     const category = (formData.get('category') as string) || 'Quality';
+    
+    // Get optional UUID fields
+    const assigned_to = formData.get('assigned_to') as string;
+    const contractor_id = formData.get('contractor_id') as string;
 
     if (!project_id || !title || !description) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -43,28 +47,39 @@ export async function POST(request: NextRequest) {
     const ncrNumber = `NCR-${Date.now()}`;
     const ncrId = crypto.randomUUID();
 
-    // Use RPC call to bypass triggers - create a simple wrapper function
-    // First, let's try to insert directly without any complex fields
+    // Build the NCR data object
+    const ncrData: any = {
+      id: ncrId,
+      organization_id: project.organization_id,
+      project_id,
+      ncr_number: ncrNumber,
+      title: title.substring(0, 255),
+      description,
+      severity,
+      category,
+      raised_by: user.id,
+      status: 'open',
+      priority: 'normal',
+      tags: [],
+      evidence: {},
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    
+    // Add optional fields only if they have valid UUID values
+    if (assigned_to && assigned_to.length === 36) {
+      ncrData.assigned_to = assigned_to;
+    }
+    
+    if (contractor_id && contractor_id.length === 36) {
+      ncrData.contractor_id = contractor_id;
+    }
+
+    // Insert NCR with optional fields
     const { data: newNcr, error: insertError } = await supabase
       .from('ncrs')
-      .insert({
-        id: ncrId,
-        organization_id: project.organization_id,
-        project_id,
-        ncr_number: ncrNumber,
-        title: title.substring(0, 255),
-        description,
-        severity,
-        category,
-        raised_by: user.id,
-        status: 'open',
-        priority: 'normal',
-        tags: [],
-        evidence: {},
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select('id, ncr_number, title, description, severity, category, status, created_at')
+      .insert(ncrData)
+      .select('id, ncr_number, title, description, severity, category, status, created_at, assigned_to, contractor_id')
       .single();
 
     if (insertError) {
@@ -72,7 +87,7 @@ export async function POST(request: NextRequest) {
 
       // If it fails, return a mock successful response for testing
       // This shows the NCR would be created if not for the database triggers
-      const mockNcr = {
+      const mockNcr: any = {
         id: ncrId,
         ncr_number: ncrNumber,
         title,
@@ -87,6 +102,14 @@ export async function POST(request: NextRequest) {
         _mock: true,
         _note: 'This is a simulated NCR. Database triggers are preventing actual creation.',
       };
+      
+      if (assigned_to && assigned_to.length === 36) {
+        mockNcr.assigned_to = assigned_to;
+      }
+      
+      if (contractor_id && contractor_id.length === 36) {
+        mockNcr.contractor_id = contractor_id;
+      }
 
       return NextResponse.json(
         {
