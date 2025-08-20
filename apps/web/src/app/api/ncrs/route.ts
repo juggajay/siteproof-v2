@@ -182,21 +182,24 @@ export async function POST(request: NextRequest) {
       } else if (key === 'tags') {
         data[key] = JSON.parse(value as string);
       } else {
-        // Convert empty strings to undefined for optional UUID fields
         const strValue = value as string;
-        if (
-          (key === 'lot_id' ||
-            key === 'assigned_to' ||
-            key === 'contractor_id' ||
-            key === 'inspection_id' ||
-            key === 'location' ||
-            key === 'trade' ||
-            key === 'due_date') &&
-          strValue === ''
-        ) {
-          // Don't add to data object if empty string
+        
+        // Skip ALL empty strings - don't add them to data object at all
+        if (strValue === '' || strValue === 'undefined' || strValue === 'null') {
+          console.log(`Skipping empty/invalid field: ${key} = "${strValue}"`);
           continue;
         }
+        
+        // Additional check for UUID fields - must be valid UUID format
+        if ((key === 'lot_id' || key === 'assigned_to' || key === 'contractor_id' || key === 'inspection_id')) {
+          // Basic UUID validation
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          if (!uuidRegex.test(strValue)) {
+            console.log(`Skipping invalid UUID field: ${key} = "${strValue}"`);
+            continue;
+          }
+        }
+        
         data[key] = strValue;
       }
     }
