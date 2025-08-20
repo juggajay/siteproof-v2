@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@siteproof/design-system/components/ui/Button';
-import { Input } from '@siteproof/design-system/components/ui/Input';
-import { Textarea } from '@siteproof/design-system/components/ui/Textarea';
+import { Button, Input, Textarea } from '@siteproof/design-system';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { NcrFormV2 } from '@/features/ncr/components/NcrFormV2';
-import { Button } from '@siteproof/design-system/components/ui/Button';
+import { Button } from '@siteproof/design-system';
 import { toast } from 'sonner';
 import { RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 
