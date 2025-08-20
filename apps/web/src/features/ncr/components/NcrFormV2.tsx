@@ -2,17 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Button } from '@siteproof/design-system/components/ui/Button';
+import { Input } from '@siteproof/design-system/components/ui/Input';
+import { Textarea } from '@siteproof/design-system/components/ui/Textarea';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
@@ -172,11 +164,15 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Title */}
       <div className="space-y-2">
-        <Label htmlFor="title">Title *</Label>
+        <label htmlFor="title" className="block text-sm font-medium">
+          Title *
+        </label>
         <Input
           id="title"
           value={formData.title}
-          onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setFormData((prev) => ({ ...prev, title: e.target.value }))
+          }
           placeholder="Brief description of the non-conformance"
           required
           disabled={isSubmitting}
@@ -185,11 +181,15 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
 
       {/* Description */}
       <div className="space-y-2">
-        <Label htmlFor="description">Description *</Label>
+        <label htmlFor="description" className="block text-sm font-medium">
+          Description *
+        </label>
         <Textarea
           id="description"
           value={formData.description}
-          onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+            setFormData((prev) => ({ ...prev, description: e.target.value }))
+          }
           placeholder="Detailed description of the issue"
           rows={4}
           required
@@ -200,85 +200,96 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Severity */}
         <div className="space-y-2">
-          <Label htmlFor="severity">Severity *</Label>
-          <Select
+          <label htmlFor="severity" className="block text-sm font-medium">
+            Severity *
+          </label>
+          <select
+            id="severity"
             value={formData.severity}
-            onValueChange={(value) => setFormData((prev) => ({ ...prev, severity: value }))}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setFormData((prev) => ({ ...prev, severity: e.target.value }))
+            }
             disabled={isSubmitting}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <SelectTrigger id="severity">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="critical">Critical</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="critical">Critical</option>
+          </select>
         </div>
 
         {/* Category */}
         <div className="space-y-2">
-          <Label htmlFor="category">Category *</Label>
-          <Select
+          <label htmlFor="category" className="block text-sm font-medium">
+            Category *
+          </label>
+          <select
+            id="category"
             value={formData.category}
-            onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setFormData((prev) => ({ ...prev, category: e.target.value }))
+            }
             disabled={isSubmitting}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <SelectTrigger id="category">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Quality">Quality</SelectItem>
-              <SelectItem value="Safety">Safety</SelectItem>
-              <SelectItem value="Environmental">Environmental</SelectItem>
-              <SelectItem value="Compliance">Compliance</SelectItem>
-              <SelectItem value="Documentation">Documentation</SelectItem>
-              <SelectItem value="Other">Other</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="Quality">Quality</option>
+            <option value="Safety">Safety</option>
+            <option value="Environmental">Environmental</option>
+            <option value="Compliance">Compliance</option>
+            <option value="Documentation">Documentation</option>
+            <option value="Other">Other</option>
+          </select>
         </div>
 
         {/* Priority */}
         <div className="space-y-2">
-          <Label htmlFor="priority">Priority</Label>
-          <Select
+          <label htmlFor="priority" className="block text-sm font-medium">
+            Priority
+          </label>
+          <select
+            id="priority"
             value={formData.priority}
-            onValueChange={(value) => setFormData((prev) => ({ ...prev, priority: value }))}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setFormData((prev) => ({ ...prev, priority: e.target.value }))
+            }
             disabled={isSubmitting}
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <SelectTrigger id="priority">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="normal">Normal</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="urgent">Urgent</SelectItem>
-            </SelectContent>
-          </Select>
+            <option value="low">Low</option>
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+          </select>
         </div>
 
         {/* Due Date */}
         <div className="space-y-2">
-          <Label htmlFor="due_date">Due Date</Label>
+          <label htmlFor="due_date" className="block text-sm font-medium">
+            Due Date
+          </label>
           <Input
             id="due_date"
             type="date"
             value={formData.due_date}
-            onChange={(e) => setFormData((prev) => ({ ...prev, due_date: e.target.value }))}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setFormData((prev) => ({ ...prev, due_date: e.target.value }))
+            }
             disabled={isSubmitting}
           />
         </div>
 
         {/* Location */}
         <div className="space-y-2">
-          <Label htmlFor="location">Location</Label>
+          <label htmlFor="location" className="block text-sm font-medium">
+            Location
+          </label>
           <Input
             id="location"
             value={formData.location}
-            onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setFormData((prev) => ({ ...prev, location: e.target.value }))
+            }
             placeholder="e.g., Building A, Floor 2"
             disabled={isSubmitting}
           />
@@ -286,11 +297,15 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
 
         {/* Trade */}
         <div className="space-y-2">
-          <Label htmlFor="trade">Trade</Label>
+          <label htmlFor="trade" className="block text-sm font-medium">
+            Trade
+          </label>
           <Input
             id="trade"
             value={formData.trade}
-            onChange={(e) => setFormData((prev) => ({ ...prev, trade: e.target.value }))}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setFormData((prev) => ({ ...prev, trade: e.target.value }))
+            }
             placeholder="e.g., Electrical, Plumbing"
             disabled={isSubmitting}
           />
@@ -298,13 +313,17 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
 
         {/* Estimated Cost */}
         <div className="space-y-2">
-          <Label htmlFor="estimated_cost">Estimated Cost</Label>
+          <label htmlFor="estimated_cost" className="block text-sm font-medium">
+            Estimated Cost
+          </label>
           <Input
             id="estimated_cost"
             type="number"
             step="0.01"
             value={formData.estimated_cost}
-            onChange={(e) => setFormData((prev) => ({ ...prev, estimated_cost: e.target.value }))}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setFormData((prev) => ({ ...prev, estimated_cost: e.target.value }))
+            }
             placeholder="0.00"
             disabled={isSubmitting}
           />
@@ -312,11 +331,15 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
 
         {/* Cost Notes */}
         <div className="space-y-2">
-          <Label htmlFor="cost_notes">Cost Notes</Label>
+          <label htmlFor="cost_notes" className="block text-sm font-medium">
+            Cost Notes
+          </label>
           <Input
             id="cost_notes"
             value={formData.cost_notes}
-            onChange={(e) => setFormData((prev) => ({ ...prev, cost_notes: e.target.value }))}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setFormData((prev) => ({ ...prev, cost_notes: e.target.value }))
+            }
             placeholder="Additional cost information"
             disabled={isSubmitting}
           />
@@ -325,7 +348,9 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
 
       {/* Tags */}
       <div className="space-y-2">
-        <Label htmlFor="tags">Tags</Label>
+        <label htmlFor="tags" className="block text-sm font-medium">
+          Tags
+        </label>
         <Input
           id="tags"
           onKeyDown={handleTagInput}

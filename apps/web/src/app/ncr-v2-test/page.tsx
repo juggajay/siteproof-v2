@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { NcrFormV2 } from '@/features/ncr/components/NcrFormV2';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@siteproof/design-system/components/ui/Button';
 import { toast } from 'sonner';
 import { RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 
@@ -100,12 +99,12 @@ export default function NcrV2TestPage() {
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Configuration Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Configuration</CardTitle>
-              <CardDescription>Enter your project ID to get started</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold">Configuration</h2>
+              <p className="text-gray-600 text-sm">Enter your project ID to get started</p>
+            </div>
+            <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Project ID</label>
                 <input
@@ -144,16 +143,16 @@ export default function NcrV2TestPage() {
                   List NCRs
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Test Results Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Test Results</CardTitle>
-              <CardDescription>API diagnostic results</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold">Test Results</h2>
+              <p className="text-gray-600 text-sm">API diagnostic results</p>
+            </div>
+            <div>
               {testResults ? (
                 <div className="space-y-3">
                   {testResults.success ? (
@@ -186,17 +185,17 @@ export default function NcrV2TestPage() {
               ) : (
                 <p className="text-gray-500">Run the API test to see results</p>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* NCR Creation Form */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Create NCR (New Implementation)</CardTitle>
-            <CardDescription>Use the new form with proper field validation</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <div className="mt-6 bg-white rounded-lg shadow-md p-6">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold">Create NCR (New Implementation)</h2>
+            <p className="text-gray-600 text-sm">Use the new form with proper field validation</p>
+          </div>
+          <div>
             {!showForm ? (
               <Button
                 onClick={() => setShowForm(true)}
@@ -212,22 +211,22 @@ export default function NcrV2TestPage() {
                 onCancel={() => setShowForm(false)}
               />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Created NCR Display */}
         {createdNcr && (
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Successfully Created NCR</CardTitle>
-              <CardDescription>NCR #{createdNcr.ncr_number}</CardDescription>
-            </CardHeader>
-            <CardContent>
+          <div className="mt-6 bg-white rounded-lg shadow-md p-6">
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold">Successfully Created NCR</h2>
+              <p className="text-gray-600 text-sm">NCR #{createdNcr.ncr_number}</p>
+            </div>
+            <div>
               <pre className="text-xs bg-gray-100 p-4 rounded overflow-auto">
                 {JSON.stringify(createdNcr, null, 2)}
               </pre>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
       </div>
     </div>
