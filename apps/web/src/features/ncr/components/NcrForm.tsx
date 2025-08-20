@@ -176,7 +176,9 @@ export function NcrForm({
         formData.append('project_id', project.id);
         if (inspection) {
           formData.append('inspection_id', inspection.id);
-          formData.append('lot_id', inspection.lot_id || '');
+          if (inspection.lot_id) {
+            formData.append('lot_id', inspection.lot_id);
+          }
         }
         if (inspectionItemRef) {
           formData.append('inspection_item_ref', inspectionItemRef);
