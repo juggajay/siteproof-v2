@@ -53,6 +53,13 @@ export default function LotDetailClientSimple({
 
     try {
       const response = await fetch(`/api/projects/${projectId}/lots/${lot.id}/export`);
+      
+      // Check if response is JSON
+      const contentType = response.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error('Server returned non-JSON response. The API endpoint may be missing.');
+      }
+      
       const data = await response.json();
 
       if (!response.ok) {
