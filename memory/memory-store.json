@@ -1,0 +1,22 @@
+{
+  "siteproof": [
+    {
+      "key": "project-context",
+      "value": "SiteProof v2 - Construction inspection and quality management platform using Next.js, TypeScript, Supabase, and monorepo structure with pnpm workspaces",
+      "namespace": "siteproof",
+      "timestamp": 1755671411098
+    },
+    {
+      "key": "current-issues",
+      "value": "NCR creation foreign key constraint errors fixed, deployment on Vercel, Redis connection issues in production",
+      "namespace": "siteproof",
+      "timestamp": 1755671420815
+    },
+    {
+      "key": "ncr-validation-fix",
+      "value": "Fixed NCR foreign key constraint errors by: 1) Client-side filtering of empty UUID fields in NcrForm.tsx, 2) Server-side validation in /api/ncrs/route.ts to remove empty strings before database insert, 3) Added defensive checks for contractor_id and assigned_to fields",
+      "namespace": "siteproof",
+      "timestamp": 1755671759248
+    }
+  ]
+}

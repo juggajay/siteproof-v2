@@ -143,7 +143,20 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching NCRs:', error);
-    return NextResponse.json({ error: 'Failed to fetch NCRs' }, { status: 500 });
+    
+    // Provide more detailed error information in development
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = {
+      error: 'Failed to fetch NCRs',
+      message: errorMessage,
+      // Include more details in development
+      ...(process.env.NODE_ENV === 'development' && {
+        stack: error instanceof Error ? error.stack : undefined,
+        details: error
+      })
+    };
+    
+    return NextResponse.json(errorDetails, { status: 500 });
   }
 }
 
@@ -302,6 +315,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
     }
 
-    return NextResponse.json({ error: 'Failed to create NCR' }, { status: 500 });
+    // Provide more detailed error information
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorDetails = {
+      error: 'Failed to create NCR',
+      message: errorMessage,
+      // Include more details in development
+      ...(process.env.NODE_ENV === 'development' && {
+        stack: error instanceof Error ? error.stack : undefined,
+        details: error
+      })
+    };
+    
+    return NextResponse.json(errorDetails, { status: 500 });
   }
 }
