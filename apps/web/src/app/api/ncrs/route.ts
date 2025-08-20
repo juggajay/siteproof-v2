@@ -191,6 +191,14 @@ export async function POST(request: NextRequest) {
     // Validate data
     const validatedData = createNcrSchema.parse(data);
 
+    // Remove any empty string values that might have passed validation
+    // This ensures we don't try to insert empty strings as UUID references
+    Object.keys(validatedData).forEach((key) => {
+      if ((validatedData as any)[key] === '') {
+        delete (validatedData as any)[key];
+      }
+    });
+
     // Check user has permission in the project
     const { data: project } = await supabase
       .from('projects')
@@ -244,17 +252,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Create NCR
+    const ncrData = {
+      ...validatedData,
+      organization_id: project.organization_id,
+      ncr_number: ncrNumber,
+      raised_by: user.id,
+      evidence,
+      status: 'open',
+      priority: 'normal',
+    };
+
+    // Debug logging for production issues
+    if (ncrData.contractor_id === '') {
+      console.error('Warning: contractor_id is empty string, removing it');
+      delete ncrData.contractor_id;
+    }
+    if (ncrData.assigned_to === '') {
+      console.error('Warning: assigned_to is empty string, removing it');
+      delete ncrData.assigned_to;
+    }
+
     const { data: ncr, error: ncrError } = await supabase
       .from('ncrs')
-      .insert({
-        ...validatedData,
-        organization_id: project.organization_id,
-        ncr_number: ncrNumber,
-        raised_by: user.id,
-        evidence,
-        status: 'open',
-        priority: 'normal',
-      })
+      .insert(ncrData)
       .select()
       .single();
 
