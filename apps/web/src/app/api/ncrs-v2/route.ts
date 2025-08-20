@@ -201,56 +201,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate NCR number
-    const { data: ncrNumber, error: ncrNumberError } = await supabase.rpc('generate_ncr_number', {
-      p_organization_id: project.organization_id,
-    });
+    // Generate NCR number - use simple timestamp-based generation
+    const timestamp = Date.now();
+    const ncrNumber = `NCR-${new Date().getFullYear()}-${timestamp}`;
 
-    if (ncrNumberError) {
-      console.error('Error generating NCR number:', ncrNumberError);
-      // Fallback to a simple generated number
-      const timestamp = Date.now();
-      const ncrNumberFallback = `NCR-${new Date().getFullYear()}-${timestamp}`;
-
-      // Prepare NCR data
-      const ncrData = {
-        ...validatedData,
-        organization_id: project.organization_id,
-        ncr_number: ncrNumberFallback,
-        raised_by: user.id,
-        status: 'open',
-        evidence: {},
-        metadata: {
-          created_via: 'web_app',
-          user_agent: request.headers.get('user-agent') || 'unknown',
-        },
-      };
-
-      // Clean up null values for optional UUID fields
-      if (ncrData.lot_id === null) delete ncrData.lot_id;
-      if (ncrData.inspection_id === null) delete ncrData.inspection_id;
-      if (ncrData.assigned_to === null) delete ncrData.assigned_to;
-      if (ncrData.contractor_id === null) delete ncrData.contractor_id;
-
-      // Insert NCR
-      const { data: newNcr, error: insertError } = await supabase
-        .from('ncrs')
-        .insert(ncrData)
-        .select()
-        .single();
-
-      if (insertError) {
-        console.error('Error creating NCR:', insertError);
-        return NextResponse.json(
-          { error: 'Failed to create NCR', details: insertError.message },
-          { status: 500 }
-        );
-      }
-
-      return NextResponse.json({ data: newNcr }, { status: 201 });
-    }
-
-    // Prepare NCR data with generated number
+    // Prepare NCR data
     const ncrData = {
       ...validatedData,
       organization_id: project.organization_id,
