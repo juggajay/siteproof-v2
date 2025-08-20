@@ -398,3 +398,4 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
     </form>
   );
 }
+// Force rebuild - Wed Aug 20 17:54:54 AEST 2025
