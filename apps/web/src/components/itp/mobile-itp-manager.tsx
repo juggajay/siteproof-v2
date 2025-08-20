@@ -278,7 +278,9 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
 
   const handleAddPhoto = async (itemId: string) => {
     console.log(`Photo upload requested for item ${itemId}`);
-    // TODO: Implement photo upload functionality
+    // Photo upload is now handled inside MobileItpCard component
+    // Refresh the ITP instances to get updated photo data
+    await loadItpInstances();
   };
 
   const handleDeleteItp = async (itpId: string) => {
@@ -363,6 +365,7 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
             <MobileItpCard
               key={itp.id}
               itp={itp}
+              projectId={projectId}
               onStatusChange={handleStatusChange}
               onAddComment={handleAddComment}
               onAddPhoto={handleAddPhoto}

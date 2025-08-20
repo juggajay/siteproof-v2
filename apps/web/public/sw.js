@@ -171,38 +171,85 @@ self.addEventListener('message', (event) => {
 
 // Push notifications for inspection assignments
 self.addEventListener('push', (event) => {
+  console.log('[SW] Push notification received:', event);
+  
+  if (!event.data) {
+    console.log('[SW] No data in push notification');
+    return;
+  }
+
+  let notificationData;
+  try {
+    notificationData = event.data.json();
+  } catch (error) {
+    console.error('[SW] Failed to parse push data:', error);
+    notificationData = {
+      title: 'SiteProof Notification',
+      body: event.data.text(),
+    };
+  }
+
   const options = {
-    body: event.data ? event.data.text() : 'New inspection assigned',
-    icon: '/icon-192.png',
-    badge: '/badge-72.png',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-      primaryKey: 1
-    },
-    actions: [
-      {
-        action: 'explore',
-        title: 'View Inspection',
-        icon: '/images/checkmark.png'
-      },
-      {
-        action: 'close',
-        title: 'Close',
-        icon: '/images/xmark.png'
-      },
-    ]
+    body: notificationData.body,
+    icon: notificationData.icon || '/icons/icon-192x192.png',
+    badge: notificationData.badge || '/icons/icon-72x72.png',
+    vibrate: notificationData.vibrate || [200, 100, 200],
+    tag: notificationData.tag || 'default',
+    requireInteraction: notificationData.requireInteraction || false,
+    data: notificationData.data || {},
+    actions: notificationData.actions || [],
   };
 
   event.waitUntil(
-    self.registration.showNotification('SiteProof Inspection', options)
+    self.registration.showNotification(notificationData.title, options)
   );
 });
 
 self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event);
   event.notification.close();
 
-  if (event.action === 'explore') {
-    clients.openWindow('/dashboard/inspections');
+  const notificationData = event.notification.data;
+  let url = '/dashboard';
+
+  // Handle different notification types
+  if (notificationData.type === 'ncr_assignment' && notificationData.ncrId) {
+    url = `/dashboard/ncrs/${notificationData.ncrId}`;
+  } else if (notificationData.type === 'inspection_due' && notificationData.inspectionId) {
+    url = `/dashboard/inspections/${notificationData.inspectionId}`;
+  } else if (event.notification.data.url) {
+    url = event.notification.data.url;
+  }
+
+  // Handle action clicks
+  if (event.action === 'view' || event.action === 'start' || event.action === 'explore') {
+    // Open the relevant page
+    event.waitUntil(
+      clients.openWindow(url).then((windowClient) => {
+        if (windowClient) windowClient.focus();
+      })
+    );
+  } else if (event.action === 'snooze') {
+    // Schedule a reminder
+    console.log('[SW] Snooze requested for notification');
+  } else if (event.action === 'dismiss' || event.action === 'close') {
+    // Just close the notification
+    return;
+  } else {
+    // Default action - open the URL
+    event.waitUntil(
+      clients.matchAll({ type: 'window' }).then((clientList) => {
+        // Check if there's already a window/tab open
+        for (const client of clientList) {
+          if (client.url === url && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        // If not, open a new window/tab
+        if (clients.openWindow) {
+          return clients.openWindow(url);
+        }
+      })
+    );
   }
 });

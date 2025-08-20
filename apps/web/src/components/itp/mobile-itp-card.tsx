@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Trash2,
 } from 'lucide-react';
+import { PhotoUpload } from '@/components/photo/PhotoUpload';
 
 interface MobileItpCardProps {
   itp: {
@@ -30,6 +31,7 @@ interface MobileItpCardProps {
       organization_id: string;
     };
   };
+  projectId?: string;
   onStatusChange: (sectionId: string, itemId: string, status: 'pass' | 'fail' | 'na') => void;
   onAddComment: (itemId: string, comment: string) => void;
   onAddPhoto: (itemId: string) => void;
@@ -39,6 +41,7 @@ interface MobileItpCardProps {
 
 export function MobileItpCard({
   itp,
+  projectId,
   onStatusChange,
   onAddComment,
   onAddPhoto,
@@ -48,6 +51,7 @@ export function MobileItpCard({
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeCommentItem, setActiveCommentItem] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
+  const [showPhotoUpload, setShowPhotoUpload] = useState<string | null>(null);
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -356,7 +360,7 @@ export function MobileItpCard({
                   </button>
 
                   <button
-                    onClick={() => onAddPhoto(item.id)}
+                    onClick={() => setShowPhotoUpload(showPhotoUpload === item.id ? null : item.id)}
                     className="flex-1 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center text-gray-700 hover:bg-gray-50"
                   >
                     <Camera className="h-4 w-4 mr-2" />
@@ -392,6 +396,45 @@ export function MobileItpCard({
                         Cancel
                       </button>
                     </div>
+                  </div>
+                )}
+
+                {/* Photo Upload */}
+                {showPhotoUpload === item.id && (
+                  <div className="mt-3 p-3 bg-white rounded-lg border border-gray-200">
+                    <PhotoUpload
+                      onUpload={async (files) => {
+                        const formData = new FormData();
+                        formData.append('project_id', projectId || '');
+                        formData.append('item_id', item.id);
+                        formData.append('item_type', 'itp');
+
+                        files.forEach((file) => {
+                          formData.append('photos', file);
+                        });
+
+                        const response = await fetch('/api/photos/upload', {
+                          method: 'POST',
+                          body: formData,
+                        });
+
+                        if (response.ok) {
+                          await onAddPhoto(item.id);
+                          setShowPhotoUpload(null);
+                        }
+                      }}
+                      maxFiles={5}
+                      compress={true}
+                      projectId={projectId}
+                      itemId={item.id}
+                      itemType="itp"
+                    />
+                    <button
+                      onClick={() => setShowPhotoUpload(null)}
+                      className="mt-2 text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 )}
               </div>
