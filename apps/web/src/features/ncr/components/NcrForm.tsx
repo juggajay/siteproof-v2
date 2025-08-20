@@ -164,10 +164,12 @@ export function NcrForm({
           if (value !== undefined && value !== null) {
             // Skip empty strings for UUID fields (assigned_to, contractor_id)
             if ((key === 'assigned_to' || key === 'contractor_id') && value === '') {
+              console.log(`Skipping empty ${key} field`);
               return;
             }
-            // Skip other empty strings
-            if (value === '') {
+            // Skip other empty optional fields
+            if (value === '' && (key === 'location' || key === 'trade' || key === 'due_date')) {
+              console.log(`Skipping empty ${key} field`);
               return;
             }
 
