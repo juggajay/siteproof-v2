@@ -252,15 +252,28 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const fileName = `ncr-evidence/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from('ncr-attachments')
-        .upload(fileName, file);
+      
+      try {
+        const { error: uploadError } = await supabase.storage
+          .from('ncr-attachments')
+          .upload(fileName, file);
 
-      if (!uploadError) {
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from('ncr-attachments').getPublicUrl(fileName);
-        evidence[`file_${i}`] = publicUrl;
+        if (uploadError) {
+          console.error(`Failed to upload file ${file.name}:`, uploadError);
+          // Skip this file but continue with NCR creation
+          // You might want to create the bucket if it doesn't exist
+          if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
+            console.error('Storage bucket "ncr-attachments" may not exist. Please create it in Supabase.');
+          }
+        } else {
+          const {
+            data: { publicUrl },
+          } = supabase.storage.from('ncr-attachments').getPublicUrl(fileName);
+          evidence[`file_${i}`] = publicUrl;
+        }
+      } catch (err) {
+        console.error(`Error handling file upload for ${file.name}:`, err);
+        // Continue without this file
       }
     }
 
