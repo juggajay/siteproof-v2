@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { Providers } from '@/components/Providers';
+import { DarkModeToggle } from '@/components/theme/DarkModeToggle';
 import './globals.css';
+import '@/styles/dark-mode.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -46,6 +48,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${inter.className} overscroll-none`}>
         <Providers>
+          <div className="fixed top-4 right-4 z-50">
+            <DarkModeToggle />
+          </div>
           {children}
           <Toaster
             position="bottom-right"

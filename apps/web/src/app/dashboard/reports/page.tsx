@@ -7,6 +7,7 @@ import { Plus, FileText, History, Calendar, TrendingUp } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 import { ReportGenerationForm } from '@/features/reporting/components/ReportGenerationForm';
 import { RecentReportsList } from '@/features/reporting/components/RecentReportsList';
+// BrandedPDFExport component is available at @/components/reports/BrandedPDFExport for use when generating actual reports
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function ReportsPage() {

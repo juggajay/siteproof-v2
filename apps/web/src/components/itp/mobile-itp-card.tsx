@@ -12,6 +12,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { PhotoUpload } from '@/components/photo/PhotoUpload';
+import { SignatureCapture } from '@/components/signature/SignatureCapture';
 
 interface MobileItpCardProps {
   itp: {
@@ -52,6 +53,7 @@ export function MobileItpCard({
   const [activeCommentItem, setActiveCommentItem] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   const [showPhotoUpload, setShowPhotoUpload] = useState<string | null>(null);
+  const [showSignature, setShowSignature] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -441,15 +443,29 @@ export function MobileItpCard({
             ))}
           </div>
 
-          {/* Submit Section */}
+          {/* Submit Section with Signature */}
           <div className="border-t border-gray-200 p-4">
-            <button
-              onClick={() => onSubmitForReview?.(itp.id)}
-              className="w-full h-12 bg-blue-600 text-white rounded-lg font-medium text-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={!onSubmitForReview}
-            >
-              Submit ITP for Review
-            </button>
+            {!showSignature ? (
+              <button
+                onClick={() => setShowSignature(true)}
+                className="w-full h-12 bg-blue-600 text-white rounded-lg font-medium text-lg hover:bg-blue-700 transition-colors"
+              >
+                Sign & Submit ITP for Review
+              </button>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium text-gray-900">Sign to Submit</h3>
+                <SignatureCapture
+                  onSave={async (signature) => {
+                    // Save signature and submit
+                    console.log('Signature captured:', signature);
+                    await onSubmitForReview?.(itp.id);
+                    setShowSignature(false);
+                  }}
+                  onCancel={() => setShowSignature(false)}
+                />
+              </div>
+            )}
           </div>
         </div>
       )}
