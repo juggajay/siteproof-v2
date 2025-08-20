@@ -293,11 +293,13 @@ export async function POST(request: NextRequest) {
 
     // Insert labour entries if provided
     if (labour_entries && labour_entries.length > 0) {
+      // First try with all fields, then fallback to basic fields if it fails
       const labourData = labour_entries.map((entry: any) => ({
         diary_id: diary.id,
         employee_id: entry.employee_id || null,
         trade: entry.trade || '',
         company_id: entry.company_id || null,
+        // These fields might not exist if migration hasn't been run
         worker_name: entry.worker_name || '',
         company: entry.company || '',
         workers: entry.workers || 1,
@@ -314,10 +316,46 @@ export async function POST(request: NextRequest) {
         created_by: user.id,
       }));
 
-      const { error: labourError } = await supabase.from('diary_labour_entries').insert(labourData);
+      const { data: insertedLabour, error: labourError } = await supabase
+        .from('diary_labour_entries')
+        .insert(labourData)
+        .select();
 
       if (labourError) {
-        console.error('Error inserting labour entries:', labourError);
+        console.error('Error inserting labour entries with new fields:', labourError);
+        
+        // Try fallback with only basic fields if new columns don't exist
+        const basicLabourData = labour_entries.map((entry: any) => ({
+          diary_id: diary.id,
+          employee_id: entry.employee_id || null,
+          trade: entry.trade || '',
+          company_id: entry.company_id || null,
+          start_time: entry.start_time || null,
+          end_time: entry.end_time || null,
+          break_duration: entry.break_duration ? `${entry.break_duration} minutes` : null,
+          total_hours: entry.total_hours || 0,
+          overtime_hours: entry.overtime_hours || 0,
+          standard_rate: entry.standard_rate || null,
+          overtime_rate: entry.overtime_rate || null,
+          total_cost: entry.total_cost || null,
+          work_performed: entry.work_performed || '',
+          location: entry.location || null,
+          created_by: user.id,
+        }));
+        
+        const { data: fallbackLabour, error: fallbackError } = await supabase
+          .from('diary_labour_entries')
+          .insert(basicLabourData)
+          .select();
+          
+        if (fallbackError) {
+          console.error('Error inserting labour entries with basic fields:', fallbackError);
+          console.error('Labour data that failed:', basicLabourData);
+        } else {
+          console.log(`Successfully inserted ${fallbackLabour?.length || 0} labour entries with basic fields`);
+        }
+      } else {
+        console.log(`Successfully inserted ${insertedLabour?.length || 0} labour entries`);
       }
     }
 

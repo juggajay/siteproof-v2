@@ -77,10 +77,16 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         }));
 
     // Fetch labour entries
-    const { data: labourEntries } = await supabase
+    const { data: labourEntries, error: labourError } = await supabase
       .from('diary_labour_entries')
       .select('*')
       .eq('diary_id', params.id);
+    
+    if (labourError) {
+      console.error('Error fetching labour entries:', labourError);
+    } else {
+      console.log(`Found ${labourEntries?.length || 0} labour entries for diary ${params.id}`);
+    }
 
     // Fetch plant entries
     const { data: plantEntries } = await supabase
