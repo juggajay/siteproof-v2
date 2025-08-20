@@ -1,35 +1,53 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import { Toaster } from 'sonner'
-import { Providers } from '@/components/Providers'
-import './globals.css'
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import { Toaster } from 'sonner';
+import { Providers } from '@/components/Providers';
+import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'SiteProof - Construction Site Documentation',
   description: 'Professional construction site proof management and documentation',
   manifest: '/manifest.json',
-}
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon-16x16.png',
+    apple: '/apple-touch-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'SiteProof',
+  },
+  formatDetection: {
+    telephone: false,
+  },
+};
 
 export const viewport = {
   themeColor: '#3b82f6',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-}
+  userScalable: false,
+  viewportFit: 'cover',
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" className="touch-manipulation">
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="format-detection" content="telephone=no" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+      </head>
+      <body className={`${inter.className} overscroll-none`}>
         <Providers>
           {children}
-          <Toaster 
+          <Toaster
             position="bottom-right"
             toastOptions={{
               className: 'font-medium',
@@ -41,5 +59,5 @@ export default function RootLayout({
         </Providers>
       </body>
     </html>
-  )
+  );
 }

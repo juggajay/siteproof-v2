@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Download, Loader2 } from 'lucide-react';
-import { MobileItpManager } from '@/components/itp/mobile-itp-manager';
+// Use optimized version for better performance
+import { OptimizedMobileItpManager as MobileItpManager } from '@/components/itp/optimized-mobile-itp-manager';
 
 interface LotDetailClientSimpleProps {
   lot: any;
