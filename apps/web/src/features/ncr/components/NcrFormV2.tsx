@@ -380,7 +380,7 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
       {/* Actions */}
       <div className="flex gap-3 justify-end pt-4 border-t">
         {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
             Cancel
           </Button>
         )}

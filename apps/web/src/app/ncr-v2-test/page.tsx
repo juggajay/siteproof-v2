@@ -137,7 +137,7 @@ export default function NcrV2TestPage() {
                 <Button
                   onClick={listNcrs}
                   disabled={!projectId}
-                  variant="outline"
+                  variant="secondary"
                   className="flex-1"
                 >
                   List NCRs
