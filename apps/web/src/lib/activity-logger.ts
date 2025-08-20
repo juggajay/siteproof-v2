@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+// import { createClient } from '@/lib/supabase/server';
 
 export async function createActivityLog(
   userId: string,
@@ -6,7 +6,7 @@ export async function createActivityLog(
   metadata?: Record<string, any>
 ) {
   try {
-    const supabase = await createClient();
+    // const supabase = await createClient();
     
     // For now, just log to console
     // In production, this would write to an activity_logs table

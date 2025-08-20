@@ -45,13 +45,14 @@ export default function NewNCRPage() {
   });
 
   // Fetch inspection if ID provided
-  const { data: inspection } = useQuery({
+  const { data: _inspection } = useQuery({
     queryKey: ['inspection', inspectionId],
     queryFn: async () => {
       if (!inspectionId) return null;
       const response = await fetch(`/api/inspections/${inspectionId}`);
       if (!response.ok) throw new Error('Failed to fetch inspection');
-      return response.json();
+      const data = await response.json();
+      return data.inspection || data;
     },
     enabled: !!inspectionId,
   });

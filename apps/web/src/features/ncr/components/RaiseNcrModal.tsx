@@ -21,7 +21,7 @@ export function RaiseNcrModal({
   onClose,
   inspection,
   project,
-  inspectionItemRef,
+  inspectionItemRef: _inspectionItemRef,
   failedItemTitle,
 }: RaiseNcrModalProps) {
   const focusTrapRef = useFocusTrap(isOpen);
