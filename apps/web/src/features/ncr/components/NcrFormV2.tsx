@@ -98,7 +98,7 @@ export function NcrFormV2({ projectId, lotId, inspectionId, onSuccess, onCancel 
         console.log(`  ${key}: ${value}`);
       }
 
-      const response = await fetch('/api/ncrs-v2', {
+      const response = await fetch('/api/ncrs-simple', {
         method: 'POST',
         body: formDataToSend,
       });
