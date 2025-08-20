@@ -160,7 +160,17 @@ export function NcrForm({
 
         // Add form fields
         Object.entries(data).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
+          // Skip empty values and empty strings for UUID fields
+          if (value !== undefined && value !== null) {
+            // Skip empty strings for UUID fields (assigned_to, contractor_id)
+            if ((key === 'assigned_to' || key === 'contractor_id') && value === '') {
+              return;
+            }
+            // Skip other empty strings
+            if (value === '') {
+              return;
+            }
+
             if (key === 'tags') {
               // Send tags as JSON string
               formData.append(key, JSON.stringify(customTags));

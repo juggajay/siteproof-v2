@@ -169,7 +169,22 @@ export async function POST(request: NextRequest) {
       } else if (key === 'tags') {
         data[key] = JSON.parse(value as string);
       } else {
-        data[key] = value;
+        // Convert empty strings to undefined for optional UUID fields
+        const strValue = value as string;
+        if (
+          (key === 'lot_id' ||
+            key === 'assigned_to' ||
+            key === 'contractor_id' ||
+            key === 'inspection_id' ||
+            key === 'location' ||
+            key === 'trade' ||
+            key === 'due_date') &&
+          strValue === ''
+        ) {
+          // Don't add to data object if empty string
+          continue;
+        }
+        data[key] = strValue;
       }
     }
 
