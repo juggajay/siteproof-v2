@@ -1,77 +1,5 @@
 [
   {
-    "timestamp": 1756107544528,
-    "memoryTotal": 16727076864,
-    "memoryUsed": 5333463040,
-    "memoryFree": 11393613824,
-    "memoryUsagePercent": 31.885206742121657,
-    "memoryEfficiency": 68.11479325787835,
-    "cpuCount": 16,
-    "cpuLoad": 0,
-    "platform": "linux",
-    "uptime": 864700.23
-  },
-  {
-    "timestamp": 1756107574559,
-    "memoryTotal": 16727076864,
-    "memoryUsed": 5330141184,
-    "memoryFree": 11396935680,
-    "memoryUsagePercent": 31.86534758784737,
-    "memoryEfficiency": 68.13465241215263,
-    "cpuCount": 16,
-    "cpuLoad": 0,
-    "platform": "linux",
-    "uptime": 864730.26
-  },
-  {
-    "timestamp": 1756107604591,
-    "memoryTotal": 16727076864,
-    "memoryUsed": 5330624512,
-    "memoryFree": 11396452352,
-    "memoryUsagePercent": 31.86823708255066,
-    "memoryEfficiency": 68.13176291744934,
-    "cpuCount": 16,
-    "cpuLoad": 0,
-    "platform": "linux",
-    "uptime": 864760.29
-  },
-  {
-    "timestamp": 1756107634623,
-    "memoryTotal": 16727076864,
-    "memoryUsed": 5325312000,
-    "memoryFree": 11401764864,
-    "memoryUsagePercent": 31.836477128057755,
-    "memoryEfficiency": 68.16352287194225,
-    "cpuCount": 16,
-    "cpuLoad": 0,
-    "platform": "linux",
-    "uptime": 864790.32
-  },
-  {
-    "timestamp": 1756107664656,
-    "memoryTotal": 16727076864,
-    "memoryUsed": 5325217792,
-    "memoryFree": 11401859072,
-    "memoryUsagePercent": 31.835913921463042,
-    "memoryEfficiency": 68.16408607853695,
-    "cpuCount": 16,
-    "cpuLoad": 0,
-    "platform": "linux",
-    "uptime": 864820.34
-  },
-  {
-    "timestamp": 1756107694689,
-    "memoryTotal": 16727076864,
-    "memoryUsed": 5326016512,
-    "memoryFree": 11401060352,
-    "memoryUsagePercent": 31.840688933896445,
-    "memoryEfficiency": 68.15931106610356,
-    "cpuCount": 16,
-    "cpuLoad": 0,
-    "platform": "linux",
-    "uptime": 864850.38
-  },
-  {
     "timestamp": 1756107724722,
     "memoryTotal": 16727076864,
     "memoryUsed": 5325602816,
@@ -34522,5 +34450,77 @@
     "cpuLoad": 0.049375,
     "platform": "linux",
     "uptime": 951059.35
+  },
+  {
+    "timestamp": 1756193947935,
+    "memoryTotal": 16727076864,
+    "memoryUsed": 5787168768,
+    "memoryFree": 10939908096,
+    "memoryUsagePercent": 34.59760970223757,
+    "memoryEfficiency": 65.40239029776242,
+    "cpuCount": 16,
+    "cpuLoad": 0.035,
+    "platform": "linux",
+    "uptime": 951089.38
+  },
+  {
+    "timestamp": 1756193977970,
+    "memoryTotal": 16727076864,
+    "memoryUsed": 5339922432,
+    "memoryFree": 11387154432,
+    "memoryUsagePercent": 31.92382312472406,
+    "memoryEfficiency": 68.07617687527593,
+    "cpuCount": 16,
+    "cpuLoad": 0.0375,
+    "platform": "linux",
+    "uptime": 951119.41
+  },
+  {
+    "timestamp": 1756194008003,
+    "memoryTotal": 16727076864,
+    "memoryUsed": 5338963968,
+    "memoryFree": 11388112896,
+    "memoryUsagePercent": 31.91809310980398,
+    "memoryEfficiency": 68.08190689019602,
+    "cpuCount": 16,
+    "cpuLoad": 0.0225,
+    "platform": "linux",
+    "uptime": 951149.44
+  },
+  {
+    "timestamp": 1756194038037,
+    "memoryTotal": 16727076864,
+    "memoryUsed": 5349429248,
+    "memoryFree": 11377647616,
+    "memoryUsagePercent": 31.980658016303114,
+    "memoryEfficiency": 68.01934198369689,
+    "cpuCount": 16,
+    "cpuLoad": 0.01375,
+    "platform": "linux",
+    "uptime": 951179.47
+  },
+  {
+    "timestamp": 1756194068071,
+    "memoryTotal": 16727076864,
+    "memoryUsed": 5346988032,
+    "memoryFree": 11380088832,
+    "memoryUsagePercent": 31.966063619327194,
+    "memoryEfficiency": 68.0339363806728,
+    "cpuCount": 16,
+    "cpuLoad": 0.011875,
+    "platform": "linux",
+    "uptime": 951209.5
+  },
+  {
+    "timestamp": 1756194098084,
+    "memoryTotal": 16727076864,
+    "memoryUsed": 5896519680,
+    "memoryFree": 10830557184,
+    "memoryUsagePercent": 35.2513456352346,
+    "memoryEfficiency": 64.7486543647654,
+    "cpuCount": 16,
+    "cpuLoad": 0.1225,
+    "platform": "linux",
+    "uptime": 951239.51
   }
 ]

@@ -15,7 +15,6 @@ import {
   TrendingUp
 } from 'lucide-react';
 import { ClientWrapper } from './client-wrapper';
-import { DashboardWidgets } from '@/components/dashboard/DashboardWidgets';
 import { 
   PageLayout, 
   Section, 
@@ -153,10 +152,6 @@ export default async function DashboardPage() {
         <p className="mt-2 text-body text-secondary-gray">Welcome back, {user.email}!</p>
       </div>
 
-      {/* Customizable Dashboard Widgets */}
-      <Section title="Dashboard Widgets" spacing="large">
-        <DashboardWidgets userId={user.id} organizationId={membership.organization_id} />
-      </Section>
 
       {/* Metrics Section */}
       <Section title="Overview" spacing="large">
