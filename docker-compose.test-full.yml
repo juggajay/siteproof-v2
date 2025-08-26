@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    volumes:
+      - ./apps/web/public:/app/apps/web/public:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - siteproof-network
+
+  test-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      - PLAYWRIGHT_BASE_URL=http://web:3000
+      - CI=true
+    volumes:
+      - ./tests:/app/tests
+      - ./test-results:/app/test-results
+      - ./playwright-report:/app/playwright-report
+    command: >
+      sh -c "
+        echo 'Waiting for web service to be ready...' &&
+        sleep 10 &&
+        echo 'Running Playwright tests...' &&
+        npx playwright test --reporter=html,line --retries=2 &&
+        echo 'Tests completed!'
+      "
+    networks:
+      - siteproof-network
+
+networks:
+  siteproof-network:
+    driver: bridge
