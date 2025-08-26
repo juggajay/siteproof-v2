@@ -48,7 +48,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className={`${inter.className} overscroll-none`}>
         <Providers>
-          <div className="fixed top-4 right-4 z-50">
+          {/* Dark mode toggle - hidden on mobile, visible on desktop */}
+          <div className="hidden lg:block fixed top-4 right-4 z-50">
             <DarkModeToggle />
           </div>
           {children}

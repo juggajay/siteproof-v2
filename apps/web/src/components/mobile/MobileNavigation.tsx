@@ -14,7 +14,9 @@ import {
   ChevronLeft,
   Settings,
   User,
+  Moon,
 } from 'lucide-react';
+import { DarkModeToggle } from '@/components/theme/DarkModeToggle';
 
 interface MobileNavigationProps {
   user?: {
@@ -145,6 +147,15 @@ export function MobileNavigation({ user }: MobileNavigationProps) {
 
             {/* Menu Items */}
             <div className="p-4 space-y-2">
+              {/* Dark Mode Toggle for Mobile */}
+              <div className="flex items-center justify-between px-4 py-3 rounded-lg bg-gray-50">
+                <div className="flex items-center gap-3">
+                  <Moon className="w-5 h-5 text-gray-600" />
+                  <span className="font-medium">Dark Mode</span>
+                </div>
+                <DarkModeToggle />
+              </div>
+
               <Link
                 href="/dashboard/settings"
                 className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-100 active:bg-gray-200"
