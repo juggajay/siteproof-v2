@@ -64,7 +64,8 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
 
       const data = await response.json();
       console.log('[LotList] Lots fetched:', data);
-      setLots(data.lots || []);
+      // API returns array directly, not wrapped in 'lots' property
+      setLots(Array.isArray(data) ? data : data.lots || []);
     } catch (err) {
       console.error('[LotList] Fetch error:', err);
       setError(err instanceof Error ? err.message : 'An error occurred');
