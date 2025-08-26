@@ -19,21 +19,31 @@ export async function GET(
     const { projectId } = await params;
 
     // Fetch lots for this project
-    const { data: lots, error } = await supabase
+    // Try with relation first, fallback to simple query if it fails
+    let { data: lots, error } = await supabase
       .from('lots')
-      .select(
-        `
-        *,
-        itp_instances (
-          id,
-          name,
-          status,
-          completion_percentage
-        )
-      `
-      )
+      .select('*')
       .eq('project_id', projectId)
       .order('lot_number', { ascending: true });
+
+    // If successful, try to fetch related itp_instances separately
+    if (!error && lots) {
+      // Fetch ITP instances for each lot
+      const lotsWithItp = await Promise.all(
+        lots.map(async (lot) => {
+          const { data: itpInstances } = await supabase
+            .from('itp_instances')
+            .select('id, status, completion_percentage')
+            .eq('lot_id', lot.id);
+
+          return {
+            ...lot,
+            itp_instances: itpInstances || [],
+          };
+        })
+      );
+      lots = lotsWithItp;
+    }
 
     if (error) {
       console.error('Error fetching lots:', error);
