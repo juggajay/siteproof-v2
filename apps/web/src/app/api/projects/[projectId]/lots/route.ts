@@ -33,7 +33,10 @@ export async function GET(
 
     if (error) {
       console.error('Error fetching lots:', error);
-      return NextResponse.json({ error: 'Failed to fetch lots' }, { status: 500 });
+      return NextResponse.json({ 
+        error: 'Failed to fetch lots',
+        details: error.message 
+      }, { status: 500 });
     }
 
     return NextResponse.json(lots || []);
