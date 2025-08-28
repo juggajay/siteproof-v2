@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Download, Loader2 } from 'lucide-react';
-// Use new foreman-friendly version
-import { ForemanItpManager as MobileItpManager } from '@/components/itp/foreman-itp-manager';
+// Use simple stable version
+import { SimpleItpManager as MobileItpManager } from '@/components/itp/simple-itp-manager';
 
 interface LotDetailClientSimpleProps {
   lot: any;
