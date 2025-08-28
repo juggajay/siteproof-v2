@@ -20,98 +20,81 @@ export async function GET(
     
     console.log('[ITP API] Fetching instances for lot:', lotId);
 
-    // First try to fetch instances without the join
-    const { data: basicInstances, error: basicError } = await supabase
+    // Simple fetch without any joins to avoid errors
+    const { data: itpInstances, error: instancesError } = await supabase
       .from('itp_instances')
       .select('*')
       .eq('lot_id', lotId)
       .order('created_at', { ascending: false });
 
-    if (basicError) {
-      console.error('[ITP API] Basic query error:', basicError);
-    } else {
-      console.log('[ITP API] Found instances:', basicInstances?.length || 0);
-    }
-
-    // Now try with the template join
-    const { data: itpInstances, error } = await supabase
-      .from('itp_instances')
-      .select(`
-        id,
-        template_id,
-        project_id,
-        lot_id,
-        organization_id,
-        created_by,
-        data,
-        evidence_files,
-        inspection_status,
-        inspection_date,
-        sync_status,
-        is_active,
-        created_at,
-        updated_at,
-        completion_percentage,
-        itp_templates!inner (
-          id,
-          name,
-          description,
-          structure,
-          organization_id,
-          category
-        )
-      `)
-      .eq('lot_id', lotId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('[ITP API] Join query error:', error);
-      console.error('[ITP API] Error details:', JSON.stringify(error, null, 2));
-      
-      // Fallback to basic query without join
-      if (!basicError && basicInstances) {
-        console.log('[ITP API] Using fallback without template data');
-        
-        // Fetch templates separately if needed
-        const templateIds = [...new Set(basicInstances.map(i => i.template_id).filter(Boolean))];
-        let templates: any[] = [];
-        
-        if (templateIds.length > 0) {
-          const { data: templatesData } = await supabase
-            .from('itp_templates')
-            .select('id, name, description, structure, organization_id, category')
-            .in('id', templateIds);
-          
-          templates = templatesData || [];
-        }
-        
-        // Merge template data
-        const instancesWithTemplates = basicInstances.map(instance => {
-          const template = templates.find(t => t.id === instance.template_id);
-          return {
-            ...instance,
-            itp_templates: template || null
-          };
-        });
-        
-        return NextResponse.json({ instances: instancesWithTemplates });
-      }
-      
+    if (instancesError) {
+      console.error('[ITP API] Error fetching instances:', instancesError);
       return NextResponse.json(
         {
           error: 'Failed to fetch ITP instances',
-          details: error.message,
+          details: instancesError.message,
         },
         { status: 500 }
       );
     }
 
-    console.log('[ITP API] Successfully fetched with templates:', itpInstances?.length || 0);
+    console.log('[ITP API] Found instances:', itpInstances?.length || 0);
+
+    // If we have instances, try to fetch their templates separately
+    const instancesWithTemplates = [];
+    
+    if (itpInstances && itpInstances.length > 0) {
+      // Get unique template IDs
+      const templateIds = [...new Set(itpInstances.map(i => i.template_id).filter(Boolean))];
+      
+      if (templateIds.length > 0) {
+        console.log('[ITP API] Fetching templates:', templateIds);
+        
+        const { data: templates, error: templatesError } = await supabase
+          .from('itp_templates')
+          .select('*')
+          .in('id', templateIds);
+        
+        if (templatesError) {
+          console.error('[ITP API] Error fetching templates:', templatesError);
+          // Continue without template data
+          for (const instance of itpInstances) {
+            instancesWithTemplates.push({
+              ...instance,
+              itp_templates: null
+            });
+          }
+        } else {
+          console.log('[ITP API] Found templates:', templates?.length || 0);
+          
+          // Map templates to instances
+          const templateMap = new Map(templates?.map(t => [t.id, t]) || []);
+          
+          for (const instance of itpInstances) {
+            instancesWithTemplates.push({
+              ...instance,
+              itp_templates: templateMap.get(instance.template_id) || null
+            });
+          }
+        }
+      } else {
+        // No template IDs, just return instances as is
+        for (const instance of itpInstances) {
+          instancesWithTemplates.push({
+            ...instance,
+            itp_templates: null
+          });
+        }
+      }
+    }
+
+    console.log('[ITP API] Returning instances:', instancesWithTemplates.length);
 
     // Return instances in the format expected by the frontend
-    return NextResponse.json({ instances: itpInstances || [] });
+    return NextResponse.json({ instances: instancesWithTemplates });
   } catch (error) {
     console.error('[ITP API] Unexpected error:', error);
+    console.error('[ITP API] Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error'
