@@ -18,10 +18,20 @@ export async function GET(
 
     const { lotId } = await params;
 
-    // Fetch ITP instances for this lot
+    // Fetch ITP instances for this lot with template information
     const { data: itpInstances, error } = await supabase
       .from('itp_instances')
-      .select('*')
+      .select(`
+        *,
+        itp_templates (
+          id,
+          name,
+          description,
+          structure,
+          organization_id,
+          category
+        )
+      `)
       .eq('lot_id', lotId)
       .order('created_at', { ascending: false });
 
@@ -36,7 +46,8 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(itpInstances || []);
+    // Return instances in the format expected by the frontend
+    return NextResponse.json({ instances: itpInstances || [] });
   } catch (error) {
     console.error('ITP endpoint error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
