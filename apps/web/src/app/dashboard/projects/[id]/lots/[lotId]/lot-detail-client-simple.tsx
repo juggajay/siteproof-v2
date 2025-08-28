@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Download, Loader2 } from 'lucide-react';
-// Use simple stable version
-import { SimpleItpManager as MobileItpManager } from '@/components/itp/simple-itp-manager';
+// Use basic version without hooks issues
+import { BasicItpManager as MobileItpManager } from '@/components/itp/basic-itp-manager';
 
 interface LotDetailClientSimpleProps {
   lot: any;
