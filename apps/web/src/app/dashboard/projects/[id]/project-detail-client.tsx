@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import useSWR from 'swr';
 import {
   ArrowLeft,
   Building,
@@ -44,8 +43,6 @@ interface ProjectDetailClientProps {
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
 }
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
 export default function ProjectDetailClient({ project, userRole }: ProjectDetailClientProps) {
   const [activeSection, setActiveSection] = useState<'overview' | 'lots' | 'documents' | 'team'>(
     'overview'
@@ -53,15 +50,11 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
   const [showCreateLotModal, setShowCreateLotModal] = useState(false);
   const [_showUploadDocumentModal, setShowUploadDocumentModal] = useState(false);
 
-  // Use SWR for proper data fetching and caching
-  const { mutate: refreshLots } = useSWR(
-    `/api/projects/${project.id}/lots`,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false
-    }
-  );
+  // Simple refresh function without SWR for now to avoid hooks issues
+  const refreshLots = () => {
+    // This will trigger a refresh when the modal closes
+    window.location.reload();
+  };
 
   const canEdit = ['owner', 'admin', 'member'].includes(userRole);
 

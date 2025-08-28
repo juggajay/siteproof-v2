@@ -2,7 +2,6 @@ import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import ProjectDetailClient from './project-detail-client';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 export const dynamic = 'force-dynamic';
 
@@ -62,9 +61,5 @@ export default async function ProjectDetailPage({ params }: Props) {
     notFound();
   }
 
-  return (
-    <ErrorBoundary>
-      <ProjectDetailClient project={project} userRole={membership.role} />
-    </ErrorBoundary>
-  );
+  return <ProjectDetailClient project={project} userRole={membership.role} />;
 }

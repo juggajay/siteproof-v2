@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, CheckCircle, XCircle, MinusCircle, Trash2 } from 'lucide-react';
+import { ChevronRight, CheckCircle, XCircle, MinusCircle, Trash2, Plus } from 'lucide-react';
+import { AssignITPModal } from '@/features/lots/components/AssignITPModal';
 
 interface BasicItpManagerProps {
   projectId: string;
@@ -14,9 +15,11 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
-  // Simple load function
-  useEffect(() => {
+  // Load function
+  const loadItps = () => {
+    setLoading(true);
     fetch(`/api/projects/${projectId}/lots/${lotId}/itp`)
       .then((res) => res.json())
       .then((data) => {
@@ -34,6 +37,11 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
         console.error('Error loading ITPs:', err);
         setLoading(false);
       });
+  };
+
+  // Simple load function
+  useEffect(() => {
+    loadItps();
   }, [projectId, lotId]);
 
   // Simple update function
@@ -81,9 +89,7 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
     return <div className="p-4 text-center">Loading...</div>;
   }
 
-  if (instances.length === 0) {
-    return <div className="p-4 text-center text-gray-500">No ITPs assigned</div>;
-  }
+  const assignedTemplateIds = instances.map(inst => inst.template_id || inst.itp_templates?.id).filter(Boolean);
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((prev) => {
@@ -121,7 +127,28 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
 
   return (
     <div className="p-4 space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">ITP Inspections</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-900">ITP Inspections</h3>
+        <button
+          onClick={() => setShowAssignModal(true)}
+          className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add ITP
+        </button>
+      </div>
+
+      {instances.length === 0 && (
+        <div className="text-center py-8 bg-gray-50 rounded-lg">
+          <p className="text-gray-500 mb-4">No ITPs assigned yet</p>
+          <button
+            onClick={() => setShowAssignModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Assign First ITP
+          </button>
+        </div>
+      )}
       {instances.map((instance) => {
         const isOpen = expandedIds.has(instance.id);
         const structure = instance.itp_templates?.structure || instance.template?.structure;
@@ -346,6 +373,21 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
           </div>
         );
       })}
+
+      {/* Assign ITP Modal */}
+      {showAssignModal && (
+        <AssignITPModal
+          isOpen={showAssignModal}
+          onClose={() => setShowAssignModal(false)}
+          onITPAssigned={() => {
+            setShowAssignModal(false);
+            loadItps(); // Reload ITPs after assignment
+          }}
+          lotId={lotId}
+          projectId={projectId}
+          assignedTemplateIds={assignedTemplateIds}
+        />
+      )}
     </div>
   );
 }

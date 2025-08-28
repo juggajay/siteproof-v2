@@ -1,8 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import useSWR from 'swr';
 import { FileText, Calendar, CheckCircle, Clock, XCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
@@ -31,26 +30,34 @@ interface Lot {
   reviewed_by: string | null;
 }
 
-const fetcher = (url: string) => fetch(url).then(res => {
-  if (!res.ok) throw new Error('Failed to fetch lots');
-  return res.json();
-});
-
 export function LotList({ projectId }: LotListProps) {
   const router = useRouter();
+  const [lots, setLots] = useState<Lot[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deletingLot, setDeletingLot] = useState<string | null>(null);
 
-  // Use SWR for data fetching
-  const { data, error, isLoading, mutate } = useSWR(
-    `/api/projects/${projectId}/lots`,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnMount: true
+  const fetchLots = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/projects/${projectId}/lots`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch lots');
+      }
+      const data = await response.json();
+      const lotsData = Array.isArray(data) ? data : data?.lots || [];
+      setLots(lotsData);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch lots');
+    } finally {
+      setIsLoading(false);
     }
-  );
+  };
 
-  const lots: Lot[] = Array.isArray(data) ? data : data?.lots || [];
+  useEffect(() => {
+    fetchLots();
+  }, [projectId]);
 
   const getStatusIcon = (status: 'pending' | 'in_review' | 'approved' | 'rejected') => {
     switch (status) {
@@ -99,7 +106,7 @@ export function LotList({ projectId }: LotListProps) {
       }
 
       // Refresh the lot list
-      await mutate();
+      await fetchLots();
       toast.success(`Lot "${lotName}" deleted successfully`);
       console.log('Lot deleted successfully:', lotId);
     } catch (error) {
