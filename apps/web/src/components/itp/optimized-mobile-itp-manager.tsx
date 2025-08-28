@@ -57,9 +57,13 @@ export function OptimizedMobileItpManager({ projectId, lotId }: MobileItpManager
   // Fetch ITP instances function
   const fetchItpInstances = async (): Promise<ITPInstance[]> => {
     const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp`);
-    if (!response.ok) throw new Error('Failed to load ITP instances');
+    if (!response.ok) {
+      console.error(`Failed to fetch ITP instances: ${response.status} ${response.statusText}`);
+      throw new Error('Failed to load ITP instances');
+    }
 
     const data = await response.json();
+    console.log('ITP API Response:', data); // Debug log
     return (data.instances || []).map((instance: any) => ({
       id: instance.id,
       name: instance.name || instance.itp_templates?.name || 'Unknown Template',
@@ -162,9 +166,12 @@ export function OptimizedMobileItpManager({ projectId, lotId }: MobileItpManager
       setLoading(true);
       try {
         const [instances] = await Promise.all([fetchItpInstances(), loadAvailableTemplates()]);
-        updateInstances(instances);
+        console.log('Loaded ITP instances:', instances); // Debug log
+        updateInstances(instances || []); // Ensure we always pass an array
       } catch (error) {
         console.error('Error loading initial data:', error);
+        // Set empty array on error to show "No ITP Inspections" UI
+        updateInstances([]);
       } finally {
         setLoading(false);
       }
