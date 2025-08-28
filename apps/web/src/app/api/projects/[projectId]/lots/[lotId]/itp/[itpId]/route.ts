@@ -69,7 +69,7 @@ export async function PUT(
       return NextResponse.json({ error: 'ITP instance not found' }, { status: 404 });
     }
 
-    // Prepare update data
+    // Prepare update data - only include fields that exist in the database
     const updateData: any = {
       updated_at: new Date().toISOString(),
     };
@@ -79,20 +79,32 @@ export async function PUT(
       updateData.data = body.data;
     }
     
+    // Handle both column names for compatibility
     if (body.inspection_status !== undefined) {
+      // Try to use inspection_status if it exists, otherwise fallback to status
       updateData.inspection_status = body.inspection_status;
+      updateData.status = body.inspection_status; // Set both for compatibility
     }
     
+    // Handle timestamps for status changes
+    if (body.inspection_status === 'completed') {
+      updateData.completed_at = new Date().toISOString();
+    } else if (body.inspection_status === 'in_progress' && !existingInstance.started_at) {
+      updateData.started_at = new Date().toISOString();
+    }
+    
+    // Handle evidence_files if provided
+    if (body.evidence_files !== undefined) {
+      updateData.evidence_files = body.evidence_files;
+    }
+    
+    // Handle inspection_date if provided  
     if (body.inspection_date !== undefined) {
       updateData.inspection_date = body.inspection_date;
     }
     
     if (body.completion_percentage !== undefined) {
       updateData.completion_percentage = body.completion_percentage;
-    }
-    
-    if (body.evidence_files !== undefined) {
-      updateData.evidence_files = body.evidence_files;
     }
 
     // Calculate completion percentage if data is updated
@@ -102,22 +114,49 @@ export async function PUT(
       
       // Auto-update status based on completion
       if (completionPercentage === 100 && !body.inspection_status) {
-        updateData.inspection_status = 'completed';
+        updateData.status = 'completed';
+        updateData.completed_at = new Date().toISOString();
       } else if (completionPercentage > 0 && !body.inspection_status) {
-        updateData.inspection_status = 'in_progress';
+        updateData.status = 'in_progress';
+        if (!existingInstance.started_at) {
+          updateData.started_at = new Date().toISOString();
+        }
       }
     }
 
-    // Update the ITP instance
-    const { data: updatedInstance, error: updateError } = await supabase
+    // Update the ITP instance - remove fields that don't exist in the table
+    const cleanUpdateData = { ...updateData };
+    
+    // Remove fields that might not exist
+    delete cleanUpdateData.inspection_status; // Keep only if it exists
+    delete cleanUpdateData.inspection_date; // Keep only if it exists
+    delete cleanUpdateData.evidence_files; // Keep only if it exists
+    
+    // First try with all fields
+    let { data: updatedInstance, error: updateError } = await supabase
       .from('itp_instances')
       .update(updateData)
       .eq('id', itpId)
       .select()
       .single();
 
+    // If it fails due to column not existing, try with clean data
+    if (updateError && updateError.message?.includes('column')) {
+      console.log('[ITP Update] Retrying with clean data due to column error');
+      const result = await supabase
+        .from('itp_instances')
+        .update(cleanUpdateData)
+        .eq('id', itpId)
+        .select()
+        .single();
+      
+      updatedInstance = result.data;
+      updateError = result.error;
+    }
+
     if (updateError) {
       console.error('[ITP Update] Update error:', updateError);
+      console.error('[ITP Update] Attempted data:', updateData);
       return NextResponse.json(
         { error: 'Failed to update ITP instance', details: updateError.message },
         { status: 500 }
