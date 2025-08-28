@@ -2,9 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 // DELETE /api/lots/[lotId] - Delete a lot
-export async function DELETE(_request: NextRequest, { params }: { params: { lotId: string } }) {
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ lotId: string }> }
+) {
   try {
-    const { lotId } = params;
+    const { lotId } = await params;
     const supabase = await createClient();
 
     // Get current user
@@ -89,8 +92,12 @@ export async function DELETE(_request: NextRequest, { params }: { params: { lotI
   }
 }
 
-export async function GET(_request: NextRequest, { params }: { params: { lotId: string } }) {
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ lotId: string }> }
+) {
   try {
+    const { lotId } = await params;
     const supabase = await createClient();
     const {
       data: { user },
@@ -113,7 +120,7 @@ export async function GET(_request: NextRequest, { params }: { params: { lotId: 
         )
       `
       )
-      .eq('id', params.lotId)
+      .eq('id', lotId)
       .single();
 
     if (error || !lot) {
@@ -161,7 +168,7 @@ export async function GET(_request: NextRequest, { params }: { params: { lotId: 
         )
       `
       )
-      .eq('lot_id', params.lotId);
+      .eq('lot_id', lotId);
 
     return NextResponse.json({
       lot: {
