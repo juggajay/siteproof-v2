@@ -13,6 +13,7 @@ export function SimpleItpManager({ projectId, lotId }: SimpleItpManagerProps) {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [firstLoad, setFirstLoad] = useState(true);
 
   // Load ITP instances
   useEffect(() => {
@@ -21,7 +22,14 @@ export function SimpleItpManager({ projectId, lotId }: SimpleItpManagerProps) {
         const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp`);
         if (response.ok) {
           const data = await response.json();
-          setInstances(data.instances || []);
+          const loadedInstances = data.instances || [];
+          setInstances(loadedInstances);
+          
+          // Auto-expand first ITP on load
+          if (firstLoad && loadedInstances.length > 0) {
+            setExpandedId(loadedInstances[0].id);
+            setFirstLoad(false);
+          }
         }
       } catch (error) {
         console.error('Failed to load ITPs:', error);
@@ -201,47 +209,59 @@ export function SimpleItpManager({ projectId, lotId }: SimpleItpManagerProps) {
                       <p className="text-sm text-gray-500">{item.section}</p>
                     </div>
                     
-                    <div className="flex gap-2">
+                    <div className="flex gap-3">
                       <button
+                        type="button"
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
+                          console.log('Pass clicked for:', item.id);
                           updateItemStatus(instance.id, item.id, 'pass');
                         }}
-                        className={`p-2 rounded-lg ${
+                        className={`p-3 rounded-lg touch-manipulation ${
                           item.status === 'pass'
                             ? 'bg-green-600 text-white'
-                            : 'bg-gray-100 hover:bg-green-100'
+                            : 'bg-gray-100 hover:bg-green-100 active:bg-green-200'
                         }`}
+                        style={{ minWidth: '48px', minHeight: '48px' }}
                       >
-                        <CheckCircle className="w-5 h-5" />
+                        <CheckCircle className="w-6 h-6" />
                       </button>
                       
                       <button
+                        type="button"
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
+                          console.log('Fail clicked for:', item.id);
                           updateItemStatus(instance.id, item.id, 'fail');
                         }}
-                        className={`p-2 rounded-lg ${
+                        className={`p-3 rounded-lg touch-manipulation ${
                           item.status === 'fail'
                             ? 'bg-red-600 text-white'
-                            : 'bg-gray-100 hover:bg-red-100'
+                            : 'bg-gray-100 hover:bg-red-100 active:bg-red-200'
                         }`}
+                        style={{ minWidth: '48px', minHeight: '48px' }}
                       >
-                        <XCircle className="w-5 h-5" />
+                        <XCircle className="w-6 h-6" />
                       </button>
                       
                       <button
+                        type="button"
                         onClick={(e) => {
+                          e.preventDefault();
                           e.stopPropagation();
+                          console.log('NA clicked for:', item.id);
                           updateItemStatus(instance.id, item.id, 'na');
                         }}
-                        className={`p-2 rounded-lg ${
+                        className={`p-3 rounded-lg touch-manipulation ${
                           item.status === 'na'
                             ? 'bg-gray-600 text-white'
-                            : 'bg-gray-100 hover:bg-gray-300'
+                            : 'bg-gray-100 hover:bg-gray-300 active:bg-gray-400'
                         }`}
+                        style={{ minWidth: '48px', minHeight: '48px' }}
                       >
-                        <MinusCircle className="w-5 h-5" />
+                        <MinusCircle className="w-6 h-6" />
                       </button>
                     </div>
                   </div>
