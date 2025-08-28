@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, CheckCircle, XCircle, MinusCircle } from 'lucide-react';
+import { ChevronRight, CheckCircle, XCircle, MinusCircle, Trash2 } from 'lucide-react';
 
 interface BasicItpManagerProps {
   projectId: string;
@@ -12,6 +12,8 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
   const [instances, setInstances] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Simple load function
   useEffect(() => {
@@ -95,6 +97,28 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
     });
   };
 
+  const deleteItp = async (itpId: string) => {
+    setDeletingId(itpId);
+    try {
+      const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${itpId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete ITP');
+      }
+
+      // Remove from local state
+      setInstances((prev) => prev.filter((inst) => inst.id !== itpId));
+      setShowDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting ITP:', error);
+      alert('Failed to delete ITP. Please try again.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <div className="p-4 space-y-4">
       <h3 className="text-lg font-semibold text-gray-900 mb-2">ITP Inspections</h3>
@@ -113,50 +137,101 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
         const hasContent = sections && sections.length > 0;
 
         return (
-          <div key={instance.id} className="border-2 rounded-lg bg-white shadow-sm overflow-hidden">
-            <div
-              className="p-4 font-semibold cursor-pointer bg-gray-50 hover:bg-gray-100 transition-all duration-200 flex items-center justify-between group"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleExpanded(instance.id);
-              }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
+          <div
+            key={instance.id}
+            className="relative border-2 rounded-lg bg-white shadow-sm overflow-hidden"
+          >
+            <div className="p-4 bg-gray-50 transition-all duration-200 flex items-center justify-between">
+              <div
+                className="flex-1 font-semibold cursor-pointer hover:bg-gray-100 rounded p-2 -m-2 transition-colors flex items-center group"
+                onClick={(e) => {
                   e.preventDefault();
+                  e.stopPropagation();
                   toggleExpanded(instance.id);
-                }
-              }}
-              aria-expanded={isOpen}
-              aria-label={`Toggle ${templateName}`}
-            >
-              <div className="flex items-center">
-                <div
-                  className="mr-3 transition-transform duration-200"
-                  style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0)' }}
-                >
-                  <ChevronRight className="h-5 w-5 text-gray-500" />
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    toggleExpanded(instance.id);
+                  }
+                }}
+                aria-expanded={isOpen}
+                aria-label={`Toggle ${templateName}`}
+              >
+                <div className="flex items-center flex-1">
+                  <div
+                    className="mr-3 transition-transform duration-200"
+                    style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0)' }}
+                  >
+                    <ChevronRight className="h-5 w-5 text-gray-500" />
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-gray-900">{templateName}</span>
+                    {instance.description && (
+                      <p className="text-sm text-gray-500 font-normal mt-1">
+                        {instance.description}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <span className="text-gray-900">{templateName}</span>
-                  {instance.description && (
-                    <p className="text-sm text-gray-500 font-normal mt-1">{instance.description}</p>
+                <div className="flex items-center space-x-2 mr-4">
+                  <span className="text-sm text-gray-500 group-hover:text-gray-700">
+                    {isOpen ? 'Click to collapse' : 'Click to expand'}
+                  </span>
+                  {!hasContent && (
+                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                      No items
+                    </span>
                   )}
                 </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500 group-hover:text-gray-700">
-                  {isOpen ? 'Click to collapse' : 'Click to expand'}
-                </span>
-                {!hasContent && (
-                  <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                    No items
-                  </span>
+
+              {/* Delete Button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteConfirm(instance.id);
+                }}
+                className="ml-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors group"
+                aria-label={`Delete ${templateName}`}
+                disabled={deletingId === instance.id}
+              >
+                {deletingId === instance.id ? (
+                  <div className="h-5 w-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Trash2 className="h-5 w-5 group-hover:scale-110 transition-transform" />
                 )}
-              </div>
+              </button>
             </div>
+
+            {/* Confirmation Dialog */}
+            {showDeleteConfirm === instance.id && (
+              <div className="absolute inset-0 bg-white bg-opacity-95 rounded-lg flex items-center justify-center z-10">
+                <div className="bg-white p-6 rounded-lg shadow-xl border-2 border-gray-200 max-w-sm w-full mx-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>
+                  <p className="text-gray-600 mb-4">
+                    Are you sure you want to remove &ldquo;{templateName}&rdquo; from this lot? This
+                    action cannot be undone.
+                  </p>
+                  <div className="flex gap-3 justify-end">
+                    <button
+                      onClick={() => setShowDeleteConfirm(null)}
+                      className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => deleteItp(instance.id)}
+                      className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                    >
+                      Delete ITP
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {isOpen && (
               <div
