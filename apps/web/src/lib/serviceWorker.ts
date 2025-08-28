@@ -1,4 +1,7 @@
 export async function registerServiceWorker() {
+  // Service worker disabled - no PWA icons available
+  return undefined;
+  /*
   if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
     try {
       const registration = await navigator.serviceWorker.register('/sw.js');
@@ -32,6 +35,7 @@ export async function registerServiceWorker() {
     }
   }
   return undefined;
+  */
 }
 
 export async function unregisterServiceWorker() {
@@ -60,9 +64,11 @@ export function setupServiceWorkerListeners() {
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data.type === 'SYNC_REQUESTED') {
         // Trigger sync from IndexedDB
-        window.dispatchEvent(new CustomEvent('sw-sync-requested', {
-          detail: { timestamp: event.data.timestamp }
-        }));
+        window.dispatchEvent(
+          new CustomEvent('sw-sync-requested', {
+            detail: { timestamp: event.data.timestamp },
+          })
+        );
       }
     });
   }
@@ -73,7 +79,7 @@ export async function cacheUrls(urls: string[]) {
     const registration = await navigator.serviceWorker.ready;
     registration.active?.postMessage({
       type: 'CACHE_URLS',
-      urls
+      urls,
     });
   }
 }
