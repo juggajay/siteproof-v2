@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, CheckCircle, XCircle, MinusCircle, Trash2, Plus } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { AssignITPModal } from '@/features/lots/components/AssignITPModal';
 
 interface BasicItpManagerProps {
@@ -10,6 +11,7 @@ interface BasicItpManagerProps {
 }
 
 export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
+  const router = useRouter();
   const [instances, setInstances] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
@@ -89,7 +91,9 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
     return <div className="p-4 text-center">Loading...</div>;
   }
 
-  const assignedTemplateIds = instances.map(inst => inst.template_id || inst.itp_templates?.id).filter(Boolean);
+  const assignedTemplateIds = instances
+    .map((inst) => inst.template_id || inst.itp_templates?.id)
+    .filter(Boolean);
 
   const toggleExpanded = (id: string) => {
     setExpandedIds((prev) => {
@@ -368,6 +372,20 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
                     </p>
                   </div>
                 )}
+
+                {/* Complete ITP Button */}
+                <div className="mt-6 pt-4 border-t border-gray-200 flex justify-end">
+                  <button
+                    onClick={() =>
+                      router.push(
+                        `/dashboard/projects/${projectId}/lots/${lotId}/itp/${instance.id}`
+                      )
+                    }
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
+                  >
+                    Complete ITP
+                  </button>
+                </div>
               </div>
             )}
           </div>
