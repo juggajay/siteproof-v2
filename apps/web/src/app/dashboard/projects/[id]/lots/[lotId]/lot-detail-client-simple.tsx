@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, FileText, Download, Loader2 } from 'lucide-react';
-// Use optimized version for better performance
-import { OptimizedMobileItpManager as MobileItpManager } from '@/components/itp/optimized-mobile-itp-manager';
+// Use new foreman-friendly version
+import { ForemanItpManager as MobileItpManager } from '@/components/itp/foreman-itp-manager';
 
 interface LotDetailClientSimpleProps {
   lot: any;
@@ -177,7 +177,7 @@ export default function LotDetailClientSimple({
 
         {/* Mobile-Optimized ITP Section - Moved here after details */}
         <div className="mb-8">
-          <MobileItpManager projectId={projectId} lotId={lot.id} userRole={userRole} />
+          <MobileItpManager projectId={projectId} lotId={lot.id} />
         </div>
 
         {/* Files Section */}
