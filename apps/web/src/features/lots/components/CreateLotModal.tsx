@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Upload, FileText, Loader2 } from 'lucide-react';
 import { Button, Input, Textarea } from '@siteproof/design-system';
+import { toast } from 'sonner';
 import {
   validateFileSize,
   validateFileType,
@@ -28,7 +28,6 @@ interface CreateLotModalProps {
 }
 
 export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModalProps) {
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -144,9 +143,24 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
         throw new Error(error.message || 'Failed to create lot');
       }
 
-      const responseData = await response.json();
-      console.log('[CreateLotModal] Lot created:', responseData);
-      const { lot } = responseData;
+      const result = await response.json();
+      console.log('[CreateLotModal] Lot creation result:', result);
+      
+      // Handle partial ITP assignment success
+      if (result.partialSuccess) {
+        const { itpAssignmentResults } = result;
+        const failedCount = itpAssignmentResults.failed.length;
+        const successCount = itpAssignmentResults.success.length;
+        
+        toast.warning(
+          `Lot created successfully. ${successCount} ITP(s) assigned, ${failedCount} failed. ` +
+          `You can assign the failed templates manually.`
+        );
+      } else if (result.lot) {
+        toast.success('Lot created successfully!');
+      }
+      
+      const { lot } = result;
 
       // Upload files if any, using the actual lot ID
       if (files.length > 0) {
@@ -169,14 +183,13 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
         }
       }
 
-      // Wait a moment to ensure database operations complete
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      router.refresh();
+      // Trigger success callback and close modal
       onSuccess?.();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
       setUploadProgress(0);

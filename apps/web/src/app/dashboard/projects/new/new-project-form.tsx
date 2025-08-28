@@ -21,16 +21,13 @@ export default function NewProjectForm({ organizationId }: { organizationId: str
         ...data,
         organizationId,
       });
-      console.log('[NewProjectForm] Project created successfully, redirecting...', result);
+      console.log('[NewProjectForm] Project created successfully:', result);
 
-      // Add a small delay before redirecting to ensure cache updates are processed
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Redirect to projects list after successful creation
-      router.push('/dashboard/projects');
+      // Navigate directly to the new project detail page
+      router.push(`/dashboard/projects/${result.project.id}`);
     } catch (error) {
       console.error('[NewProjectForm] Failed to create project:', error);
-      // Error is handled by the mutation hook
+      // Error is handled by the mutation hook with toast
       setIsSubmitting(false);
     }
   };

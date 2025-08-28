@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X, ClipboardList, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
+import { toast } from 'sonner';
 
 interface ITPTemplate {
   id: string;
@@ -88,15 +89,21 @@ export function AssignITPModal({
       });
 
       if (response.ok) {
+        await response.json(); // consume response
+        toast.success(`Successfully assigned ${selectedTemplateIds.length} ITP template(s)`);
         onITPAssigned();
         onClose();
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Failed to assign ITP templates');
+        const errorMessage = errorData.error || errorData.message || 'Failed to assign ITP templates';
+        setError(errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('Error assigning ITPs:', error);
-      setError('An unexpected error occurred');
+      const errorMessage = 'An unexpected error occurred while assigning ITPs';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

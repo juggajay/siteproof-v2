@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import useSWR from 'swr';
 import {
   ArrowLeft,
   Building,
@@ -43,13 +44,24 @@ interface ProjectDetailClientProps {
   userRole: 'owner' | 'admin' | 'member' | 'viewer';
 }
 
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
 export default function ProjectDetailClient({ project, userRole }: ProjectDetailClientProps) {
   const [activeSection, setActiveSection] = useState<'overview' | 'lots' | 'documents' | 'team'>(
     'overview'
   );
   const [showCreateLotModal, setShowCreateLotModal] = useState(false);
   const [_showUploadDocumentModal, setShowUploadDocumentModal] = useState(false);
-  const [refreshLots, setRefreshLots] = useState(0);
+
+  // Use SWR for proper data fetching and caching
+  const { mutate: refreshLots } = useSWR(
+    `/api/projects/${project.id}/lots`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false
+    }
+  );
 
   const canEdit = ['owner', 'admin', 'member'].includes(userRole);
 
@@ -246,7 +258,7 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
                 </Button>
               )}
             </div>
-            <LotList projectId={project.id} canEdit={canEdit} refreshTrigger={refreshLots} />
+            <LotList projectId={project.id} canEdit={canEdit} />
           </div>
         )}
 
@@ -287,11 +299,8 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
           projectId={project.id}
           onClose={() => setShowCreateLotModal(false)}
           onSuccess={() => {
-            console.log('[ProjectDetail] Lot created successfully, triggering refresh');
-            setRefreshLots((prev) => {
-              console.log('[ProjectDetail] Updating refreshLots from', prev, 'to', prev + 1);
-              return prev + 1;
-            });
+            console.log('[ProjectDetail] Lot created successfully, refreshing data');
+            refreshLots(); // Properly refresh the SWR cache
             setShowCreateLotModal(false);
           }}
         />

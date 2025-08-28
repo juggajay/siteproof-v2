@@ -55,6 +55,7 @@
     "react-signature-canvas": "^1.0.6",
     "resend": "^3.2.0",
     "sonner": "^1.4.0",
+    "swr": "^2.3.6",
     "tailwind-merge": "^2.2.0",
     "use-debounce": "^10.0.5",
     "web-push": "^3.6.7",

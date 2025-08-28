@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
 import { FileText, Calendar, CheckCircle, Clock, XCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 interface LotListProps {
   projectId: string;
   canEdit: boolean;
-  refreshTrigger?: number;
 }
 
 interface Lot {
@@ -30,49 +31,26 @@ interface Lot {
   reviewed_by: string | null;
 }
 
-export function LotList({ projectId, refreshTrigger }: LotListProps) {
+const fetcher = (url: string) => fetch(url).then(res => {
+  if (!res.ok) throw new Error('Failed to fetch lots');
+  return res.json();
+});
+
+export function LotList({ projectId }: LotListProps) {
   const router = useRouter();
-  const [lots, setLots] = useState<Lot[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [deletingLot, setDeletingLot] = useState<string | null>(null);
 
-  useEffect(() => {
-    console.log(
-      '[LotList] Component mounted/updated - projectId:',
-      projectId,
-      'refreshTrigger:',
-      refreshTrigger
-    );
-    fetchLots();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, refreshTrigger]);
-
-  const fetchLots = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      console.log('[LotList] Fetching lots for project:', projectId);
-
-      const response = await fetch(`/api/projects/${projectId}/lots`);
-      console.log('[LotList] Response status:', response.status);
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('[LotList] Error response:', errorData);
-        throw new Error(errorData.message || 'Failed to fetch lots');
-      }
-
-      const data = await response.json();
-      console.log('[LotList] Lots fetched:', data);
-      // API returns array directly, not wrapped in 'lots' property
-      setLots(Array.isArray(data) ? data : data.lots || []);
-    } catch (err) {
-      console.error('[LotList] Fetch error:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setLoading(false);
+  // Use SWR for data fetching
+  const { data, error, isLoading, mutate } = useSWR(
+    `/api/projects/${projectId}/lots`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnMount: true
     }
-  };
+  );
+
+  const lots: Lot[] = Array.isArray(data) ? data : data?.lots || [];
 
   const getStatusIcon = (status: 'pending' | 'in_review' | 'approved' | 'rejected') => {
     switch (status) {
@@ -109,6 +87,7 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
       return;
     }
 
+    setDeletingLot(lotId);
     try {
       const response = await fetch(`/api/lots/${lotId}`, {
         method: 'DELETE',
@@ -120,15 +99,18 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
       }
 
       // Refresh the lot list
-      fetchLots();
+      await mutate();
+      toast.success(`Lot "${lotName}" deleted successfully`);
       console.log('Lot deleted successfully:', lotId);
     } catch (error) {
       console.error('Delete error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete lot');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete lot');
+    } finally {
+      setDeletingLot(null);
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600"></div>
@@ -220,8 +202,9 @@ export function LotList({ projectId, refreshTrigger }: LotListProps) {
                   e.stopPropagation();
                   deleteLot(lot.id, `Lot #${lot.lot_number}${lot.name ? `: ${lot.name}` : ''}`);
                 }}
-                className="ml-4 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
+                className="ml-4 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
                 title="Delete Lot"
+                disabled={deletingLot === lot.id}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
