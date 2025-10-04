@@ -22,6 +22,13 @@ module.exports = {
           800: '#1565C0',
           900: '#0D47A1',
           DEFAULT: '#1E88E5',
+          blue: '#1E88E5',
+          charcoal: '#1F2937',
+        },
+        secondary: {
+          gray: '#6B7280',
+          'light-gray': '#F3F4F6',
+          'blue-pale': '#E3F2FD',
         },
         success: {
           light: '#4CAF50',
