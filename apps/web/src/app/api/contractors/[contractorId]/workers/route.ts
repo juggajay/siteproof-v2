@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 // GET /api/contractors/[contractorId]/workers - List workers for a contractor
 export async function GET(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ contractorId: string }> }
 ) {
   try {

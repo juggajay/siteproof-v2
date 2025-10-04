@@ -24,7 +24,7 @@ export default function DailyDiaryPage() {
   const queryClient = useQueryClient();
 
   // Fetch diary for selected date (if it exists)
-  const { data: diary } = useQuery({
+  useQuery({
     queryKey: ['diary', PROJECT_ID, selectedDate],
     queryFn: async () => {
       const res = await fetch(`/api/daily-diary?project_id=${PROJECT_ID}&date=${selectedDate}`);
@@ -46,7 +46,7 @@ export default function DailyDiaryPage() {
   });
 
   // Fetch previous day's data for auto-populate
-  const { data: previousDayData, refetch: refetchPreviousDay } = useQuery({
+  const { data: previousDayData } = useQuery({
     queryKey: ['previous-day', PROJECT_ID, selectedDate],
     queryFn: async () => {
       const res = await fetch(`/api/daily-diary/previous-day/${PROJECT_ID}?date=${selectedDate}`);

@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import type { Contractor } from '@siteproof/database';
 
 // GET /api/contractors - List contractors
 export async function GET(request: Request) {

@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 // GET /api/daily-diary/[diaryId]/labor - Get labor entries for a diary
-export async function GET(request: Request, { params }: { params: Promise<{ diaryId: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ diaryId: string }> }) {
   try {
     const { diaryId } = await params;
     const supabase = await createClient();
@@ -92,7 +92,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dia
 
 // DELETE /api/daily-diary/[diaryId]/labor - Clear all labor entries for a diary
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ diaryId: string }> }
 ) {
   try {

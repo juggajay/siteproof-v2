@@ -53,7 +53,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ dia
 
 // DELETE /api/daily-diary/[diaryId]/materials
 export async function DELETE(
-  request: Request,
+  _request: Request,
   { params }: { params: Promise<{ diaryId: string }> }
 ) {
   try {

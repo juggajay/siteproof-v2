@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 // GET /api/daily-diary/[diaryId]/cost-report
-export async function GET(request: Request, { params }: { params: Promise<{ diaryId: string }> }) {
+export async function GET(_request: Request, { params }: { params: Promise<{ diaryId: string }> }) {
   try {
     const { diaryId } = await params;
     const supabase = await createClient();
