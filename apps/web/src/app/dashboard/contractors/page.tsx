@@ -302,7 +302,7 @@ function AddContractorModal({
             <Button
               type="button"
               onClick={onClose}
-              variant="outline"
+              variant="secondary"
               fullWidth
             >
               Cancel
