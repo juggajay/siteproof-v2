@@ -135,11 +135,28 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Failed to fetch projects' }, { status: 500 });
     }
 
+    // Filter out deleted projects by checking the projects table
+    let filteredProjects = projects || [];
+    if (filteredProjects.length > 0) {
+      const projectIds = filteredProjects.map((p) => p.project_id);
+      const { data: projectStatuses } = await supabase
+        .from('projects')
+        .select('id, deleted_at')
+        .in('id', projectIds);
+
+      if (projectStatuses) {
+        const deletedIds = new Set(
+          projectStatuses.filter((p) => p.deleted_at !== null).map((p) => p.id)
+        );
+        filteredProjects = filteredProjects.filter((p) => !deletedIds.has(p.project_id));
+      }
+    }
+
     console.log('[Projects API GET] Query results:', {
-      projectsCount: projects?.length || 0,
+      projectsCount: filteredProjects?.length || 0,
       totalCount: count,
-      firstProject: projects?.[0]
-        ? { id: projects[0].project_id, name: projects[0].project_name }
+      firstProject: filteredProjects?.[0]
+        ? { id: filteredProjects[0].project_id, name: filteredProjects[0].project_name }
         : null,
     });
 
@@ -158,13 +175,16 @@ export async function GET(request: Request) {
       }
     }
 
-    if ((!projects || projects.length === 0) && count === 0) {
+    if ((!filteredProjects || filteredProjects.length === 0) && count === 0) {
       console.log(
         '[Projects API GET] No projects in materialized view, checking projects table directly...'
       );
 
-      // Build a query for the projects table
-      let directQuery = supabase.from('projects').select('*', { count: 'exact' });
+      // Build a query for the projects table - exclude soft-deleted projects
+      let directQuery = supabase
+        .from('projects')
+        .select('*', { count: 'exact' })
+        .is('deleted_at', null);
 
       // Apply the same filters
       if (organizationId) {
@@ -238,7 +258,7 @@ export async function GET(request: Request) {
     }
 
     // Transform the data to match frontend expectations
-    const transformedProjects = (projects || []).map((stats: ProjectDashboardStats) => ({
+    const transformedProjects = (filteredProjects || []).map((stats: ProjectDashboardStats) => ({
       id: stats.project_id,
       name: stats.project_name,
       status: stats.project_status,
@@ -263,7 +283,7 @@ export async function GET(request: Request) {
     return NextResponse.json(
       {
         projects: transformedProjects,
-        total: count || 0,
+        total: filteredProjects.length,
         page,
         limit,
       },
