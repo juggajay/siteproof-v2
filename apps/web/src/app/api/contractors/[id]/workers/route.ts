@@ -23,7 +23,7 @@ export async function GET(
       .select(
         `
         *,
-        contractor:contractors(*)
+        contractor:company_profiles!workers_contractor_id_fkey(*)
       `
       )
       .eq('contractor_id', contractorId)
@@ -79,9 +79,10 @@ export async function POST(
 
     // Verify contractor exists and user has permission
     const { data: contractor } = await supabase
-      .from('contractors')
+      .from('company_profiles')
       .select('organization_id')
       .eq('id', contractorId)
+      .eq('company_type', 'contractor')
       .single();
 
     if (!contractor) {
