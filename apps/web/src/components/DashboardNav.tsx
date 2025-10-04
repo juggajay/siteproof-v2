@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { Building2, Calendar, ClipboardList, FileText, LogOut, Menu, X, Home, Settings, ChevronDown } from 'lucide-react';
+import { Building2, Calendar, ClipboardList, FileText, LogOut, Menu, X, Home, Settings } from 'lucide-react';
 import { useState } from 'react';
 
 const navItems = [
@@ -12,22 +12,13 @@ const navItems = [
   { name: 'Daily Diaries', href: '/dashboard/diaries', icon: Calendar },
   { name: 'NCRs', href: '/dashboard/ncrs', icon: ClipboardList },
   { name: 'Reports', href: '/dashboard/reports', icon: FileText },
-];
-
-const adminItems = [
-  { name: 'Companies', href: '/dashboard/companies' },
-  { name: 'Resource Management', href: '/dashboard/admin/resources' },
+  { name: 'Admin', href: '/dashboard/admin', icon: Settings },
 ];
 
 export function DashboardNav() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [adminDropdownOpen, setAdminDropdownOpen] = useState(false);
-
-  const isAdminActive = adminItems.some(
-    (item) => pathname === item.href || pathname.startsWith(item.href + '/')
-  );
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -56,46 +47,6 @@ export function DashboardNav() {
                   </Link>
                 );
               })}
-
-              {/* Admin Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setAdminDropdownOpen(!adminDropdownOpen)}
-                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                    isAdminActive
-                      ? 'border-blue-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Settings className="w-4 h-4 mr-2" />
-                  Admin
-                  <ChevronDown className="w-4 h-4 ml-1" />
-                </button>
-
-                {adminDropdownOpen && (
-                  <div className="absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                    <div className="py-1">
-                      {adminItems.map((item) => {
-                        const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                        return (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => setAdminDropdownOpen(false)}
-                            className={`block px-4 py-2 text-sm ${
-                              isActive
-                                ? 'bg-blue-50 text-blue-700'
-                                : 'text-gray-700 hover:bg-gray-100'
-                            }`}
-                          >
-                            {item.name}
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
             </div>
           </div>
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
@@ -152,31 +103,6 @@ export function DashboardNav() {
                 </Link>
               );
             })}
-
-            {/* Admin section in mobile menu */}
-            <div className="pl-3 pr-4 py-2">
-              <div className="flex items-center text-gray-700 font-medium mb-2">
-                <Settings className="w-4 h-4 mr-3" />
-                Admin
-              </div>
-              <div className="ml-7 space-y-1">
-                {adminItems.map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`block py-2 text-sm ${
-                        isActive ? 'text-blue-700 font-medium' : 'text-gray-600'
-                      }`}
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      {item.name}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
           </div>
           <div className="pt-4 pb-3 border-t border-gray-200">
             <div className="flex items-center px-4">
