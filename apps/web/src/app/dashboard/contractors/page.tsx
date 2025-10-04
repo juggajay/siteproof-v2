@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Building2, Users, Trash2 } from 'lucide-react';
 import Link from 'next/link';
+import { Input, Badge, Button, Modal, ModalFooter } from '@siteproof/design-system';
 
 interface Contractor {
   id: string;
@@ -17,6 +18,7 @@ interface Contractor {
 
 export default function ContractorsPage() {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null);
   const [type, setType] = useState<'labor' | 'plant' | 'all'>('all');
   const queryClient = useQueryClient();
 
@@ -52,13 +54,12 @@ export default function ContractorsPage() {
           <h1 className="text-3xl font-bold">Contractors</h1>
           <p className="text-gray-600 mt-1">Manage labor contractors and plant suppliers</p>
         </div>
-        <button
+        <Button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          leftIcon={<Plus className="w-5 h-5" />}
         >
-          <Plus className="w-5 h-5" />
           Add Contractor
-        </button>
+        </Button>
       </div>
 
       {/* Filter tabs */}
@@ -120,15 +121,12 @@ export default function ContractorsPage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="font-semibold text-lg">{contractor.name}</h3>
-                    <span
-                      className={`text-xs px-2 py-1 rounded ${
-                        contractor.type === 'labor'
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-green-100 text-green-700'
-                      }`}
+                    <Badge
+                      variant={contractor.type === 'labor' ? 'info' : 'success'}
+                      size="sm"
                     >
                       {contractor.type}
-                    </span>
+                    </Badge>
                   </div>
                   {contractor.contact_email && (
                     <p className="text-sm text-gray-600">{contractor.contact_email}</p>
@@ -138,12 +136,9 @@ export default function ContractorsPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => {
-                    if (confirm(`Delete contractor "${contractor.name}"?`)) {
-                      deleteContractor.mutate(contractor.id);
-                    }
-                  }}
+                  onClick={() => setDeleteConfirm({ id: contractor.id, name: contractor.name })}
                   className="text-red-600 hover:text-red-700"
+                  aria-label="Delete contractor"
                 >
                   <Trash2 className="w-5 h-5" />
                 </button>
@@ -180,6 +175,35 @@ export default function ContractorsPage() {
           }}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Delete Contractor"
+        size="small"
+      >
+        <p className="text-gray-700">
+          Are you sure you want to delete <strong>{deleteConfirm?.name}</strong>? This action cannot be undone.
+        </p>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setDeleteConfirm(null)}>
+            Cancel
+          </Button>
+          <Button
+            variant="danger"
+            loading={deleteContractor.isPending}
+            onClick={() => {
+              if (deleteConfirm) {
+                deleteContractor.mutate(deleteConfirm.id);
+                setDeleteConfirm(null);
+              }
+            }}
+          >
+            Delete
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 }
@@ -231,19 +255,15 @@ function AddContractorModal({
       <div className="bg-white rounded-lg max-w-md w-full p-6">
         <h2 className="text-2xl font-bold mb-4">Add Contractor</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contractor Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="ABC Construction Ltd"
-            />
-          </div>
+          <Input
+            label="Contractor Name"
+            type="text"
+            required
+            value={formData.name}
+            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            placeholder="ABC Construction Ltd"
+            fullWidth
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Type *</label>
@@ -253,50 +273,47 @@ function AddContractorModal({
               onChange={(e) =>
                 setFormData({ ...formData, type: e.target.value as 'labor' | 'plant' })
               }
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full min-h-[48px] px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="labor">Labor Contractor</option>
               <option value="plant">Plant/Equipment Supplier</option>
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
-            <input
-              type="email"
-              value={formData.contact_email}
-              onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="contact@contractor.com"
-            />
-          </div>
+          <Input
+            label="Contact Email"
+            type="email"
+            value={formData.contact_email}
+            onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+            placeholder="contact@contractor.com"
+            fullWidth
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contact Phone</label>
-            <input
-              type="tel"
-              value={formData.contact_phone}
-              onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="+1 234 567 8900"
-            />
-          </div>
+          <Input
+            label="Contact Phone"
+            type="tel"
+            value={formData.contact_phone}
+            onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+            placeholder="+1 234 567 8900"
+            fullWidth
+          />
 
           <div className="flex gap-3 pt-4">
-            <button
+            <Button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              variant="outline"
+              fullWidth
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={createContractor.isPending}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300"
+              loading={createContractor.isPending}
+              fullWidth
             >
-              {createContractor.isPending ? 'Creating...' : 'Create Contractor'}
-            </button>
+              Create Contractor
+            </Button>
           </div>
         </form>
       </div>

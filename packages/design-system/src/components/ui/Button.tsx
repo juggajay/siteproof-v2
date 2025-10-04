@@ -9,6 +9,8 @@ export interface ButtonProps extends Omit<HTMLMotionProps<"button">, 'size'> {
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
   fullWidth?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
   children: React.ReactNode;
 }
 
@@ -32,6 +34,8 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       size = 'md',
       loading = false,
       fullWidth = false,
+      leftIcon,
+      rightIcon,
       disabled,
       className = '',
       children,
@@ -73,9 +77,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             </motion.div>
           ) : null}
         </AnimatePresence>
-        
-        <span className={loading ? 'opacity-0' : ''}>
+
+        <span className={`flex items-center gap-2 ${loading ? 'opacity-0' : ''}`}>
+          {leftIcon && <span className="inline-flex">{leftIcon}</span>}
           {children}
+          {rightIcon && <span className="inline-flex">{rightIcon}</span>}
         </span>
       </motion.button>
     );

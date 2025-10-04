@@ -7,6 +7,7 @@ import { Calendar, Save, RotateCcw } from 'lucide-react';
 import { LaborSection } from '@/components/foreman/LaborSection';
 import { PlantSection } from '@/components/foreman/PlantSection';
 import { MaterialsSection } from '@/components/foreman/MaterialsSection';
+import { useToast } from '@siteproof/design-system';
 
 // TODO: Replace with dynamic project selection from user's assigned projects
 // For MVP testing, using hardcoded project ID from environment or fallback
@@ -22,6 +23,7 @@ export default function DailyDiaryPage() {
   const [materialEntries, setMaterialEntries] = useState<any[]>([]);
 
   const queryClient = useQueryClient();
+  const { showError, showSuccess } = useToast();
 
   // Fetch diary for selected date (if it exists)
   useQuery({
@@ -82,10 +84,10 @@ export default function DailyDiaryPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['diary', PROJECT_ID, selectedDate] });
-      alert('Diary saved successfully!');
+      showSuccess('Diary saved successfully!');
     },
     onError: (error: Error) => {
-      alert(`Failed to save diary: ${error.message}`);
+      showError('Failed to save diary', error.message);
     },
   });
 

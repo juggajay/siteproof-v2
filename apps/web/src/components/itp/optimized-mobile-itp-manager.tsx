@@ -5,6 +5,7 @@ import { Plus, ClipboardList } from 'lucide-react';
 import { OptimizedMobileItpCard } from './optimized-mobile-itp-card';
 import { useDebouncedCallback } from '@/hooks/use-debounce';
 import { useOptimisticUpdate } from '@/hooks/use-optimistic-update';
+import { useToast } from '@siteproof/design-system';
 
 interface MobileItpManagerProps {
   projectId: string;
@@ -50,6 +51,7 @@ export function OptimizedMobileItpManager({ projectId, lotId }: MobileItpManager
   const [showTemplateSelection, setShowTemplateSelection] = useState(false);
   const [loading, setLoading] = useState(true);
   const [assigningTemplate, setAssigningTemplate] = useState(false);
+  const { showError, showSuccess } = useToast();
 
   // Track pending updates for batching
   const pendingUpdatesRef = useRef<Map<string, PendingUpdate>>(new Map());
@@ -134,7 +136,7 @@ export function OptimizedMobileItpManager({ projectId, lotId }: MobileItpManager
   } = useOptimisticUpdate<ITPInstance[]>([], updateItpInstancesOnServer, {
     onError: (error) => {
       console.error('Failed to update ITP instances:', error);
-      alert('Failed to save changes. Your changes have been reverted.');
+      showError('Failed to save changes', 'Your changes have been reverted.');
     },
     retryCount: 2,
     retryDelay: 1000,
@@ -288,8 +290,9 @@ export function OptimizedMobileItpManager({ projectId, lotId }: MobileItpManager
         }
       } catch (error) {
         console.error('Error assigning template:', error);
-        alert(
-          `Failed to assign ITP template: ${error instanceof Error ? error.message : 'Please try again.'}`
+        showError(
+          'Failed to assign ITP template',
+          error instanceof Error ? error.message : 'Please try again.'
         );
       } finally {
         setAssigningTemplate(false);
@@ -318,7 +321,7 @@ export function OptimizedMobileItpManager({ projectId, lotId }: MobileItpManager
         console.error('Error deleting ITP:', error);
         // Revert on error
         updateInstances(itpInstances);
-        alert('Failed to delete ITP. Please try again.');
+        showError('Failed to delete ITP', 'Please try again.');
       }
     },
     [projectId, lotId, itpInstances, updateInstances]
@@ -338,7 +341,7 @@ export function OptimizedMobileItpManager({ projectId, lotId }: MobileItpManager
         });
 
         if (response.ok) {
-          alert('ITP submitted for review successfully!');
+          showSuccess('ITP submitted for review successfully!');
           window.location.href = `/dashboard/projects/${projectId}/lots/${lotId}`;
         } else {
           const errorData = await response.json();
@@ -346,8 +349,9 @@ export function OptimizedMobileItpManager({ projectId, lotId }: MobileItpManager
         }
       } catch (error) {
         console.error('Error submitting ITP:', error);
-        alert(
-          `Failed to submit ITP: ${error instanceof Error ? error.message : 'Please try again.'}`
+        showError(
+          'Failed to submit ITP',
+          error instanceof Error ? error.message : 'Please try again.'
         );
       }
     },

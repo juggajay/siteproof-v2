@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Users, Truck, Search } from 'lucide-react';
+import { Input, Badge, Button } from '@siteproof/design-system';
 
 interface Contractor {
   id: string;
@@ -153,32 +154,32 @@ export default function AdminResourcesPage() {
 
       {/* Search and Add */}
       <div className="flex justify-between items-center mb-6">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-          <input
+        <div className="flex-1 max-w-md">
+          <Input
             type="text"
             placeholder="Search resources..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            leftIcon={<Search className="w-5 h-5" />}
+            fullWidth
           />
         </div>
-        <button
+        <Button
           onClick={() => {
             if (activeTab === 'contractors') {
               window.location.href = '/dashboard/contractors';
             }
           }}
-          className="ml-4 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          leftIcon={<Plus className="w-5 h-5" />}
+          className="ml-4"
         >
-          <Plus className="w-5 h-5" />
           Add{' '}
           {activeTab === 'contractors'
             ? 'Contractor'
             : activeTab === 'workers'
               ? 'Worker'
               : 'Plant'}
-        </button>
+        </Button>
       </div>
 
       {/* Tabs */}
@@ -286,9 +287,9 @@ function ContractorsTable({
           <tr key={contractor.id} className="hover:bg-gray-50">
             <td className="py-3 px-4 font-medium">{contractor.company_name}</td>
             <td className="py-3 px-4">
-              <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded">
+              <Badge variant="info" size="sm">
                 {contractor.company_type}
-              </span>
+              </Badge>
             </td>
             <td className="py-3 px-4 text-sm text-gray-600">
               {contractor.primary_contact_email || contractor.primary_contact_phone || 'N/A'}

@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, memo, useCallback } from 'react';
-import { ChevronDown, ChevronUp, CheckCircle2, XCircle, MinusCircle, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { ITPStatusButton, Modal, ModalFooter, Button } from '@siteproof/design-system';
 
 interface OptimizedMobileItpCardProps {
   itp: {
@@ -25,44 +26,7 @@ interface OptimizedMobileItpCardProps {
   onSubmitForReview?: (itpId: string) => void;
 }
 
-// Memoized button component to prevent unnecessary re-renders
-const StatusButton = memo(
-  ({
-    status,
-    currentStatus,
-    icon: Icon,
-    label,
-    onClick,
-    colorClasses,
-  }: {
-    status: 'pass' | 'fail' | 'na';
-    currentStatus: string | null;
-    icon: any;
-    label: string;
-    onClick: () => void;
-    colorClasses: { active: string; inactive: string };
-  }) => {
-    const isActive = currentStatus === status;
-
-    return (
-      <button
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onClick();
-        }}
-        className={`h-16 rounded-lg border-2 transition-all flex flex-col items-center justify-center transform active:scale-95 ${
-          isActive ? colorClasses.active : colorClasses.inactive
-        }`}
-      >
-        <Icon className="h-6 w-6 mb-1" />
-        <span className="text-sm font-medium">{label}</span>
-      </button>
-    );
-  }
-);
-
-StatusButton.displayName = 'StatusButton';
+// Note: StatusButton is now imported from design system as ITPStatusButton
 
 // Memoized ITP item component
 const ItpItem = memo(
@@ -90,42 +54,39 @@ const ItpItem = memo(
           </span>
         </div>
 
-        {/* Status Buttons */}
+        {/* Status Buttons - Using Design System */}
         <div className="grid grid-cols-3 gap-3">
-          <StatusButton
+          <ITPStatusButton
             status="pass"
-            currentStatus={item.status}
-            icon={CheckCircle2}
-            label="PASS"
-            onClick={() => handleStatusClick('pass')}
-            colorClasses={{
-              active: 'bg-green-500 border-green-500 text-white shadow-lg',
-              inactive: 'bg-white border-green-200 text-green-600 hover:bg-green-50',
+            selected={item.status === 'pass'}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleStatusClick('pass');
             }}
+            size="lg"
           />
 
-          <StatusButton
+          <ITPStatusButton
             status="fail"
-            currentStatus={item.status}
-            icon={XCircle}
-            label="FAIL"
-            onClick={() => handleStatusClick('fail')}
-            colorClasses={{
-              active: 'bg-red-500 border-red-500 text-white shadow-lg',
-              inactive: 'bg-white border-red-200 text-red-600 hover:bg-red-50',
+            selected={item.status === 'fail'}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleStatusClick('fail');
             }}
+            size="lg"
           />
 
-          <StatusButton
+          <ITPStatusButton
             status="na"
-            currentStatus={item.status}
-            icon={MinusCircle}
-            label="N/A"
-            onClick={() => handleStatusClick('na')}
-            colorClasses={{
-              active: 'bg-gray-500 border-gray-500 text-white shadow-lg',
-              inactive: 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50',
+            selected={item.status === 'na'}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleStatusClick('na');
             }}
+            size="lg"
           />
         </div>
       </div>
@@ -142,6 +103,7 @@ export const OptimizedMobileItpCard = memo(function OptimizedMobileItpCard({
   onSubmitForReview,
 }: OptimizedMobileItpCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const getStatusColor = useCallback((status: string) => {
     switch (status?.toLowerCase()) {
@@ -274,9 +236,8 @@ export const OptimizedMobileItpCard = memo(function OptimizedMobileItpCard({
   }, [itp]);
 
   const handleDelete = useCallback(() => {
-    if (confirm('Are you sure you want to delete this ITP? This action cannot be undone.')) {
-      onDeleteItp?.(itp.id);
-    }
+    onDeleteItp?.(itp.id);
+    setShowDeleteConfirm(false);
   }, [itp.id, onDeleteItp]);
 
   const handleSubmit = useCallback(() => {
@@ -307,7 +268,7 @@ export const OptimizedMobileItpCard = memo(function OptimizedMobileItpCard({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDelete();
+                  setShowDeleteConfirm(true);
                 }}
                 className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
                 title="Delete ITP"
@@ -345,6 +306,26 @@ export const OptimizedMobileItpCard = memo(function OptimizedMobileItpCard({
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        title="Delete ITP"
+        size="small"
+      >
+        <p className="text-gray-700">
+          Are you sure you want to delete this ITP? This action cannot be undone.
+        </p>
+        <ModalFooter>
+          <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDelete}>
+            Delete
+          </Button>
+        </ModalFooter>
+      </Modal>
     </div>
   );
 });

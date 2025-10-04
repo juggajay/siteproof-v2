@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 interface LotListProps {
   projectId: string;
   canEdit: boolean;
+  onRefreshNeeded?: (refreshFn: () => Promise<void>) => void;
 }
 
 interface Lot {
@@ -30,7 +31,7 @@ interface Lot {
   reviewed_by: string | null;
 }
 
-export function LotList({ projectId }: LotListProps) {
+export function LotList({ projectId, onRefreshNeeded }: LotListProps) {
   const router = useRouter();
   const [lots, setLots] = useState<Lot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,7 +58,12 @@ export function LotList({ projectId }: LotListProps) {
 
   useEffect(() => {
     fetchLots();
-  }, [projectId]);
+
+    // Expose refresh function to parent
+    if (onRefreshNeeded) {
+      onRefreshNeeded(fetchLots);
+    }
+  }, [projectId, onRefreshNeeded]);
 
   const getStatusIcon = (status: 'pending' | 'in_review' | 'approved' | 'rejected') => {
     switch (status) {

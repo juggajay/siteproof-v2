@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Truck, Plus, X } from 'lucide-react';
+import { Input } from '@siteproof/design-system';
 
 interface PlantEntry {
   plant_id: string;
@@ -104,26 +105,22 @@ export function PlantSection({ entries, onChange, organizationId }: PlantSection
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Hours Used</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={entry.hours_used}
-                    onChange={(e) => updateEntry(index, 'hours_used', parseFloat(e.target.value))}
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
-                  <input
-                    type="text"
-                    value={entry.notes || ''}
-                    onChange={(e) => updateEntry(index, 'notes', e.target.value)}
-                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
-                    placeholder="Optional notes..."
-                  />
-                </div>
+                <Input
+                  label="Hours Used"
+                  type="number"
+                  step="0.5"
+                  value={entry.hours_used.toString()}
+                  onChange={(e) => updateEntry(index, 'hours_used', parseFloat(e.target.value))}
+                  fullWidth
+                />
+                <Input
+                  label="Notes"
+                  type="text"
+                  value={entry.notes || ''}
+                  onChange={(e) => updateEntry(index, 'notes', e.target.value)}
+                  placeholder="Optional notes..."
+                  fullWidth
+                />
               </div>
             </div>
           );

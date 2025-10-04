@@ -49,11 +49,13 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
   );
   const [showCreateLotModal, setShowCreateLotModal] = useState(false);
   const [_showUploadDocumentModal, setShowUploadDocumentModal] = useState(false);
+  const [refreshLotsFn, setRefreshLotsFn] = useState<(() => Promise<void>) | null>(null);
 
-  // Simple refresh function without SWR for now to avoid hooks issues
-  const refreshLots = () => {
-    // This will trigger a refresh when the modal closes
-    window.location.reload();
+  // Simple refresh function that calls the LotList's fetchLots
+  const refreshLots = async () => {
+    if (refreshLotsFn) {
+      await refreshLotsFn();
+    }
   };
 
   const canEdit = ['owner', 'admin', 'member'].includes(userRole);
@@ -251,7 +253,11 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
                 </Button>
               )}
             </div>
-            <LotList projectId={project.id} canEdit={canEdit} />
+            <LotList
+              projectId={project.id}
+              canEdit={canEdit}
+              onRefreshNeeded={(fn) => setRefreshLotsFn(() => fn)}
+            />
           </div>
         )}
 
@@ -291,9 +297,9 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
         <CreateLotModal
           projectId={project.id}
           onClose={() => setShowCreateLotModal(false)}
-          onSuccess={() => {
+          onSuccess={async () => {
             console.log('[ProjectDetail] Lot created successfully, refreshing data');
-            refreshLots(); // Properly refresh the SWR cache
+            await refreshLots(); // Properly refresh the lot list
             setShowCreateLotModal(false);
           }}
         />
