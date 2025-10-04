@@ -7,7 +7,6 @@ import {
   ClipboardList,
   FileText,
   ArrowRight,
-  BarChart3,
   AlertCircle,
   CheckCircle,
   Clock,
@@ -19,7 +18,6 @@ import {
   Section,
   Grid,
   Card,
-  CardHeader,
   CardContent,
   Badge,
 } from '@siteproof/design-system';
@@ -107,48 +105,6 @@ export default async function DashboardPage() {
     },
   ];
 
-  // Navigation sections
-  const sections = [
-    {
-      title: 'Project Management',
-      items: [
-        {
-          name: 'Projects',
-          href: '/dashboard/projects',
-          icon: Building2,
-          description: 'View and manage projects',
-        },
-      ],
-    },
-    {
-      title: 'Daily Operations',
-      items: [
-        {
-          name: 'Daily Diaries',
-          href: '/dashboard/diaries',
-          icon: Calendar,
-          description: 'Site activity records',
-        },
-        {
-          name: 'NCRs',
-          href: '/dashboard/ncrs',
-          icon: ClipboardList,
-          description: 'Non-conformance reports',
-        },
-      ],
-    },
-    {
-      title: 'Reporting',
-      items: [
-        {
-          name: 'Reports',
-          href: '/dashboard/reports',
-          icon: BarChart3,
-          description: 'Generate and view reports',
-        },
-      ],
-    },
-  ];
 
   // Mock data for dashboard metrics
   const metrics = [
@@ -252,107 +208,65 @@ export default async function DashboardPage() {
       </Section>
 
       {/* Recent Activity */}
-      <Grid columns={3} gap="large">
-        <div className="col-span-2">
-          <Section title="Recent Activity" spacing="medium">
-            <Card>
-              <CardContent className="p-0">
-                <div className="divide-y divide-gray-200">
-                  {recentActivities.map((activity, index) => (
-                    <div
-                      key={index}
-                      className="p-medium hover:bg-background-offwhite transition-colors"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-small">
-                          <div
-                            className={`p-tiny rounded-full ${
-                              activity.status === 'completed'
-                                ? 'bg-green-100'
-                                : activity.status === 'pending'
-                                  ? 'bg-orange-100'
-                                  : 'bg-blue-100'
-                            }`}
-                          >
-                            {activity.status === 'completed' ? (
-                              <CheckCircle className="w-5 h-5 text-accent-green" />
-                            ) : activity.status === 'pending' ? (
-                              <AlertCircle className="w-5 h-5 text-accent-orange" />
-                            ) : (
-                              <Clock className="w-5 h-5 text-primary-blue" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-body font-medium text-primary-charcoal">
-                              {activity.title}
-                            </p>
-                            <p className="text-body-small text-secondary-gray">
-                              {activity.project}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-caption text-secondary-gray">{activity.time}</p>
-                          <Badge
-                            variant={
-                              activity.status === 'completed'
-                                ? 'success'
-                                : activity.status === 'pending'
-                                  ? 'warning'
-                                  : 'primary'
-                            }
-                            size="small"
-                          >
-                            {activity.status}
-                          </Badge>
-                        </div>
+      <Section title="Recent Activity" spacing="large">
+        <Card>
+          <CardContent className="p-0">
+            <div className="divide-y divide-gray-200">
+              {recentActivities.map((activity, index) => (
+                <div
+                  key={index}
+                  className="p-medium hover:bg-background-offwhite transition-colors"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-small">
+                      <div
+                        className={`p-tiny rounded-full ${
+                          activity.status === 'completed'
+                            ? 'bg-green-100'
+                            : activity.status === 'pending'
+                              ? 'bg-orange-100'
+                              : 'bg-blue-100'
+                        }`}
+                      >
+                        {activity.status === 'completed' ? (
+                          <CheckCircle className="w-5 h-5 text-accent-green" />
+                        ) : activity.status === 'pending' ? (
+                          <AlertCircle className="w-5 h-5 text-accent-orange" />
+                        ) : (
+                          <Clock className="w-5 h-5 text-primary-blue" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-body font-medium text-primary-charcoal">
+                          {activity.title}
+                        </p>
+                        <p className="text-body-small text-secondary-gray">
+                          {activity.project}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </Section>
-        </div>
-
-        {/* Navigation Menu */}
-        <div>
-          <Section title="Navigation" spacing="medium">
-            <div className="space-y-medium">
-              {sections.map((section) => (
-                <Card key={section.title}>
-                  <CardHeader>
-                    <h3 className="text-h5 text-primary-charcoal">{section.title}</h3>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="divide-y divide-gray-100">
-                      {section.items.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <Link
-                            key={item.name}
-                            href={item.href}
-                            className="flex items-center gap-small p-medium hover:bg-background-offwhite transition-colors"
-                          >
-                            <Icon className="w-5 h-5 text-secondary-gray" />
-                            <div className="flex-1">
-                              <p className="text-body font-medium text-primary-charcoal">
-                                {item.name}
-                              </p>
-                              <p className="text-caption text-secondary-gray">{item.description}</p>
-                            </div>
-                            <ArrowRight className="w-4 h-4 text-secondary-gray" />
-                          </Link>
-                        );
-                      })}
+                    <div className="text-right">
+                      <p className="text-caption text-secondary-gray">{activity.time}</p>
+                      <Badge
+                        variant={
+                          activity.status === 'completed'
+                            ? 'success'
+                            : activity.status === 'pending'
+                              ? 'warning'
+                              : 'primary'
+                        }
+                        size="small"
+                      >
+                        {activity.status}
+                      </Badge>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
-          </Section>
-        </div>
-      </Grid>
+          </CardContent>
+        </Card>
+      </Section>
 
       {/* Empty State - Only show if no projects */}
       <Section spacing="large">
