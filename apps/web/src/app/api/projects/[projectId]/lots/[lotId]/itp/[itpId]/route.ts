@@ -7,11 +7,11 @@ export async function GET(
 ) {
   try {
     const supabase = await createClient();
-    
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -42,11 +42,11 @@ export async function PUT(
 ) {
   try {
     const supabase = await createClient();
-    
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -78,60 +78,48 @@ export async function PUT(
     if (body.data !== undefined) {
       updateData.data = body.data;
     }
-    
-    // Handle both column names for compatibility
+
+    // Handle inspection_status
     if (body.inspection_status !== undefined) {
-      // Try to use inspection_status if it exists, otherwise fallback to status
       updateData.inspection_status = body.inspection_status;
-      updateData.status = body.inspection_status; // Set both for compatibility
     }
-    
+
     // Handle timestamps for status changes
-    if (body.inspection_status === 'completed') {
-      updateData.completed_at = new Date().toISOString();
-    } else if (body.inspection_status === 'in_progress' && !existingInstance.started_at) {
-      updateData.started_at = new Date().toISOString();
-    }
-    
+    // Note: completed_at and started_at columns don't exist in itp_instances table
+    // Status transitions are tracked via the inspection_status field only
+
     // Handle evidence_files if provided
     if (body.evidence_files !== undefined) {
       updateData.evidence_files = body.evidence_files;
     }
-    
-    // Handle inspection_date if provided  
+
+    // Handle inspection_date if provided
     if (body.inspection_date !== undefined) {
       updateData.inspection_date = body.inspection_date;
     }
-    
-    if (body.completion_percentage !== undefined) {
-      updateData.completion_percentage = body.completion_percentage;
-    }
 
-    // Calculate completion percentage if data is updated
-    if (body.data) {
+    // Note: completion_percentage column doesn't exist in itp_instances table
+    // Completion tracking is handled via the data field
+
+    // Calculate status based on completion if data is updated
+    if (body.data && !body.inspection_status) {
       const completionPercentage = calculateCompletionPercentage(body.data);
-      updateData.completion_percentage = completionPercentage;
-      
-      // Auto-update status based on completion
-      if (completionPercentage === 100 && !body.inspection_status) {
-        updateData.status = 'completed';
-        updateData.completed_at = new Date().toISOString();
-      } else if (completionPercentage > 0 && !body.inspection_status) {
-        updateData.status = 'in_progress';
-        if (!existingInstance.started_at) {
-          updateData.started_at = new Date().toISOString();
-        }
+
+      // Auto-update inspection_status based on completion
+      if (completionPercentage === 100) {
+        updateData.inspection_status = 'completed';
+      } else if (completionPercentage > 0) {
+        updateData.inspection_status = 'in_progress';
       }
     }
 
     // Update the ITP instance - remove fields that don't exist in the table
     const cleanUpdateData = { ...updateData };
-    
-    // Remove fields that might not exist
-    delete cleanUpdateData.inspection_status; // Keep only if it exists
-    delete cleanUpdateData.inspection_date; // Keep only if it exists
-    delete cleanUpdateData.evidence_files; // Keep only if it exists
-    
+
+    // Remove fields that don't exist in the current schema
+    // Note: inspection_status, inspection_date, evidence_files DO exist (added in migration 0011)
+    delete cleanUpdateData.completion_percentage; // This column was removed
+
     // First try with all fields
     let { data: updatedInstance, error: updateError } = await supabase
       .from('itp_instances')
@@ -149,7 +137,7 @@ export async function PUT(
         .eq('id', itpId)
         .select()
         .single();
-      
+
       updatedInstance = result.data;
       updateError = result.error;
     }
@@ -178,11 +166,11 @@ export async function DELETE(
 ) {
   try {
     const supabase = await createClient();
-    
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -192,9 +180,9 @@ export async function DELETE(
     // Soft delete by setting deleted_at timestamp
     const { error } = await supabase
       .from('itp_instances')
-      .update({ 
+      .update({
         deleted_at: new Date().toISOString(),
-        is_active: false 
+        is_active: false,
       })
       .eq('id', itpId)
       .eq('lot_id', lotId);
@@ -226,7 +214,7 @@ function calculateCompletionPercentage(data: any): number {
       for (const itemKey in data[key]) {
         const item = data[key][itemKey];
         totalItems++;
-        
+
         // Item is considered complete if it has a result
         if (item && item.result && ['pass', 'fail', 'na'].includes(item.result)) {
           completedItems++;
