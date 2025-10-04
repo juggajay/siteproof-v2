@@ -155,14 +155,17 @@ export default function AdminResourcesPage() {
       {/* Search and Add */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex-1 max-w-md">
-          <Input
-            type="text"
-            placeholder="Search resources..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            leftIcon={<Search className="w-5 h-5" />}
-            fullWidth
-          />
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Search resources..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+              fullWidth
+            />
+          </div>
         </div>
         <Button
           onClick={() => {
