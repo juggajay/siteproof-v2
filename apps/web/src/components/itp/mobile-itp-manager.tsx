@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, ClipboardList } from 'lucide-react';
+import { toast } from 'sonner';
 import { MobileItpCard } from './mobile-itp-card';
 
 interface MobileItpManagerProps {
@@ -130,7 +131,7 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
       }
     } catch (error) {
       console.error('Error assigning template:', error);
-      alert(
+      toast.error(
         `Failed to assign ITP template: ${error instanceof Error ? error.message : 'Please try again.'}`
       );
     } finally {
@@ -297,11 +298,11 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
         await loadItpInstances();
       } else {
         console.error('Failed to delete ITP:', response.status);
-        alert('Failed to delete ITP. Please try again.');
+        toast.error('Failed to delete ITP. Please try again.');
       }
     } catch (error) {
       console.error('Error deleting ITP:', error);
-      alert('Failed to delete ITP. Please try again.');
+      toast.error('Failed to delete ITP. Please try again.');
     }
   };
 
@@ -320,7 +321,7 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
 
       if (response.ok) {
         console.log(`✅ ITP ${itpId} submitted for review successfully`);
-        alert('ITP submitted for review successfully!');
+        toast.success('ITP submitted for review successfully!');
         // Reload the instances to get updated status
         await loadItpInstances();
         // Redirect back to lot page
@@ -328,11 +329,11 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
       } else {
         const errorData = await response.json();
         console.error('Failed to submit ITP:', response.status, errorData);
-        alert(`Failed to submit ITP: ${errorData.error || 'Please try again.'}`);
+        toast.error(`Failed to submit ITP: ${errorData.error || 'Please try again.'}`);
       }
     } catch (error) {
       console.error('Error submitting ITP:', error);
-      alert('Failed to submit ITP. Please try again.');
+      toast.error('Failed to submit ITP. Please try again.');
     }
   };
 

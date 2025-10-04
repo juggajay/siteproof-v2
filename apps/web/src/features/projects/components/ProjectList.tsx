@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search } from 'lucide-react';
 import { StateDisplay, Button, Input, Skeleton } from '@siteproof/design-system';
+import { toast } from 'sonner';
 import { useProjects } from '../hooks/useProjects';
 import { ProjectCard } from './ProjectCard';
 
@@ -46,7 +47,7 @@ export function ProjectList({ organizationId, onCreateProject }: ProjectListProp
       console.log('Project deleted successfully:', projectId);
     } catch (error) {
       console.error('Delete error:', error);
-      alert(error instanceof Error ? error.message : 'Failed to delete project');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete project');
     }
   };
 

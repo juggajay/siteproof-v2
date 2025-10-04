@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Calendar, DollarSign, Download } from 'lucide-react';
+import { toast } from 'sonner';
 
 // TODO: Replace with dynamic project selection from user's projects
 // For MVP testing, using hardcoded project ID from environment or fallback
@@ -181,7 +182,7 @@ export default function CostReportsPage() {
           <button
             onClick={() => {
               // TODO: Implement PDF/Excel export
-              alert('Export feature coming soon!');
+              toast.info('Export feature coming soon!');
             }}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >

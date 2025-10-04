@@ -500,7 +500,7 @@ export default function ComponentsShowcase() {
                       icon="+"
                       variant="primary"
                       position="bottom-right"
-                      onClick={() => alert('FAB clicked!')}
+                      onClick={() => setToastVisible(true)}
                     />
                   </div>
                   <div className="relative border-2 border-gray-200 rounded-lg p-8 w-48 h-48">
@@ -510,7 +510,7 @@ export default function ComponentsShowcase() {
                       extended
                       variant="success"
                       position="bottom-center"
-                      onClick={() => alert('Extended FAB clicked!')}
+                      onClick={() => setToastVisible(true)}
                     />
                   </div>
                 </div>

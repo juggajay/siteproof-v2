@@ -18,6 +18,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface InspectionData {
   status: 'pending' | 'pass' | 'fail' | 'na';
@@ -535,7 +536,7 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({ projectId, lotId, itp
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => alert('Photo upload functionality coming soon!')}
+            onClick={() => toast.info('Photo upload functionality coming soon!')}
           >
             <Camera className="w-4 h-4 mr-2" />
             Add Photo

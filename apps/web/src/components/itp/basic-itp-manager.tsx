@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, CheckCircle, XCircle, MinusCircle, Trash2, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { AssignITPModal } from '@/features/lots/components/AssignITPModal';
 
 interface BasicItpManagerProps {
@@ -123,7 +124,7 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
       setShowDeleteConfirm(null);
     } catch (error) {
       console.error('Error deleting ITP:', error);
-      alert('Failed to delete ITP. Please try again.');
+      toast.error('Failed to delete ITP. Please try again.');
     } finally {
       setDeletingId(null);
     }
