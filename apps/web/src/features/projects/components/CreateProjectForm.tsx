@@ -53,6 +53,20 @@ export function CreateProjectForm({ onSubmit, isSubmitting, onCancel }: CreatePr
 
   const visibility = watch('visibility');
 
+  const handleFormSubmit = (data: FormData) => {
+    // Transform empty strings to undefined for optional fields
+    const cleanedData = {
+      ...data,
+      description: data.description || undefined,
+      clientName: data.clientName || undefined,
+      clientEmail: data.clientEmail || undefined,
+      clientCompany: data.clientCompany || undefined,
+      dueDate: data.dueDate || undefined,
+      password: data.password || undefined,
+    };
+    onSubmit(cleanedData);
+  };
+
   const visibilityOptions = [
     {
       value: 'private',
@@ -75,7 +89,7 @@ export function CreateProjectForm({ onSubmit, isSubmitting, onCancel }: CreatePr
   ];
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       {/* Project Details */}
       <div>
         <h3 className="text-lg font-medium text-gray-900 mb-4">Project Details</h3>
