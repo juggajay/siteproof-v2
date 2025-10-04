@@ -7,15 +7,11 @@ import {
   ClipboardList,
   FileText,
   ArrowRight,
-  Users,
   BarChart3,
   AlertCircle,
   CheckCircle,
   Clock,
   TrendingUp,
-  Truck,
-  Package,
-  Settings,
 } from 'lucide-react';
 import { ClientWrapper } from './client-wrapper';
 import {
@@ -122,24 +118,6 @@ export default async function DashboardPage() {
           icon: Building2,
           description: 'View and manage projects',
         },
-        {
-          name: 'Companies',
-          href: '/dashboard/companies',
-          icon: Users,
-          description: 'Manage contractors and suppliers',
-        },
-        {
-          name: 'Contractors',
-          href: '/dashboard/contractors',
-          icon: Truck,
-          description: 'Manage labor and plant contractors',
-        },
-        {
-          name: 'Materials Catalog',
-          href: '/dashboard/materials-catalog',
-          icon: Package,
-          description: 'View and manage materials',
-        },
       ],
     },
     {
@@ -167,17 +145,6 @@ export default async function DashboardPage() {
           href: '/dashboard/reports',
           icon: BarChart3,
           description: 'Generate and view reports',
-        },
-      ],
-    },
-    {
-      title: 'Administration',
-      items: [
-        {
-          name: 'Resource Management',
-          href: '/dashboard/admin/resources',
-          icon: Settings,
-          description: 'Manage contractors, workers, and plant',
         },
       ],
     },

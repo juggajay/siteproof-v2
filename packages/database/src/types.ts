@@ -92,6 +92,8 @@ export interface Project {
   updated_at: string;
   settings: Record<string, any>;
   deleted_at: string | null;
+  foreman_id?: string | null;
+  hide_costs_from_foreman?: boolean;
 }
 
 export interface Lot {
@@ -602,3 +604,112 @@ export type DelayImpact = DailyDiary['delays'][0]['impact'];
 export type SafetyIncidentType = DailyDiary['safety_incidents'][0]['type'];
 export type InspectionType = DailyDiary['inspections'][0]['type'];
 export type AttachmentCategory = DiaryAttachment['category'];
+
+// Contractor types for Foreman-First Flow
+export interface Contractor {
+  id: string;
+  organization_id: string;
+  name: string;
+  type: 'labor' | 'plant';
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Worker {
+  id: string;
+  contractor_id: string;
+  organization_id: string;
+  name: string;
+  job_title: string;
+  hourly_rate: number;
+  certifications?: string[] | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  is_active: boolean;
+  created_at: string;
+
+  // Joined data
+  contractor?: Contractor;
+}
+
+export interface PlantItem {
+  id: string;
+  contractor_id: string;
+  organization_id: string;
+  name: string;
+  hourly_rate: number;
+  is_active: boolean;
+  created_at: string;
+
+  // Joined data
+  contractor?: Contractor;
+}
+
+export interface MaterialSupplier {
+  id: string;
+  organization_id: string;
+  name: string;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Material {
+  id: string;
+  supplier_id?: string | null;
+  organization_id: string;
+  name: string;
+  unit?: string | null;
+  is_preloaded: boolean;
+  created_at: string;
+
+  // Joined data
+  supplier?: MaterialSupplier;
+}
+
+// Extended Daily Diary entries
+export interface DiaryLabor {
+  id: string;
+  diary_id: string;
+  worker_id: string;
+  hours_worked: number;
+  notes?: string | null;
+  created_at: string;
+
+  // Joined data
+  worker?: Worker;
+}
+
+export interface DiaryPlant {
+  id: string;
+  diary_id: string;
+  plant_id: string;
+  hours_used: number;
+  notes?: string | null;
+  created_at: string;
+
+  // Joined data
+  plant?: PlantItem;
+}
+
+export interface DiaryMaterial {
+  id: string;
+  diary_id: string;
+  material_id?: string | null;
+  material_name: string;
+  quantity: number;
+  unit?: string | null;
+  supplier_name?: string | null;
+  notes?: string | null;
+  created_at: string;
+
+  // Joined data
+  material?: Material;
+}
+
+// Helper types for contractors
+export type ContractorType = Contractor['type'];
