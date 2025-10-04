@@ -84,7 +84,7 @@ export default function APITestPage() {
             POST /api/contractors
           </button>
           <p className="text-sm text-gray-600 mt-2">
-            ⚠️ Copy the returned `id` to "Contractor ID" above
+            ⚠️ Copy the returned `id` to &quot;Contractor ID&quot; above
           </p>
         </div>
 
