@@ -143,7 +143,6 @@ export async function DELETE(
       .from('projects')
       .update({
         deleted_at: new Date().toISOString(),
-        status: 'archived',
       })
       .eq('id', projectId);
 
