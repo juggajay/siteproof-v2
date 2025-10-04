@@ -316,6 +316,19 @@ export default function LotDetailClient({ lot, projectId, userRole }: LotDetailC
                           </div>
                         )}
                       </div>
+
+                      <div className="ml-4">
+                        <Button
+                          onClick={() =>
+                            router.push(
+                              `/dashboard/projects/${projectId}/lots/${lot.id}/itp/${itp.id}`
+                            )
+                          }
+                          variant={itp.status === 'completed' ? 'secondary' : 'primary'}
+                        >
+                          {itp.status === 'completed' ? 'View ITP' : 'Complete ITP'}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
