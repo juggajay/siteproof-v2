@@ -207,12 +207,14 @@ export async function GET(request: Request) {
       directQuery = directQuery.order('created_at', { ascending: false });
       directQuery = directQuery.range(offset, offset + limit - 1);
 
-      const { data: directProjects, error: directError } = await directQuery;
+      const { data: directProjects, error: directError, count: directCount } = await directQuery;
 
       if (!directError && directProjects && directProjects.length > 0) {
         console.log(
           '[Projects API GET] Found projects in direct table query:',
-          directProjects.length
+          directProjects.length,
+          'total count:',
+          directCount
         );
 
         // Transform direct project data to match the expected format
@@ -241,7 +243,7 @@ export async function GET(request: Request) {
         return NextResponse.json(
           {
             projects: transformedDirectProjects,
-            total: directProjects.length,
+            total: directCount || directProjects.length,
             page,
             limit,
           },
