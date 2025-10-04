@@ -1,28 +1,30 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  Building2, 
-  Calendar, 
-  ClipboardList, 
-  FileText, 
+import {
+  Building2,
+  Calendar,
+  ClipboardList,
+  FileText,
   ArrowRight,
   Users,
   BarChart3,
   AlertCircle,
   CheckCircle,
   Clock,
-  TrendingUp
+  TrendingUp,
+  Truck,
+  Package,
 } from 'lucide-react';
 import { ClientWrapper } from './client-wrapper';
-import { 
-  PageLayout, 
-  Section, 
+import {
+  PageLayout,
+  Section,
   Grid,
   Card,
   CardHeader,
   CardContent,
-  Badge
+  Badge,
 } from '@siteproof/design-system';
 
 // Force dynamic rendering for pages that use authentication
@@ -30,9 +32,11 @@ export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  
-  const { data: { user } } = await supabase.auth.getUser();
-  
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   if (!user) {
     redirect('/auth/login');
   }
@@ -54,7 +58,8 @@ export default async function DashboardPage() {
               <Building2 className="mx-auto w-16 h-16 text-secondary-gray mb-medium" />
               <h1 className="text-h3 text-primary-charcoal mb-2">Organization Setup Required</h1>
               <p className="text-body text-secondary-gray mb-medium">
-                You need to be part of an organization to use SiteProof. You can either create a new organization or wait to be invited to an existing one.
+                You need to be part of an organization to use SiteProof. You can either create a new
+                organization or wait to be invited to an existing one.
               </p>
               <div className="space-y-3">
                 <ClientWrapper />
@@ -110,21 +115,58 @@ export default async function DashboardPage() {
     {
       title: 'Project Management',
       items: [
-        { name: 'Projects', href: '/dashboard/projects', icon: Building2, description: 'View and manage projects' },
-        { name: 'Companies', href: '/dashboard/companies', icon: Users, description: 'Manage contractors and suppliers' },
+        {
+          name: 'Projects',
+          href: '/dashboard/projects',
+          icon: Building2,
+          description: 'View and manage projects',
+        },
+        {
+          name: 'Companies',
+          href: '/dashboard/companies',
+          icon: Users,
+          description: 'Manage contractors and suppliers',
+        },
+        {
+          name: 'Contractors',
+          href: '/dashboard/contractors',
+          icon: Truck,
+          description: 'Manage labor and plant contractors',
+        },
+        {
+          name: 'Materials Catalog',
+          href: '/dashboard/materials-catalog',
+          icon: Package,
+          description: 'View and manage materials',
+        },
       ],
     },
     {
       title: 'Daily Operations',
       items: [
-        { name: 'Daily Diaries', href: '/dashboard/diaries', icon: Calendar, description: 'Site activity records' },
-        { name: 'NCRs', href: '/dashboard/ncrs', icon: ClipboardList, description: 'Non-conformance reports' },
+        {
+          name: 'Daily Diaries',
+          href: '/dashboard/diaries',
+          icon: Calendar,
+          description: 'Site activity records',
+        },
+        {
+          name: 'NCRs',
+          href: '/dashboard/ncrs',
+          icon: ClipboardList,
+          description: 'Non-conformance reports',
+        },
       ],
     },
     {
       title: 'Reporting',
       items: [
-        { name: 'Reports', href: '/dashboard/reports', icon: BarChart3, description: 'Generate and view reports' },
+        {
+          name: 'Reports',
+          href: '/dashboard/reports',
+          icon: BarChart3,
+          description: 'Generate and view reports',
+        },
       ],
     },
   ];
@@ -139,10 +181,34 @@ export default async function DashboardPage() {
 
   // Mock recent activities
   const recentActivities = [
-    { type: 'diary', title: 'Daily diary submitted', project: 'Harbour Bridge Restoration', time: '2 hours ago', status: 'completed' },
-    { type: 'ncr', title: 'NCR #1234 raised', project: 'City Tower Complex', time: '4 hours ago', status: 'pending' },
-    { type: 'report', title: 'Weekly report generated', project: 'Metro Line Extension', time: '1 day ago', status: 'completed' },
-    { type: 'project', title: 'New project created', project: 'Riverside Apartments', time: '2 days ago', status: 'active' },
+    {
+      type: 'diary',
+      title: 'Daily diary submitted',
+      project: 'Harbour Bridge Restoration',
+      time: '2 hours ago',
+      status: 'completed',
+    },
+    {
+      type: 'ncr',
+      title: 'NCR #1234 raised',
+      project: 'City Tower Complex',
+      time: '4 hours ago',
+      status: 'pending',
+    },
+    {
+      type: 'report',
+      title: 'Weekly report generated',
+      project: 'Metro Line Extension',
+      time: '1 day ago',
+      status: 'completed',
+    },
+    {
+      type: 'project',
+      title: 'New project created',
+      project: 'Riverside Apartments',
+      time: '2 days ago',
+      status: 'active',
+    },
   ];
 
   return (
@@ -151,7 +217,6 @@ export default async function DashboardPage() {
         <h1 className="text-h1 text-primary-charcoal">Dashboard</h1>
         <p className="mt-2 text-body text-secondary-gray">Welcome back, {user.email}!</p>
       </div>
-
 
       {/* Metrics Section */}
       <Section title="Overview" spacing="large">
@@ -176,7 +241,7 @@ export default async function DashboardPage() {
           ))}
         </Grid>
       </Section>
-      
+
       {/* Quick Actions */}
       <Section title="Quick Actions" spacing="large">
         <Grid columns={4} gap="medium">
@@ -186,13 +251,15 @@ export default async function DashboardPage() {
               <Link key={action.title} href={action.href}>
                 <Card variant="interactive" className="h-full">
                   <CardContent>
-                    <div className={`inline-flex rounded-button p-small ${action.bgColor} mb-medium`}>
+                    <div
+                      className={`inline-flex rounded-button p-small ${action.bgColor} mb-medium`}
+                    >
                       <Icon className={`w-6 h-6 ${action.color}`} aria-hidden="true" />
                     </div>
-                    <h3 className="text-h5 text-primary-charcoal mb-1">
-                      {action.title}
-                    </h3>
-                    <p className="text-body-small text-secondary-gray mb-small">{action.description}</p>
+                    <h3 className="text-h5 text-primary-charcoal mb-1">{action.title}</h3>
+                    <p className="text-body-small text-secondary-gray mb-small">
+                      {action.description}
+                    </p>
                     <div className="flex items-center text-body-small font-medium text-primary-blue">
                       Get started
                       <ArrowRight className="ml-1 w-4 h-4" />
@@ -213,13 +280,21 @@ export default async function DashboardPage() {
               <CardContent className="p-0">
                 <div className="divide-y divide-gray-200">
                   {recentActivities.map((activity, index) => (
-                    <div key={index} className="p-medium hover:bg-background-offwhite transition-colors">
+                    <div
+                      key={index}
+                      className="p-medium hover:bg-background-offwhite transition-colors"
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-small">
-                          <div className={`p-tiny rounded-full ${
-                            activity.status === 'completed' ? 'bg-green-100' :
-                            activity.status === 'pending' ? 'bg-orange-100' : 'bg-blue-100'
-                          }`}>
+                          <div
+                            className={`p-tiny rounded-full ${
+                              activity.status === 'completed'
+                                ? 'bg-green-100'
+                                : activity.status === 'pending'
+                                  ? 'bg-orange-100'
+                                  : 'bg-blue-100'
+                            }`}
+                          >
                             {activity.status === 'completed' ? (
                               <CheckCircle className="w-5 h-5 text-accent-green" />
                             ) : activity.status === 'pending' ? (
@@ -239,11 +314,14 @@ export default async function DashboardPage() {
                         </div>
                         <div className="text-right">
                           <p className="text-caption text-secondary-gray">{activity.time}</p>
-                          <Badge 
+                          <Badge
                             variant={
-                              activity.status === 'completed' ? 'success' : 
-                              activity.status === 'pending' ? 'warning' : 'primary'
-                            } 
+                              activity.status === 'completed'
+                                ? 'success'
+                                : activity.status === 'pending'
+                                  ? 'warning'
+                                  : 'primary'
+                            }
                             size="small"
                           >
                             {activity.status}
@@ -282,9 +360,7 @@ export default async function DashboardPage() {
                               <p className="text-body font-medium text-primary-charcoal">
                                 {item.name}
                               </p>
-                              <p className="text-caption text-secondary-gray">
-                                {item.description}
-                              </p>
+                              <p className="text-caption text-secondary-gray">{item.description}</p>
                             </div>
                             <ArrowRight className="w-4 h-4 text-secondary-gray" />
                           </Link>
@@ -304,7 +380,9 @@ export default async function DashboardPage() {
         <Card className="text-center p-huge">
           <CardContent>
             <Building2 className="mx-auto w-16 h-16 text-secondary-gray mb-medium" />
-            <h3 className="text-h4 text-primary-charcoal mb-2">Get Started with Your First Project</h3>
+            <h3 className="text-h4 text-primary-charcoal mb-2">
+              Get Started with Your First Project
+            </h3>
             <p className="text-body text-secondary-gray mb-medium">
               Create your first project to start managing your construction site documentation.
             </p>
