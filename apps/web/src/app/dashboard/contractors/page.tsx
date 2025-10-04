@@ -123,7 +123,7 @@ export default function ContractorsPage() {
                     <h3 className="font-semibold text-lg">{contractor.name}</h3>
                     <Badge
                       variant={contractor.type === 'labor' ? 'info' : 'success'}
-                      size="sm"
+                      size="small"
                     >
                       {contractor.type}
                     </Badge>

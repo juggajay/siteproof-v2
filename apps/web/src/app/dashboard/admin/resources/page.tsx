@@ -290,7 +290,7 @@ function ContractorsTable({
           <tr key={contractor.id} className="hover:bg-gray-50">
             <td className="py-3 px-4 font-medium">{contractor.company_name}</td>
             <td className="py-3 px-4">
-              <Badge variant="info" size="sm">
+              <Badge variant="info" size="small">
                 {contractor.company_type}
               </Badge>
             </td>
