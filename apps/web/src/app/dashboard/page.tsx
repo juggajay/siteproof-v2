@@ -15,6 +15,7 @@ import {
   TrendingUp,
   Truck,
   Package,
+  Settings,
 } from 'lucide-react';
 import { ClientWrapper } from './client-wrapper';
 import {
@@ -166,6 +167,17 @@ export default async function DashboardPage() {
           href: '/dashboard/reports',
           icon: BarChart3,
           description: 'Generate and view reports',
+        },
+      ],
+    },
+    {
+      title: 'Administration',
+      items: [
+        {
+          name: 'Resource Management',
+          href: '/dashboard/admin/resources',
+          icon: Settings,
+          description: 'Manage contractors, workers, and plant',
         },
       ],
     },
