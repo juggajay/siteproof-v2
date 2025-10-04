@@ -181,13 +181,13 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Root redirect
+  // Root redirect - show landing page to non-authenticated users
   if (request.nextUrl.pathname === '/') {
     if (user) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
-    } else {
-      return NextResponse.redirect(new URL('/auth/login', request.url));
     }
+    // Allow landing page to render for non-authenticated users
+    return response;
   }
 
   return response;
