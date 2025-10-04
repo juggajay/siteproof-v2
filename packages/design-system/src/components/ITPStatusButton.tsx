@@ -8,7 +8,7 @@ export type ITPStatus = 'pass' | 'fail' | 'na';
 export interface ITPStatusButtonProps {
   status: ITPStatus;
   selected?: boolean;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   disabled?: boolean;
   size?: 'md' | 'lg';
   className?: string;

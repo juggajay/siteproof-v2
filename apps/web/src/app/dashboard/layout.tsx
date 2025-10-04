@@ -15,36 +15,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       label: 'Dashboard',
       icon: <Home />,
       href: '/dashboard',
+      onClick: () => router.push('/dashboard'),
     },
     {
       id: 'projects',
       label: 'Projects',
       icon: <Building2 />,
       href: '/dashboard/projects',
+      onClick: () => router.push('/dashboard/projects'),
     },
     {
       id: 'diaries',
       label: 'Diaries',
       icon: <Calendar />,
       href: '/dashboard/diaries',
+      onClick: () => router.push('/dashboard/diaries'),
     },
     {
       id: 'ncrs',
       label: 'NCRs',
       icon: <ClipboardList />,
       href: '/dashboard/ncrs',
+      onClick: () => router.push('/dashboard/ncrs'),
     },
     {
       id: 'reports',
       label: 'Reports',
       icon: <FileText />,
       href: '/dashboard/reports',
+      onClick: () => router.push('/dashboard/reports'),
     },
     {
       id: 'admin',
       label: 'Admin',
       icon: <Settings />,
       href: '/dashboard/admin',
+      onClick: () => router.push('/dashboard/admin'),
     },
   ];
 
@@ -64,7 +70,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <BottomNav
           items={navItems}
           activeItemId={activeId}
-          onItemClick={(item) => router.push(item.href)}
         />
       </div>
     </div>
