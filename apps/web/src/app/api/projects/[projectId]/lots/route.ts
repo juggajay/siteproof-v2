@@ -100,14 +100,14 @@ export async function POST(
     }
 
     // Handle ITP template assignment if requested
-    let itpAssignmentResults: { 
-      success: string[]; 
-      failed: Array<{ templateId: string; error: string }> 
+    let itpAssignmentResults: {
+      success: string[];
+      failed: Array<{ templateId: string; error: string }>;
     } = { success: [], failed: [] };
-    
+
     if (selectedItpTemplates && selectedItpTemplates.length > 0) {
       console.log('[Lots API] Assigning ITP templates:', selectedItpTemplates);
-      
+
       // Get project organization for ITP templates
       const { data: project } = await supabase
         .from('projects')
@@ -119,23 +119,21 @@ export async function POST(
         for (const templateId of selectedItpTemplates) {
           try {
             // Create ITP instance
-            const { error: itpError } = await supabase
-              .from('itp_instances')
-              .insert({
-                template_id: templateId,
-                project_id: projectId,
-                lot_id: lot.id,
-                organization_id: project.organization_id,
-                created_by: user.id,
-                inspection_status: 'pending',
-                sync_status: 'local',
-                is_active: true,
-                data: {
-                  inspection_results: {},
-                  overall_status: 'pending',
-                  completion_percentage: 0,
-                },
-              });
+            const { error: itpError } = await supabase.from('itp_instances').insert({
+              template_id: templateId,
+              project_id: projectId,
+              lot_id: lot.id,
+              organization_id: project.organization_id,
+              created_by: user.id,
+              inspection_status: 'pending',
+              sync_status: 'local',
+              is_active: true,
+              data: {
+                inspection_results: {},
+                overall_status: 'pending',
+                completion_percentage: 0,
+              },
+            });
 
             if (itpError) {
               console.error(`Failed to assign ITP template ${templateId}:`, itpError);
@@ -165,6 +163,72 @@ export async function POST(
     });
   } catch (error) {
     console.error('Create lot error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ projectId: string }> }
+) {
+  try {
+    const supabase = await createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { projectId } = await params;
+    const { searchParams } = new URL(request.url);
+    const lotId = searchParams.get('lotId');
+
+    if (!lotId) {
+      return NextResponse.json({ error: 'Lot ID is required' }, { status: 400 });
+    }
+
+    // Check if user has permission to delete lots in this project
+    const { data: project } = await supabase
+      .from('projects')
+      .select('organization_id')
+      .eq('id', projectId)
+      .single();
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    const { data: membership } = await supabase
+      .from('organization_members')
+      .select('role')
+      .eq('organization_id', project.organization_id)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!membership || !['owner', 'admin', 'member'].includes(membership.role)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    }
+
+    // Soft delete by setting deleted_at timestamp
+    const { error } = await supabase
+      .from('lots')
+      .update({
+        deleted_at: new Date().toISOString(),
+      })
+      .eq('id', lotId)
+      .eq('project_id', projectId);
+
+    if (error) {
+      console.error('Error deleting lot:', error);
+      return NextResponse.json({ error: 'Failed to delete lot' }, { status: 500 });
+    }
+
+    return NextResponse.json({ message: 'Lot deleted successfully' });
+  } catch (error) {
+    console.error('Delete lot error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
