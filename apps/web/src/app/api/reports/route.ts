@@ -30,6 +30,10 @@ export async function GET(request: Request) {
     const requested_by = searchParams?.get('requested_by');
     const status = searchParams?.get('status');
     const report_type = searchParams?.get('report_type');
+    const project_id = searchParams?.get('project_id');
+    const diary_date = searchParams?.get('diary_date');
+    const start_date = searchParams?.get('start_date');
+    const end_date = searchParams?.get('end_date');
 
     // Build query
     let query = supabase
@@ -104,7 +108,35 @@ export async function GET(request: Request) {
       }
     }
 
-    return NextResponse.json({ reports: reports || [] });
+    let filteredReports = reports || [];
+
+    if (project_id) {
+      filteredReports = filteredReports.filter(
+        (report) => report.parameters?.project_id === project_id
+      );
+    }
+
+    if (diary_date) {
+      filteredReports = filteredReports.filter(
+        (report) => report.parameters?.diary_date === diary_date
+      );
+    }
+
+    if (start_date) {
+      filteredReports = filteredReports.filter((report) => {
+        const date = report.parameters?.diary_date;
+        return !date || date >= start_date;
+      });
+    }
+
+    if (end_date) {
+      filteredReports = filteredReports.filter((report) => {
+        const date = report.parameters?.diary_date;
+        return !date || date <= end_date;
+      });
+    }
+
+    return NextResponse.json({ reports: filteredReports });
   } catch (error) {
     console.error('Error in reports GET:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

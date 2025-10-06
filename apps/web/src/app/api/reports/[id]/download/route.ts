@@ -79,6 +79,10 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       );
     }
 
+    if (report.report_type === 'daily_diary_entry') {
+      return downloadDailyDiaryEntry(report, supabase);
+    }
+
     // Handle ITP reports differently
     if (report.report_type === 'itp_report') {
       return generateITPReport(report, supabase);
@@ -583,4 +587,52 @@ async function generateITPReport(report: any, _supabase: SupabaseClient): Promis
     console.error('Error generating ITP report:', error);
     return NextResponse.json({ error: 'Failed to generate ITP report' }, { status: 500 });
   }
+}
+async function downloadDailyDiaryEntry(report: any, supabase: SupabaseClient) {
+  const diaryId = report.parameters?.diary_id;
+  const projectId = report.parameters?.project_id;
+
+  if (!diaryId || !projectId) {
+    return NextResponse.json(
+      { error: 'Diary reference is missing from report parameters' },
+      { status: 400 }
+    );
+  }
+
+  const { data: diary, error: diaryError } = await supabase
+    .from('daily_diaries')
+    .select('*')
+    .eq('id', diaryId)
+    .eq('project_id', projectId)
+    .single();
+
+  if (diaryError || !diary) {
+    return NextResponse.json({ error: 'Diary not found' }, { status: 404 });
+  }
+
+  const [{ data: labour }, { data: plant }, { data: materials }] = await Promise.all([
+    supabase.from('diary_labour_entries').select('*').eq('diary_id', diaryId),
+    supabase.from('diary_plant_entries').select('*').eq('diary_id', diaryId),
+    supabase.from('diary_material_entries').select('*').eq('diary_id', diaryId),
+  ]);
+
+  const payload = {
+    diary,
+    labour_entries: labour || [],
+    plant_entries: plant || [],
+    material_entries: materials || [],
+  };
+
+  const json = JSON.stringify(payload, null, 2);
+  const buffer = Buffer.from(json, 'utf-8');
+  const filename = (report.report_name || 'daily-diary') + '.json';
+
+  return new NextResponse(buffer, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Content-Disposition': 'attachment; filename= + filename + ',
+      'Content-Length': buffer.length.toString(),
+    },
+  });
 }

@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
         p_project_id: validatedData.project_id,
         p_diary_date: validatedData.diary_date,
       });
-      
+
       if (rpcError) {
         // Fallback: Generate diary number manually
         const dateStr = validatedData.diary_date.replace(/-/g, '');
@@ -245,15 +245,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Create diary (exclude the entry arrays from main diary)
-    const { 
-      labour_entries, 
-      plant_entries, 
+    const {
+      labour_entries,
+      plant_entries,
       material_entries,
       weather_conditions,
       temperature_min,
       temperature_max,
       wind_conditions,
-      ...diaryData 
+      ...diaryData
     } = validatedData;
 
     // Build weather object if weather fields are provided
@@ -263,16 +263,18 @@ export async function POST(request: NextRequest) {
         conditions: weather_conditions,
         temperature: {
           min: temperature_min,
-          max: temperature_max
+          max: temperature_max,
         },
-        wind: wind_conditions
+        wind: wind_conditions,
       };
     }
 
     // Calculate total workers from labour entries if not provided
-    const totalWorkers = diaryData.total_workers || 
-      (labour_entries ? labour_entries.reduce((sum: number, entry: any) => 
-        sum + (entry.workers || 1), 0) : 0);
+    const totalWorkers =
+      diaryData.total_workers ||
+      (labour_entries
+        ? labour_entries.reduce((sum: number, entry: any) => sum + (entry.workers || 1), 0)
+        : 0);
 
     const { data: diary, error: diaryError } = await supabase
       .from('daily_diaries')
@@ -323,7 +325,7 @@ export async function POST(request: NextRequest) {
 
       if (labourError) {
         console.error('Error inserting labour entries with new fields:', labourError);
-        
+
         // Try fallback with only basic fields if new columns don't exist
         const basicLabourData = labour_entries.map((entry: any) => ({
           diary_id: diary.id,
@@ -342,17 +344,19 @@ export async function POST(request: NextRequest) {
           location: entry.location || null,
           created_by: user.id,
         }));
-        
+
         const { data: fallbackLabour, error: fallbackError } = await supabase
           .from('diary_labour_entries')
           .insert(basicLabourData)
           .select();
-          
+
         if (fallbackError) {
           console.error('Error inserting labour entries with basic fields:', fallbackError);
           console.error('Labour data that failed:', basicLabourData);
         } else {
-          console.log(`Successfully inserted ${fallbackLabour?.length || 0} labour entries with basic fields`);
+          console.log(
+            `Successfully inserted ${fallbackLabour?.length || 0} labour entries with basic fields`
+          );
         }
       } else {
         console.log(`Successfully inserted ${insertedLabour?.length || 0} labour entries`);
@@ -389,6 +393,38 @@ export async function POST(request: NextRequest) {
       if (plantError) {
         console.error('Error inserting plant entries:', plantError);
       }
+    }
+
+    try {
+      const diaryDate = new Date(diary.diary_date);
+      const formattedDate = diaryDate.toLocaleDateString('en-AU', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+
+      await supabase.from('report_queue').insert({
+        organization_id: project.organization_id,
+        report_type: 'daily_diary_entry',
+        report_name: 'Daily Diary - ' + formattedDate,
+        description: diary.work_summary?.slice(0, 160) || 'Daily diary entry',
+        format: 'json',
+        parameters: {
+          project_id: validatedData.project_id,
+          diary_id: diary.id,
+          diary_date: validatedData.diary_date,
+          diary_number: diary.diary_number,
+          folder: 'daily_diaries',
+        },
+        requested_by: user.id,
+        status: 'completed',
+        progress: 100,
+        file_url: 'internal:daily-diary:' + diary.id,
+        requested_at: new Date().toISOString(),
+        completed_at: new Date().toISOString(),
+      });
+    } catch (reportError) {
+      console.error('Failed to index diary in reports queue:', reportError);
     }
 
     // Insert material entries if provided
@@ -431,17 +467,23 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       console.error('Validation errors:', error.errors);
-      return NextResponse.json({ 
-        error: 'Invalid input', 
-        details: error.errors,
-        message: error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
-      }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'Invalid input',
+          details: error.errors,
+          message: error.errors.map((e) => `${e.path.join('.')}: ${e.message}`).join(', '),
+        },
+        { status: 400 }
+      );
     }
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return NextResponse.json({ 
-      error: 'Failed to create diary',
-      message: errorMessage 
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Failed to create diary',
+        message: errorMessage,
+      },
+      { status: 500 }
+    );
   }
 }
