@@ -3,13 +3,12 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/features/auth/hooks/useAuth';
-import { Building2, Calendar, ClipboardList, FileText, LogOut, Menu, X, Home, Settings } from 'lucide-react';
+import { Building2, ClipboardList, FileText, LogOut, Menu, X, Home, Settings } from 'lucide-react';
 import { useState } from 'react';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Projects', href: '/dashboard/projects', icon: Building2 },
-  { name: 'Daily Diaries', href: '/dashboard/diaries', icon: Calendar },
   { name: 'NCRs', href: '/dashboard/ncrs', icon: ClipboardList },
   { name: 'Reports', href: '/dashboard/reports', icon: FileText },
   { name: 'Admin', href: '/dashboard/admin', icon: Settings },

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Building,
@@ -17,6 +18,11 @@ import {
 import { Button } from '@siteproof/design-system';
 import { CreateLotModal } from '@/features/lots/components/CreateLotModal';
 import { LotList } from '@/features/lots/components/LotList';
+import { DiaryListForProject } from '@/components/diary/DiaryListForProject';
+
+const SECTIONS = ['overview', 'lots', 'diaries', 'documents', 'team'] as const;
+
+type Section = (typeof SECTIONS)[number];
 
 interface Project {
   id: string;
@@ -44,9 +50,18 @@ interface ProjectDetailClientProps {
 }
 
 export default function ProjectDetailClient({ project, userRole }: ProjectDetailClientProps) {
-  const [activeSection, setActiveSection] = useState<'overview' | 'lots' | 'documents' | 'team'>(
-    'overview'
-  );
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const sectionParam = searchParams?.get('section');
+
+  const getInitialSection = (): Section => {
+    if (sectionParam && (SECTIONS as readonly string[]).includes(sectionParam)) {
+      return sectionParam as Section;
+    }
+    return 'overview';
+  };
+
+  const [activeSection, setActiveSection] = useState<Section>(getInitialSection());
   const [showCreateLotModal, setShowCreateLotModal] = useState(false);
   const [_showUploadDocumentModal, setShowUploadDocumentModal] = useState(false);
   const [refreshLotsFn, setRefreshLotsFn] = useState<(() => Promise<void>) | null>(null);
@@ -56,6 +71,21 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
     if (refreshLotsFn) {
       await refreshLotsFn();
     }
+  };
+
+  useEffect(() => {
+    if (
+      sectionParam &&
+      (SECTIONS as readonly string[]).includes(sectionParam) &&
+      sectionParam !== activeSection
+    ) {
+      setActiveSection(sectionParam as Section);
+    }
+  }, [sectionParam, activeSection]);
+
+  const handleSectionChange = (section: Section) => {
+    setActiveSection(section);
+    router.replace('/dashboard/projects/' + project.id + '?section=' + section, { scroll: false });
   };
 
   const canEdit = ['owner', 'admin', 'member'].includes(userRole);
@@ -123,10 +153,10 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
         {/* Section Navigation */}
         <div className="border-b border-gray-200 mb-8">
           <nav className="-mb-px flex space-x-8">
-            {(['overview', 'lots', 'documents', 'team'] as const).map((section) => (
+            {SECTIONS.map((section) => (
               <button
                 key={section}
-                onClick={() => setActiveSection(section)}
+                onClick={() => handleSectionChange(section)}
                 className={`
                   py-2 px-1 border-b-2 font-medium text-sm capitalize
                   ${
@@ -258,6 +288,23 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
               canEdit={canEdit}
               onRefreshNeeded={(fn) => setRefreshLotsFn(() => fn)}
             />
+          </div>
+        )}
+
+        {activeSection === 'diaries' && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-gray-900">Daily Diaries</h2>
+              <Link href={'/dashboard/projects/' + project.id + '/diaries/new'}>
+                <Button size="sm">
+                  <Plus className="mr-2 h-4 w-4" />
+                  New Diary Entry
+                </Button>
+              </Link>
+            </div>
+            <div className="p-6">
+              <DiaryListForProject projectId={project.id} />
+            </div>
           </div>
         )}
 

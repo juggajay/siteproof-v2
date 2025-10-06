@@ -3,7 +3,7 @@
 import { DashboardNav } from '@/components/DashboardNav';
 import { BottomNav } from '@siteproof/design-system';
 import { usePathname, useRouter } from 'next/navigation';
-import { Home, Building2, Calendar, ClipboardList, FileText, Settings } from 'lucide-react';
+import { Home, Building2, ClipboardList, FileText, Settings } from 'lucide-react';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,13 +23,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       icon: <Building2 />,
       href: '/dashboard/projects',
       onClick: () => router.push('/dashboard/projects'),
-    },
-    {
-      id: 'diaries',
-      label: 'Diaries',
-      icon: <Calendar />,
-      href: '/dashboard/diaries',
-      onClick: () => router.push('/dashboard/diaries'),
     },
     {
       id: 'ncrs',
@@ -54,23 +47,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     },
   ];
 
-  const activeId = navItems.find(item => pathname === item.href || pathname.startsWith(item.href + '/'))?.id || 'dashboard';
+  const activeId =
+    navItems.find((item) => pathname === item.href || pathname.startsWith(item.href + '/'))?.id ||
+    'dashboard';
 
   return (
     <div className="min-h-screen flex flex-col">
       <DashboardNav />
 
       {/* Main content with bottom padding for nav on mobile */}
-      <main className="flex-1 pb-20 md:pb-0">
-        {children}
-      </main>
+      <main className="flex-1 pb-20 md:pb-0">{children}</main>
 
       {/* Bottom navigation - only on mobile */}
       <div className="md:hidden">
-        <BottomNav
-          items={navItems}
-          activeItemId={activeId}
-        />
+        <BottomNav items={navItems} activeItemId={activeId} />
       </div>
     </div>
   );

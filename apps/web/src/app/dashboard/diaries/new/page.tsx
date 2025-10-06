@@ -1,18 +1,16 @@
-import { Metadata } from 'next';
-import { Suspense } from 'react';
-import NewDiaryClient from './client';
+import { redirect } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
+interface PageProps {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
 
-export const metadata: Metadata = {
-  title: 'New Daily Diary - SiteProof',
-  description: 'Create a new daily diary entry',
-};
+export default function LegacyNewDiaryPage({ searchParams }: PageProps) {
+  const projectIdParam = searchParams?.project_id;
+  const projectId = Array.isArray(projectIdParam) ? projectIdParam[0] : projectIdParam;
 
-export default function NewDiaryPage() {
-  return (
-    <Suspense fallback={<div className="flex items-center justify-center h-64">Loading...</div>}>
-      <NewDiaryClient />
-    </Suspense>
-  );
+  if (projectId) {
+    redirect('/dashboard/projects/' + projectId + '/diaries/new');
+  }
+
+  redirect('/dashboard/projects');
 }
