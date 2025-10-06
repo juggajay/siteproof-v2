@@ -1,0 +1,64 @@
+{
+  "organization_id": "org_123",
+  "project_id": "proj_123",
+  "compliance_status": "NON_COMPLIANT",
+  "risk_level": "HIGH",
+  "issues": [
+    {
+      "category": "Earthworks",
+      "standard": "AS 3798",
+      "section": "Section 5.3",
+      "description": "Compaction test results (97.3%) below required 98% for Level 1 supervision",
+      "severity": "MAJOR",
+      "remediation_required": true
+    },
+    {
+      "category": "Drainage",
+      "standard": "AS/NZS 3500.3",
+      "section": "Cover Depths",
+      "description": "Insufficient cover depth (280mm) for drainage pipes under traffic areas (minimum 300mm required)",
+      "severity": "CRITICAL",
+      "remediation_required": true
+    },
+    {
+      "category": "Weather",
+      "standard": "AS 3798",
+      "description": "High rainfall in last 7 days (45mm) requires additional moisture content monitoring",
+      "severity": "MINOR",
+      "remediation_required": false
+    }
+  ],
+  "financial_impact": {
+    "estimated_remediation_cost": 75000,
+    "potential_penalties": 25000,
+    "delay_costs": 45000,
+    "total_risk": 145000
+  },
+  "timeline_impact": {
+    "estimated_delay_days": 15,
+    "critical_path_affected": true,
+    "weather_risk_days": 5
+  },
+  "recommendations": [
+    {
+      "priority": "CRITICAL",
+      "action": "Increase drainage pipe cover depth to minimum 300mm",
+      "standard_reference": "AS/NZS 3500.3 Section 5.4",
+      "cost_estimate": 35000
+    },
+    {
+      "priority": "HIGH",
+      "action": "Re-compact and retest earthworks to achieve 98% MDD",
+      "standard_reference": "AS 3798 Section 5.3",
+      "cost_estimate": 15000
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Implement additional moisture content monitoring program",
+      "cost_estimate": 5000
+    }
+  ],
+  "analysis": "Project has significant compliance issues requiring immediate attention. Major non-compliances identified in earthworks compaction (97.3% vs required 98%) and drainage cover depths (280mm vs required 300mm). Weather conditions are manageable but require monitoring. Council approval timelines present significant risk with average processing times of 259 days versus 40-day statutory target. Estimated total financial impact of $145,000 including remediation, penalties, and delay costs. Critical path will be affected with estimated 15-day delay. Immediate action required on drainage cover depths and earthworks compaction to avoid further delays and cost escalation.",
+  "tool_calls_made": 4,
+  "timestamp": "2025-10-06T07:08:17.202Z"
+}

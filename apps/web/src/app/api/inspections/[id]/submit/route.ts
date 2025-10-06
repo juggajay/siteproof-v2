@@ -210,6 +210,133 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }
     }
 
+    try {
+      const organizationId = inspection.project?.organization_id;
+      if (organizationId) {
+        let organizationName: string | undefined = undefined;
+
+        try {
+          const { data: organizationData, error: organizationError } = await supabase
+            .from('organizations')
+            .select('name')
+            .eq('id', organizationId)
+            .maybeSingle();
+
+          if (!organizationError) {
+            organizationName = organizationData?.name ?? undefined;
+          } else {
+            console.error(
+              'Failed to fetch organization name for ITP report indexing:',
+              organizationError
+            );
+          }
+        } catch (orgLookupError) {
+          console.error('Organization lookup error for ITP report indexing:', orgLookupError);
+        }
+
+        const lotLabel =
+          inspection.lot?.lot_number?.toString().trim() ||
+          inspection.lot?.name?.toString().trim() ||
+          undefined;
+        const templateName = inspection.template?.name?.toString().trim() || 'ITP Inspection';
+        const statusLabel = updatedInspection.inspection_status || 'pending';
+        const inspectionDate = updatedInspection.inspection_date || new Date().toISOString();
+
+        const nowIso = new Date().toISOString();
+        const projectName = inspection.project?.name?.toString().trim();
+
+        const reportParameters = {
+          project_id: inspection.project_id,
+          project_name: projectName,
+          lot_id: inspection.lot_id,
+          lot_number: lotLabel,
+          organization_id: organizationId,
+          organization_name: organizationName,
+          inspection_date: inspectionDate,
+          inspection_status: statusLabel,
+          template_id: inspection.template_id,
+          template_name: templateName,
+          itp_instance_id: inspectionId,
+          folder: 'itp_reports',
+          itp_instances: [
+            {
+              id: inspectionId,
+              template_id: inspection.template_id,
+              template_name: templateName,
+              lot_id: inspection.lot_id,
+              lot_number: lotLabel,
+              project_id: inspection.project_id,
+              project_name: projectName,
+              inspection_date: inspectionDate,
+              inspection_status: statusLabel,
+            },
+          ],
+        } as Record<string, any>;
+
+        const reportNameParts = ['ITP Report', templateName];
+        if (lotLabel) {
+          reportNameParts.push(`Lot ${lotLabel}`);
+        }
+        if (projectName) {
+          reportNameParts.push(projectName);
+        }
+
+        const reportName = reportNameParts.join(' - ');
+
+        const baseReportData = {
+          report_name: reportName,
+          description: `Inspection status: ${statusLabel}`,
+          format: 'pdf' as const,
+          parameters: reportParameters,
+          requested_by: user.id,
+          status: 'completed' as const,
+          progress: 100,
+          file_url: `internal:itp:${inspectionId}`,
+          requested_at: nowIso,
+          completed_at: nowIso,
+        };
+
+        const { data: existingEntries, error: fetchExistingError } = await supabase
+          .from('report_queue')
+          .select('id, parameters')
+          .eq('organization_id', organizationId)
+          .eq('report_type', 'itp_report')
+          .order('requested_at', { ascending: false })
+          .limit(50);
+
+        if (fetchExistingError) {
+          console.error('Error checking existing ITP reports in queue:', fetchExistingError);
+        }
+
+        const existingEntry = existingEntries?.find(
+          (entry: any) => entry.parameters?.itp_instance_id === inspectionId
+        );
+
+        if (existingEntry) {
+          const { error: updateReportError } = await supabase
+            .from('report_queue')
+            .update(baseReportData)
+            .eq('id', existingEntry.id);
+
+          if (updateReportError) {
+            console.error('Failed to update ITP report entry:', updateReportError);
+          }
+        } else {
+          const { error: insertReportError } = await supabase.from('report_queue').insert({
+            organization_id: organizationId,
+            report_type: 'itp_report',
+            ...baseReportData,
+          });
+
+          if (insertReportError) {
+            console.error('Failed to index ITP report entry:', insertReportError);
+          }
+        }
+      }
+    } catch (reportIndexError) {
+      console.error('Unexpected error indexing ITP report:', reportIndexError);
+    }
+
     return NextResponse.json({
       message: 'Inspection submitted successfully',
       inspection: updatedInspection,
