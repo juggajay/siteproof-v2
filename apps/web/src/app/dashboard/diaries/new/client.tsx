@@ -78,11 +78,15 @@ export default function NewDiaryClient() {
             {projects && projects.length > 0 && (
               <select
                 className="border rounded px-4 py-2"
-                onChange={(e) =>
-                  router.push(
-                    `/dashboard/diaries/new?project_id=${e.target.value}&date=${date.toISOString()}`
-                  )
-                }
+                defaultValue=""
+                onChange={(e) => {
+                  const selectedProjectId = e.target.value;
+                  if (selectedProjectId) {
+                    router.push(
+                      `/dashboard/diaries/new?project_id=${selectedProjectId}&date=${date.toISOString()}`
+                    );
+                  }
+                }}
               >
                 <option value="">Select a project</option>
                 {projects.map((p: any) => (
@@ -93,10 +97,21 @@ export default function NewDiaryClient() {
               </select>
             )}
           </div>
-        ) : (
+        ) : isLoading ? (
           <div className="p-8 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto text-gray-400" />
             <p className="mt-2 text-gray-500">Loading project...</p>
+          </div>
+        ) : (
+          <div className="p-8 text-center text-red-500">
+            <p>Failed to load project. Please try again.</p>
+            <Button
+              variant="ghost"
+              className="mt-4"
+              onClick={() => router.push('/dashboard/diaries/new')}
+            >
+              Back to project selection
+            </Button>
           </div>
         )}
       </div>
