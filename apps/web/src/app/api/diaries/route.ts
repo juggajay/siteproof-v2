@@ -403,7 +403,7 @@ export async function POST(request: NextRequest) {
         year: 'numeric',
       });
 
-      await supabase.from('report_queue').insert({
+      const { error: reportIndexError } = await supabase.from('report_queue').insert({
         organization_id: project.organization_id,
         report_type: 'daily_diary_entry',
         report_name: 'Daily Diary - ' + formattedDate,
@@ -423,6 +423,10 @@ export async function POST(request: NextRequest) {
         requested_at: new Date().toISOString(),
         completed_at: new Date().toISOString(),
       });
+
+      if (reportIndexError) {
+        throw reportIndexError;
+      }
     } catch (reportError) {
       console.error('Failed to index diary in reports queue:', reportError);
     }

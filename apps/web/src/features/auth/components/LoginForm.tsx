@@ -56,10 +56,10 @@ export function LoginForm() {
       }
 
       toast.success('Welcome back!');
-      
-      // Redirect to dashboard or requested page
-      router.push(redirectTo);
-      router.refresh();
+
+      // Force a full page reload to ensure cookies are properly set
+      // This is especially important on mobile devices
+      window.location.href = redirectTo;
     } catch (error) {
       console.error('Login error:', error);
       toast.error('An unexpected error occurred. Please try again.');
