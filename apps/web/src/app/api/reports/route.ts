@@ -61,6 +61,31 @@ export async function GET(request: Request) {
       query = query.eq('report_type', report_type);
     }
 
+    const parseReportDate = (report: any): number | undefined => {
+      const params = (report?.parameters as Record<string, any> | null) || {};
+      const rawDate =
+        params.diary_date ||
+        params.inspection_date ||
+        params.date ||
+        params.generated_at ||
+        params.created_at;
+
+      if (!rawDate) {
+        return undefined;
+      }
+
+      const dateValue = new Date(rawDate).getTime();
+      return Number.isNaN(dateValue) ? undefined : dateValue;
+    };
+
+    const parseFilterDate = (value: string | null): number | undefined => {
+      if (!value) {
+        return undefined;
+      }
+      const dateValue = new Date(value).getTime();
+      return Number.isNaN(dateValue) ? undefined : dateValue;
+    };
+
     const { data: reports, error } = await query;
 
     if (error) {
@@ -108,6 +133,9 @@ export async function GET(request: Request) {
       }
     }
 
+    const startDateMs = parseFilterDate(start_date);
+    const endDateMs = parseFilterDate(end_date);
+
     let filteredReports = reports || [];
 
     if (project_id) {
@@ -117,22 +145,23 @@ export async function GET(request: Request) {
     }
 
     if (diary_date) {
-      filteredReports = filteredReports.filter(
-        (report) => report.parameters?.diary_date === diary_date
-      );
-    }
-
-    if (start_date) {
       filteredReports = filteredReports.filter((report) => {
-        const date = report.parameters?.diary_date;
-        return !date || date >= start_date;
+        const params = (report.parameters as Record<string, any> | null) || {};
+        return params.diary_date === diary_date || params.inspection_date === diary_date;
       });
     }
 
-    if (end_date) {
+    if (startDateMs !== undefined) {
       filteredReports = filteredReports.filter((report) => {
-        const date = report.parameters?.diary_date;
-        return !date || date <= end_date;
+        const reportDate = parseReportDate(report);
+        return reportDate === undefined || reportDate >= startDateMs;
+      });
+    }
+
+    if (endDateMs !== undefined) {
+      filteredReports = filteredReports.filter((report) => {
+        const reportDate = parseReportDate(report);
+        return reportDate === undefined || reportDate <= endDateMs;
       });
     }
 
