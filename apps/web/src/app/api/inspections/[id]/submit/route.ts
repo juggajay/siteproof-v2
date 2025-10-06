@@ -183,6 +183,68 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       }
     }
 
+    // Generate AI-powered ITP report
+    try {
+      if (process.env.ANTHROPIC_API_KEY) {
+        // Prepare inspection data for AI analysis
+        const inspectionDataForAI = {
+          id: inspectionId,
+          projectId: inspection.project_id,
+          date: updatedInspection.inspection_date || new Date().toISOString(),
+          type: determineInspectionType(inspection.template.name),
+          location: `${inspection.project.name} - Lot ${inspection.lot?.lot_number || inspection.lot?.name || 'N/A'}`,
+          weather: extractWeatherData(inspectionData),
+          measurements: extractMeasurements(inspectionData),
+          materials: extractMaterials(inspectionData),
+          images: photos?.map((p) => p.url),
+          notes: notes,
+          nonConformances: failedItems.map(([itemId, _]) => {
+            const item = findItemInTemplate(templateStructure, itemId);
+            return {
+              description: item?.label || itemId,
+              severity: item?.severity || 'minor',
+            };
+          }),
+        };
+
+        // Call AI report generation API
+        const aiReportResponse = await fetch(
+          new URL('/api/ai/generate-itp-report', request.url).toString(),
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              inspection: inspectionDataForAI,
+              standards: ['AS_3798', 'AS_NZS_3500_3', 'AS_2870', 'AS_4671'],
+              reportType: failedItems.length > 0 ? 'non-conformance' : 'detailed',
+              includeRecommendations: true,
+              includePhotos: photos && photos.length > 0,
+            }),
+          }
+        );
+
+        if (aiReportResponse.ok) {
+          const aiReport = await aiReportResponse.json();
+
+          // Store AI report reference
+          await supabase.from('ai_reports').insert({
+            organization_id: inspection.project.organization_id,
+            project_id: inspection.project_id,
+            inspection_id: inspectionId,
+            report_type: 'itp_analysis',
+            report_data: aiReport,
+            created_by: user.id,
+            created_at: new Date().toISOString(),
+          });
+        }
+      }
+    } catch (aiError) {
+      console.error('Failed to generate AI report:', aiError);
+      // Don't fail the submission if AI report fails
+    }
+
     // Send notifications
     const { data: projectAdmins } = await supabase
       .from('organization_members')
@@ -367,4 +429,111 @@ function findItemInTemplate(structure: any, itemId: string): any {
     }
   }
   return null;
+}
+
+// Helper function to determine inspection type from template name
+function determineInspectionType(
+  templateName: string
+): 'earthworks' | 'drainage' | 'concrete' | 'reinforcement' | 'general' {
+  const name = templateName.toLowerCase();
+  if (
+    name.includes('earthwork') ||
+    name.includes('excavation') ||
+    name.includes('fill') ||
+    name.includes('compaction')
+  ) {
+    return 'earthworks';
+  }
+  if (
+    name.includes('drain') ||
+    name.includes('storm') ||
+    name.includes('sewer') ||
+    name.includes('pipe')
+  ) {
+    return 'drainage';
+  }
+  if (
+    name.includes('concrete') ||
+    name.includes('pour') ||
+    name.includes('slab') ||
+    name.includes('footing')
+  ) {
+    return 'concrete';
+  }
+  if (
+    name.includes('steel') ||
+    name.includes('rebar') ||
+    name.includes('reinforcement') ||
+    name.includes('mesh')
+  ) {
+    return 'reinforcement';
+  }
+  return 'general';
+}
+
+// Helper function to extract weather data from inspection data
+function extractWeatherData(data: any) {
+  return {
+    conditions: data.weather_conditions || data.weather || 'sunny',
+    temperature: parseFloat(data.temperature) || 20,
+    recentRainfall: data.recent_rainfall
+      ? {
+          amount: parseFloat(data.rainfall_amount) || 0,
+          daysAgo: parseInt(data.rainfall_days_ago) || 0,
+        }
+      : undefined,
+  };
+}
+
+// Helper function to extract measurements from inspection data
+function extractMeasurements(data: any) {
+  const measurements: any = {};
+
+  // Extract compaction data
+  if (data.density_test || data.compaction_test || data.proctor) {
+    measurements.compaction = {
+      density: parseFloat(data.density_test) || parseFloat(data.dry_density) || 95,
+      moisture: parseFloat(data.moisture_content) || 10,
+      proctor: parseFloat(data.proctor) || parseFloat(data.compaction_percentage) || 95,
+    };
+  }
+
+  // Extract dimensions
+  if (data.depth || data.width || data.length || data.thickness) {
+    measurements.dimensions = {
+      depth: data.depth ? parseFloat(data.depth) : undefined,
+      width: data.width ? parseFloat(data.width) : undefined,
+      length: data.length ? parseFloat(data.length) : undefined,
+      thickness: data.thickness ? parseFloat(data.thickness) : undefined,
+    };
+  }
+
+  // Extract gradient
+  if (data.gradient || data.slope) {
+    measurements.gradient = parseFloat(data.gradient) || parseFloat(data.slope);
+  }
+
+  return Object.keys(measurements).length > 0 ? measurements : undefined;
+}
+
+// Helper function to extract materials from inspection data
+function extractMaterials(data: any) {
+  if (!data.material_type && !data.material && !data.supplier) {
+    return undefined;
+  }
+
+  let materialType: 'clay' | 'sand' | 'rock' | 'concrete' | 'steel' | 'mixed' = 'mixed';
+  const material = (data.material_type || data.material || '').toLowerCase();
+
+  if (material.includes('clay')) materialType = 'clay';
+  else if (material.includes('sand')) materialType = 'sand';
+  else if (material.includes('rock') || material.includes('aggregate')) materialType = 'rock';
+  else if (material.includes('concrete')) materialType = 'concrete';
+  else if (material.includes('steel') || material.includes('rebar')) materialType = 'steel';
+
+  return {
+    type: materialType,
+    supplier: data.supplier || data.material_supplier,
+    batch: data.batch_number || data.batch,
+  };
 }

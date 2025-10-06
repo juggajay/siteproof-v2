@@ -1,6 +1,7 @@
 // Comprehensive Tool Registry for Claude Integration
 
-import { getStandardTool, executeGetStandard, getStandard } from './get-standard';
+import { getStandardTool, executeGetStandard } from './get-standard';
+import { getStandard } from '../knowledge-base/australian-standards';
 import { checkCompactionTool, executeCheckCompaction } from './check-compaction';
 import { councilApprovalTool, executeCouncilApproval } from './council-approval';
 import { checkWeatherTool, executeCheckWeather } from './check-weather';

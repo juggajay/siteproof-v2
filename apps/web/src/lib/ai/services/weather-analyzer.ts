@@ -1,8 +1,7 @@
 // Weather Analysis Service for Construction Activities
 
-import { weatherRestrictions, getWeatherRestrictions } from '../knowledge-base/weather-rules';
+import { getWeatherRestrictions } from '../knowledge-base/weather-rules';
 import type { InspectionData } from '../types';
-import { differenceInDays, subDays, format } from 'date-fns';
 
 export interface WeatherAnalysis {
   canProceed: boolean;
@@ -42,7 +41,7 @@ export class WeatherAnalyzer {
     // Get weather restrictions for the work type
     const restrictions = getWeatherRestrictions(inspection.type, inspection.materials?.type);
 
-    if ('error' in restrictions) {
+    if (!restrictions) {
       analysis.warnings.push('No specific weather restrictions found for this work type');
       return analysis;
     }
@@ -74,10 +73,9 @@ export class WeatherAnalyzer {
   private analyzeEarthworksWeather(
     inspection: InspectionData,
     analysis: WeatherAnalysis,
-    restrictions: any
+    _restrictions: any
   ): void {
     const material = inspection.materials?.type || 'general';
-    const materialRestrictions = restrictions[material] || restrictions;
 
     // Check current weather conditions
     if (inspection.weather.conditions === 'rainy' || inspection.weather.conditions === 'wet') {
@@ -150,10 +148,9 @@ export class WeatherAnalyzer {
   private analyzeConcreteWeather(
     inspection: InspectionData,
     analysis: WeatherAnalysis,
-    restrictions: any
+    _restrictions: any
   ): void {
     const temp = inspection.weather.temperature;
-    const placement = restrictions.placement;
 
     // Check temperature limits
     if (temp < 5) {
@@ -224,7 +221,7 @@ export class WeatherAnalyzer {
   private analyzeDrainageWeather(
     inspection: InspectionData,
     analysis: WeatherAnalysis,
-    restrictions: any
+    _restrictions: any
   ): void {
     // Check for rain forecast (trench stability)
     if (inspection.weather.conditions === 'rainy' || inspection.weather.conditions === 'wet') {
@@ -313,7 +310,7 @@ export class WeatherAnalyzer {
   generateWorkRecommendations(
     workType: string,
     currentWeather: InspectionData['weather'],
-    forecast?: WeatherForecast[]
+    _forecast?: WeatherForecast[]
   ): string[] {
     const recommendations: string[] = [];
 

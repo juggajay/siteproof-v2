@@ -1,5 +1,4 @@
 // Tool for checking compaction compliance
-import { getCompactionRequirements } from '../knowledge-base/australian-standards';
 
 export const checkCompactionTool = {
   name: 'check_compaction_compliance',

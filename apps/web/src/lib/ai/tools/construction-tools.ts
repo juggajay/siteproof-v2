@@ -404,7 +404,7 @@ async function executeComplianceCheck(input: any) {
   };
 }
 
-async function executeWeatherAnalysis(input: any) {
+async function executeWeatherAnalysis(_input: any) {
   // Implementation would integrate with weather-analyzer.ts
   return {
     canProceed: true,
@@ -413,7 +413,7 @@ async function executeWeatherAnalysis(input: any) {
   };
 }
 
-async function executeApprovalPrediction(input: any) {
+async function executeApprovalPrediction(_input: any) {
   // Implementation would integrate with project-timeline-analyzer.ts
   return {
     predictedDays: 120,
@@ -422,7 +422,7 @@ async function executeApprovalPrediction(input: any) {
   };
 }
 
-async function executeReportGeneration(input: any) {
+async function executeReportGeneration(_input: any) {
   // Implementation would integrate with itp-generator.ts
   return {
     reportId: `report-${Date.now()}`,
@@ -431,8 +431,8 @@ async function executeReportGeneration(input: any) {
   };
 }
 
-async function executeMaterialCalculation(input: any) {
-  const { dimensions, materialType, wastagePercentage = 10 } = input;
+async function executeMaterialCalculation(_input: any) {
+  const { dimensions, materialType, wastagePercentage = 10 } = _input;
 
   let volume = 0;
   if (dimensions.volume) {
@@ -452,8 +452,8 @@ async function executeMaterialCalculation(input: any) {
   };
 }
 
-async function executeRiskAssessment(input: any) {
-  const riskMatrix = input.hazards.map((hazard: any) => ({
+async function executeRiskAssessment(_input: any) {
+  const riskMatrix = _input.hazards.map((hazard: any) => ({
     ...hazard,
     riskScore: hazard.severity * hazard.likelihood,
     riskLevel: getRiskLevel(hazard.severity * hazard.likelihood),
@@ -462,21 +462,21 @@ async function executeRiskAssessment(input: any) {
   return {
     overallRisk: getOverallRisk(riskMatrix),
     hazards: riskMatrix,
-    recommendedControls: input.controlMeasures || [],
+    recommendedControls: _input.controlMeasures || [],
   };
 }
 
-async function executeScheduleOptimization(input: any) {
+async function executeScheduleOptimization(_input: any) {
   // Simple optimization logic
   return {
-    optimizedDuration: calculateOptimizedDuration(input.phases),
+    optimizedDuration: calculateOptimizedDuration(_input.phases),
     criticalPath: [],
     recommendations: [],
   };
 }
 
-async function executeTestValidation(input: any) {
-  const { results, specifications } = input;
+async function executeTestValidation(_input: any) {
+  const { results, specifications } = _input;
 
   const validationResults = results.map((result: any) => {
     const passes = result.value >= specifications.minimum && result.value <= specifications.maximum;
@@ -494,28 +494,28 @@ async function executeTestValidation(input: any) {
   };
 }
 
-async function executeDefectIdentification(input: any) {
+async function executeDefectIdentification(_input: any) {
   const defectsByPriority = {
-    critical: input.observations.filter((o: any) => o.severity === 'critical'),
-    major: input.observations.filter((o: any) => o.severity === 'major'),
-    moderate: input.observations.filter((o: any) => o.severity === 'moderate'),
-    minor: input.observations.filter((o: any) => o.severity === 'minor'),
+    critical: _input.observations.filter((o: any) => o.severity === 'critical'),
+    major: _input.observations.filter((o: any) => o.severity === 'major'),
+    moderate: _input.observations.filter((o: any) => o.severity === 'moderate'),
+    minor: _input.observations.filter((o: any) => o.severity === 'minor'),
   };
 
   return {
-    totalDefects: input.observations.length,
+    totalDefects: _input.observations.length,
     defectsByPriority,
     requiresImmediateAction: defectsByPriority.critical.length > 0,
   };
 }
 
-async function executeChecklistGeneration(input: any) {
+async function executeChecklistGeneration(_input: any) {
   // Generate checklist based on type
-  const baseChecklist = getBaseChecklist(input.checklistType, input.workType);
-  const checklist = [...baseChecklist, ...(input.customItems || [])];
+  const baseChecklist = getBaseChecklist(_input.checklistType, _input.workType);
+  const checklist = [...baseChecklist, ...(_input.customItems || [])];
 
   return {
-    checklistType: input.checklistType,
+    checklistType: _input.checklistType,
     items: checklist.map((item: string, index: number) => ({
       id: `check-${index}`,
       description: item,
@@ -544,7 +544,7 @@ function calculateOptimizedDuration(phases: any[]): number {
   return phases.reduce((sum, phase) => sum + phase.duration, 0) * 0.85;
 }
 
-function getBaseChecklist(type: string, workType: string): string[] {
+function getBaseChecklist(type: string, _workType: string): string[] {
   const checklists: { [key: string]: string[] } = {
     'pre-pour': [
       'Formwork secure and aligned',

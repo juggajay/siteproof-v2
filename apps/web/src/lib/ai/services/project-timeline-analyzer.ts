@@ -1,6 +1,6 @@
 // Project Timeline Analyzer with Council Approval Intelligence
 
-import { getCouncilApprovalTime } from '../knowledge-base/council-data';
+import { getCouncilData } from '../knowledge-base/council-data';
 import type { WeatherForecast } from './weather-analyzer';
 import { addDays, differenceInDays, format, isWeekend } from 'date-fns';
 
@@ -112,9 +112,9 @@ export class ProjectTimelineAnalyzer {
       publicObjections?: boolean;
     }
   ): ApprovalPrediction {
-    const councilData = getCouncilApprovalTime(councilName);
+    const councilInfo = getCouncilData(councilName);
 
-    if ('error' in councilData) {
+    if (!councilInfo) {
       // Default prediction for unknown councils
       return {
         council: councilName,
@@ -126,6 +126,8 @@ export class ProjectTimelineAnalyzer {
         strategies: ['Contact council for specific timeframes', 'Consider pre-lodgement meeting'],
       };
     }
+
+    const councilData = councilInfo;
 
     let predictedDays = councilData.average_days;
     const factors: ApprovalPrediction['factors'] = [];
@@ -178,8 +180,8 @@ export class ProjectTimelineAnalyzer {
 
     // Add council-specific strategies
     if (
-      councilData.performance_rating === 'Poor' ||
-      councilData.performance_rating === 'Very Poor'
+      councilData.performance_rating === 'POOR' ||
+      councilData.performance_rating === 'VERY_POOR'
     ) {
       strategies.push(
         'Consider using private certifier where possible',
@@ -198,9 +200,9 @@ export class ProjectTimelineAnalyzer {
 
     // Calculate confidence based on council performance
     let confidence = 70;
-    if (councilData.performance_rating === 'Good') confidence = 80;
-    if (councilData.performance_rating === 'Poor') confidence = 50;
-    if (councilData.performance_rating === 'Very Poor') confidence = 30;
+    if (councilData.performance_rating === 'GOOD') confidence = 80;
+    if (councilData.performance_rating === 'POOR') confidence = 50;
+    if (councilData.performance_rating === 'VERY_POOR') confidence = 30;
 
     return {
       council: councilName,
@@ -336,13 +338,13 @@ export class ProjectTimelineAnalyzer {
 
     // Council approval risk
     if (councilName) {
-      const councilData = getCouncilApprovalTime(councilName);
-      if (!('error' in councilData)) {
-        if (councilData.performance_rating === 'Poor') riskScore += 20;
-        if (councilData.performance_rating === 'Very Poor') riskScore += 35;
+      const councilInfo = getCouncilData(councilName);
+      if (councilInfo) {
+        if (councilInfo.performance_rating === 'POOR') riskScore += 20;
+        if (councilInfo.performance_rating === 'VERY_POOR') riskScore += 35;
 
         // Check if actual exceeds statutory
-        const overrun = councilData.average_days - councilData.statutory_target;
+        const overrun = councilInfo.average_days - councilInfo.statutory_target;
         if (overrun > 100) riskScore += 15;
       }
     }
@@ -381,19 +383,19 @@ export class ProjectTimelineAnalyzer {
 
     // Council-specific recommendations
     if (councilName) {
-      const councilData = getCouncilApprovalTime(councilName);
-      if (!('error' in councilData)) {
-        if (councilData.average_days > councilData.statutory_target * 1.5) {
+      const councilInfo = getCouncilData(councilName);
+      if (councilInfo) {
+        if (councilInfo.average_days > councilInfo.statutory_target * 1.5) {
           recommendations.push(
-            `Council approval typically takes ${councilData.average_days} days (${Math.round((councilData.average_days / councilData.statutory_target) * 100)}% over statutory)`,
+            `Council approval typically takes ${councilInfo.average_days} days (${Math.round((councilInfo.average_days / councilInfo.statutory_target) * 100)}% over statutory)`,
             'Consider private certification for building elements',
             'Schedule pre-lodgement meeting to identify issues early'
           );
         }
 
-        if (councilData.typical_delays) {
+        if (councilInfo.common_delays && councilInfo.common_delays.length > 0) {
           recommendations.push(
-            `Prepare for typical delays: ${councilData.typical_delays.join(', ')}`
+            `Prepare for typical delays: ${councilInfo.common_delays.join(', ')}`
           );
         }
       }
@@ -412,7 +414,7 @@ export class ProjectTimelineAnalyzer {
     if (weatherForecast) {
       const constructionPhases = phases.filter((p) => p.type === 'construction');
       constructionPhases.forEach((phase) => {
-        const phaseDates = [];
+        const phaseDates: Date[] = [];
         for (let d = phase.startDate; d <= phase.endDate; d = addDays(d, 1)) {
           phaseDates.push(d);
         }

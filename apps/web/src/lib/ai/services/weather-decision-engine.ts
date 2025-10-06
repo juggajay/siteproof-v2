@@ -2,7 +2,7 @@
 
 import { anthropic, AI_CONFIG } from '../config';
 import { weatherAnalyzer, WeatherForecast } from './weather-analyzer';
-import { weatherRestrictions } from '../knowledge-base/weather-rules';
+import { getWeatherRestrictions } from '../knowledge-base/weather-rules';
 import type { InspectionData } from '../types';
 
 export interface WeatherDecision {
@@ -202,7 +202,7 @@ ${forecast
 }
 
 WEATHER RESTRICTIONS:
-${JSON.stringify(weatherRestrictions[inspection.type as keyof typeof weatherRestrictions] || {}, null, 2)}
+${JSON.stringify(getWeatherRestrictions(inspection.type, inspection.materials?.type) || {}, null, 2)}
 
 ${
   historicalData
@@ -277,7 +277,7 @@ Provide clear, actionable recommendations with specific mitigation measures when
    * Rule-based decision fallback
    */
   private makeRuleBasedDecision(
-    inspection: InspectionData | null,
+    _inspection: InspectionData | null,
     weatherAnalysis: any
   ): WeatherDecision {
     const decision: WeatherDecision = {
@@ -313,7 +313,7 @@ Provide clear, actionable recommendations with specific mitigation measures when
    */
   generateContingencyPlan(
     workType: string,
-    forecast: WeatherForecast[]
+    _forecast: WeatherForecast[]
   ): {
     triggers: Array<{ condition: string; action: string }>;
     preparations: string[];

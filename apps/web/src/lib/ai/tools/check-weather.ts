@@ -1,9 +1,5 @@
 // Tool for checking weather-based work restrictions
-import {
-  getWeatherRestrictions,
-  canWorkProceed,
-  getDryingTime,
-} from '../knowledge-base/weather-rules';
+import { getWeatherRestrictions, canWorkProceed } from '../knowledge-base/weather-rules';
 
 export const checkWeatherTool = {
   name: 'check_weather_restrictions',
@@ -95,9 +91,9 @@ export async function executeCheckWeather(input: {
 
     drying_status = {
       days_since_rain: daysSinceRain,
-      required_drying_days: restrictions.drying_time.after_rain,
-      is_dry_enough: daysSinceRain >= restrictions.drying_time.after_rain,
-      days_remaining: Math.max(0, restrictions.drying_time.after_rain - daysSinceRain),
+      required_drying_days: restrictions.drying_time?.after_rain ?? 0,
+      is_dry_enough: daysSinceRain >= (restrictions.drying_time?.after_rain ?? 0),
+      days_remaining: Math.max(0, (restrictions.drying_time?.after_rain ?? 0) - daysSinceRain),
     };
   }
 
