@@ -96,7 +96,6 @@ export async function POST(request: NextRequest) {
 
   const limit = result.limit ?? limits.max;
   const remainingBefore =
-    result.remaining ??
     result.remainingAttempts ??
     limits.max;
   const remaining = Math.max(remainingBefore - 1, 0);
