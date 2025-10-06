@@ -340,10 +340,12 @@ export async function POST(request: Request) {
         {
           status: 429,
           headers: {
-            'Retry-After': (rateLimitResult.retryAfter || 0).toString(),
-            'X-RateLimit-Limit': (rateLimitResult.limit || 0).toString(),
-            'X-RateLimit-Remaining': (rateLimitResult.remaining || 0).toString(),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetAt || Date.now()).toISOString(),
+            'Retry-After': (rateLimitResult.retryAfter || 60).toString(),
+            'X-RateLimit-Limit': '60',
+            'X-RateLimit-Remaining': (rateLimitResult.remainingAttempts || 0).toString(),
+            'X-RateLimit-Reset': new Date(
+              Date.now() + (rateLimitResult.retryAfter || 60) * 1000
+            ).toISOString(),
           },
         }
       );
