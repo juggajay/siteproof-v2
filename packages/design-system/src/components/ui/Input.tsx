@@ -30,12 +30,6 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const hasError = Boolean(error);
     const hasSuccess = success && !hasError;
 
-    const borderColor = hasError
-      ? 'border-error focus:border-error focus:ring-error'
-      : hasSuccess
-      ? 'border-success focus:border-success focus:ring-success'
-      : 'border-gray-300 focus:border-primary-blue focus:ring-primary-blue';
-
     return (
       <div className={`${fullWidth ? 'w-full' : ''}`}>
         {label && (

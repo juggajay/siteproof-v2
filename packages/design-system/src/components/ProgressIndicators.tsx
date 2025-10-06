@@ -113,12 +113,11 @@ export function ProgressRing({
               r={radius}
               fill="none"
               stroke="currentColor"
-              className="text-success"
+              className="text-success transition-all duration-300"
               strokeWidth={config.strokeWidth}
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
               strokeLinecap="round"
-              className="transition-all duration-300"
             />
           </svg>
           {showLabel && (
