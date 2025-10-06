@@ -2,8 +2,6 @@
 
 import { callClaude, extractToolUse, extractTextResponse, ClaudeMessage } from './claude-service';
 import { constructionTools, executeConstructionTool } from '../tools/construction-tools';
-import { complianceChecker } from './compliance-checker';
-import { weatherAnalyzer } from './weather-analyzer';
 import type { InspectionData } from '../types';
 
 export interface AutomatedInspectionResult {
@@ -368,7 +366,7 @@ Be thorough, objective, and focus on safety and quality. Always reference specif
    * Generate final assessment
    */
   private async generateFinalAssessment(
-    inspection: InspectionData,
+    _inspection: InspectionData,
     result: AutomatedInspectionResult
   ): Promise<{ status: 'pass' | 'fail' | 'warning'; recommendations: string[] }> {
     // Analyze all results

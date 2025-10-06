@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { itpGenerator } from '@/lib/ai/services/itp-generator';
 import { complianceChecker } from '@/lib/ai/services/compliance-checker';
-import type { ITPReportRequest } from '@/lib/ai/types';
+import type { AIAnalysisContext, InspectionData, ITPReportRequest } from '@/lib/ai/types';
 import { z } from 'zod';
 
 // Request validation schema
@@ -127,26 +127,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { inspection, standards, reportType, context, ...options } = validationResult.data;
+    const {
+      inspection: rawInspection,
+      standards,
+      reportType,
+      context,
+      ...options
+    } = validationResult.data;
 
-    // Ensure date is a Date object
-    if (typeof inspection.date === 'string') {
-      inspection.date = new Date(inspection.date);
-    }
+    const normalizedInspection = {
+      ...rawInspection,
+      date:
+        typeof rawInspection.date === 'string' ? new Date(rawInspection.date) : rawInspection.date,
+    } as InspectionData;
 
     // Create the report request
     const reportRequest: ITPReportRequest = {
-      inspection,
+      inspection: normalizedInspection,
       standards,
       reportType,
       ...options,
     };
 
+    let normalizedContext: AIAnalysisContext | undefined;
+    if (context) {
+      normalizedContext = {
+        ...context,
+        projectHistory: context.projectHistory?.map((entry) => ({
+          ...entry,
+          date: typeof entry.date === 'string' ? new Date(entry.date) : entry.date,
+        })),
+        weatherHistory: context.weatherHistory?.map((entry) => ({
+          ...entry,
+          date: typeof entry.date === 'string' ? new Date(entry.date) : entry.date,
+        })),
+        previousNonConformances: context.previousNonConformances?.map((entry) => ({
+          ...entry,
+          date: typeof entry.date === 'string' ? new Date(entry.date) : entry.date,
+        })),
+      } satisfies AIAnalysisContext;
+    }
+
     // First, run local compliance checks for immediate feedback
-    const localComplianceResults = complianceChecker.checkCompliance(inspection, standards);
+    const localComplianceResults = complianceChecker.checkCompliance(
+      normalizedInspection,
+      standards
+    );
 
     // Generate the AI-powered report
-    const report = await itpGenerator.generateReport(reportRequest, context);
+    const report = await itpGenerator.generateReport(reportRequest, normalizedContext);
 
     // Merge local compliance checks with AI analysis
     if (localComplianceResults.length > 0) {
@@ -202,7 +231,7 @@ export async function POST(request: NextRequest) {
 }
 
 // OPTIONS method for CORS preflight
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {

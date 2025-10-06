@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LoginForm } from './LoginForm';
@@ -32,12 +32,48 @@ vi.mock('sonner', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+const originalLocation = window.location;
+let locationHref = 'http://localhost/';
+const locationAssignMock = vi.fn((value: string) => {
+  locationHref = value;
+});
+const locationReplaceMock = vi.fn((value: string) => {
+  locationHref = value;
+});
+const locationReloadMock = vi.fn();
+
+beforeAll(() => {
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: {
+      assign: locationAssignMock,
+      replace: locationReplaceMock,
+      reload: locationReloadMock,
+      origin: 'http://localhost',
+      get href() {
+        return locationHref;
+      },
+      set href(value: string) {
+        locationHref = value;
+      },
+    } as unknown as Location,
+  });
+});
+
+afterAll(() => {
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: originalLocation,
+  });
+});
+
 describe('LoginForm', () => {
   const user = userEvent.setup();
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockFetch.mockClear();
+    locationHref = 'http://localhost/';
   });
 
   it('renders login form with all fields', () => {
@@ -112,7 +148,7 @@ describe('LoginForm', () => {
           rememberMe: true,
         }),
       });
-      expect(mockPush).toHaveBeenCalledWith('/dashboard');
+      expect(window.location.href).toBe('/dashboard');
     });
   });
 

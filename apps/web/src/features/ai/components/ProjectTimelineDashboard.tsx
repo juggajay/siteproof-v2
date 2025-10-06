@@ -12,6 +12,7 @@ import {
   OptimizedSchedule,
 } from '@/lib/ai/services/ai-scheduling-optimizer';
 import { format, addDays, differenceInDays } from 'date-fns';
+import { councilDatabase } from '@/lib/ai/knowledge-base/council-data';
 
 interface ProjectTimelineDashboardProps {
   initialPhases?: ProjectPhase[];
@@ -25,6 +26,9 @@ export function ProjectTimelineDashboard({
   onScheduleOptimized,
 }: ProjectTimelineDashboardProps) {
   const [phases, setPhases] = useState<ProjectPhase[]>(initialPhases);
+  const councilInfo = councilName
+    ? councilDatabase.find((council) => council.name === councilName)
+    : undefined;
   const [timeline, setTimeline] = useState<ProjectTimeline | null>(null);
   const [approvalPrediction, setApprovalPrediction] = useState<ApprovalPrediction | null>(null);
   const [optimizedSchedule, setOptimizedSchedule] = useState<OptimizedSchedule | null>(null);
@@ -319,12 +323,7 @@ export function ProjectTimelineDashboard({
             </div>
             <div className="p-4 bg-gray-50 rounded-lg">
               <p className="text-sm text-gray-600">Performance</p>
-              <p className="text-xl font-bold">
-                {(councilName &&
-                  councilApprovalData[councilName as keyof typeof councilApprovalData]
-                    ?.performance_rating) ||
-                  'Unknown'}
-              </p>
+              <p className="text-xl font-bold">{councilInfo?.performance_rating || 'Unknown'}</p>
             </div>
           </div>
 

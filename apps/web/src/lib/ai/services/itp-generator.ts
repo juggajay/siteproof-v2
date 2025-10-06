@@ -7,7 +7,7 @@ import type {
   ITPReportResponse,
   AIAnalysisContext,
 } from '../types';
-import { australianStandards, getStandard } from '../knowledge-base/australian-standards';
+import { getStandard } from '../knowledge-base/australian-standards';
 import { format } from 'date-fns';
 
 export class ITPReportGenerator {
@@ -23,9 +23,6 @@ export class ITPReportGenerator {
       if (!process.env.ANTHROPIC_API_KEY) {
         throw new Error(AI_ERRORS.API_KEY_MISSING);
       }
-
-      // Prepare the context with standards information
-      const standardsContext = this.prepareStandardsContext(request.standards);
 
       // Perform compliance checks
       const complianceResults = await this.checkCompliance(request.inspection, request.standards);

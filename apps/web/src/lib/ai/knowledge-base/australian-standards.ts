@@ -291,11 +291,19 @@ export function getStandard(code: string, section?: string): any {
 
 // Get compaction requirements for a specific supervision level
 export function getCompactionRequirements(supervisionLevel: string): any {
-  const level = AS_3798.sections[`${supervisionLevel}_supervision`];
-  if (!level) {
+  const levelKey = `${supervisionLevel}_supervision` as keyof typeof AS_3798.sections;
+  const levelEntry = AS_3798.sections[levelKey];
+
+  if (!levelEntry || typeof levelEntry !== 'object' || !('requirements' in levelEntry)) {
     throw new Error(`Supervision level ${supervisionLevel} not found`);
   }
-  return level.requirements.compaction;
+
+  const requirements = (levelEntry as { requirements?: { compaction?: any } }).requirements;
+  if (!requirements?.compaction) {
+    throw new Error(`Compaction requirements missing for level ${supervisionLevel}`);
+  }
+
+  return requirements.compaction;
 }
 
 // Get drainage gradient requirements
@@ -313,18 +321,38 @@ export function getCoverDepth(
   pipeType?: 'rigid' | 'flexible'
 ): any {
   const section = AS_NZS_3500_3.sections.cover_depths.requirements[trafficCondition];
+
   if (pipeType && trafficCondition === 'under_traffic') {
-    return section[`${pipeType}_pipes`] || section;
+    const key = `${pipeType}_pipes`;
+    if (section && typeof section === 'object' && key in (section as Record<string, any>)) {
+      return (section as Record<string, any>)[key];
+    }
   }
+
   return section;
 }
 
 // Get site classification details
 export function getSiteClass(className: string): any {
-  return AS_2870.sections.site_classification.classes[className] || null;
+  const classes = AS_2870.sections.site_classification.classes;
+  if (className in classes) {
+    return classes[className as keyof typeof classes];
+  }
+  return null;
 }
 
 // Get reinforcement grade specifications
 export function getReinforcementGrade(grade: string): any {
-  return AS_4671.sections.grades.types[grade] || null;
+  const types = AS_4671.sections.grades.types;
+  if (grade in types) {
+    return types[grade as keyof typeof types];
+  }
+  return null;
 }
+
+export const australianStandards = {
+  AS_3798,
+  AS_NZS_3500_3,
+  AS_2870,
+  AS_4671,
+};

@@ -1,8 +1,8 @@
 // Project Timeline Analyzer with Council Approval Intelligence
 
-import { councilApprovalData, getCouncilApprovalTime } from '../knowledge-base/council-data';
-import { weatherAnalyzer, WeatherForecast } from './weather-analyzer';
-import { addDays, differenceInDays, format, addWeeks, isWeekend } from 'date-fns';
+import { getCouncilApprovalTime } from '../knowledge-base/council-data';
+import type { WeatherForecast } from './weather-analyzer';
+import { addDays, differenceInDays, format, isWeekend } from 'date-fns';
 
 export interface ProjectPhase {
   id: string;
@@ -102,7 +102,7 @@ export class ProjectTimelineAnalyzer {
    */
   predictApprovalTimeline(
     councilName: string,
-    projectType: string,
+    _projectType: string,
     complexity: 'simple' | 'moderate' | 'complex',
     additionalFactors?: {
       heritage?: boolean;

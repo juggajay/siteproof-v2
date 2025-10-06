@@ -1,7 +1,7 @@
 // Compliance Checker Service for Australian Standards
 
-import { australianStandards, getStandard } from '../knowledge-base/australian-standards';
-import { weatherRestrictions, getWeatherRestrictions } from '../knowledge-base/weather-rules';
+import { getStandard } from '../knowledge-base/australian-standards';
+import { getWeatherRestrictions } from '../knowledge-base/weather-rules';
 import { weatherAnalyzer } from './weather-analyzer';
 import type { InspectionData, ComplianceCheckResult } from '../types';
 
@@ -25,7 +25,7 @@ export class ComplianceChecker {
 
     // Check compaction requirements
     if (inspection.measurements?.compaction) {
-      const { density, moisture, proctor } = inspection.measurements.compaction;
+      const { moisture, proctor } = inspection.measurements.compaction;
 
       // Check proctor density
       if (proctor !== undefined) {
@@ -98,7 +98,7 @@ export class ComplianceChecker {
       const { amount, daysAgo } = inspection.weather.recentRainfall;
       const weatherRules = getWeatherRestrictions('earthworks', 'clay');
 
-      if (!('error' in weatherRules)) {
+      if (weatherRules && !('error' in weatherRules)) {
         // Check drying time based on rainfall amount
         let requiredDryingDays = 0;
         if (amount >= 40) {
@@ -238,7 +238,7 @@ export class ComplianceChecker {
           inspection.measurements?.dimensions?.width &&
           inspection.measurements.dimensions.width > 150
             ? 'pending'
-            : 'not_applicable',
+            : 'approved',
       },
       {
         description: 'Final connection to system',

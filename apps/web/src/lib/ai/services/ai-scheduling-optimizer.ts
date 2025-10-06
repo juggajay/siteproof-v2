@@ -6,7 +6,7 @@ import {
   ProjectPhase,
   ProjectTimeline,
 } from './project-timeline-analyzer';
-import { councilApprovalData } from '../knowledge-base/council-data';
+import { getCouncilData } from '../knowledge-base/council-data';
 import { weatherAnalyzer, WeatherForecast } from './weather-analyzer';
 import { addDays, differenceInDays, format } from 'date-fns';
 
@@ -175,7 +175,7 @@ ${
   request.constraints.councilApproval
     ? `
 COUNCIL APPROVAL DATA:
-${JSON.stringify(councilApprovalData[request.constraints.councilApproval as keyof typeof councilApprovalData] || {}, null, 2)}
+${JSON.stringify(request.constraints.councilApproval ? (getCouncilData(request.constraints.councilApproval) ?? {}) : {}, null, 2)}
 `
     : ''
 }
@@ -380,7 +380,7 @@ Always consider:
   private optimizeSequence(phases: ProjectPhase[], strategy: any): void {
     if (strategy.recommendedSequence && strategy.recommendedSequence.length > 0) {
       // Reorder phases based on recommended sequence
-      const sequenceMap = new Map(
+      const sequenceMap = new Map<string, number>(
         strategy.recommendedSequence.map((id: string, idx: number) => [id, idx])
       );
       phases.sort((a, b) => {
@@ -394,7 +394,7 @@ Always consider:
   /**
    * Adjust phase buffers
    */
-  private adjustBuffers(phases: ProjectPhase[], strategy: any): void {
+  private adjustBuffers(phases: ProjectPhase[], _strategy: any): void {
     phases.forEach((phase) => {
       if (phase.criticalPath) {
         // Add buffer to critical path activities

@@ -28,7 +28,6 @@ export function AIConstructionAssistant({
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTools, setActiveTools] = useState<string[]>([]);
-  const [inspectionResult, setInspectionResult] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -115,7 +114,6 @@ export function AIConstructionAssistant({
       projectSpecifications: { requiresReport: true },
     });
 
-    setInspectionResult(result);
     setActiveTools([]);
 
     // Display results

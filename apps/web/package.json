@@ -6,11 +6,11 @@
     "node": ">=18"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
-    "lint:fix": "next lint --fix",
+    "dev": "node ../../scripts/next-cli.cjs dev",
+    "build": "node ../../scripts/next-cli.cjs build",
+    "start": "node ../../scripts/next-cli.cjs start",
+    "lint": "node ../../scripts/next-cli.cjs lint",
+    "lint:fix": "node ../../scripts/next-cli.cjs lint --fix",
     "type-check": "tsc --noEmit",
     "test": "vitest",
     "test:ui": "vitest --ui",
