@@ -3,7 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { itpGenerator } from '@/lib/ai/services/itp-generator';
 import { complianceChecker } from '@/lib/ai/services/compliance-checker';
-import type { ITPReportRequest, AIAnalysisContext } from '@/lib/ai/types';
+import type { ITPReportRequest } from '@/lib/ai/types';
 import { z } from 'zod';
 
 // Request validation schema
