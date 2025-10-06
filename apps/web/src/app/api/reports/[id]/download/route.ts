@@ -631,7 +631,7 @@ async function downloadDailyDiaryEntry(report: any, supabase: SupabaseClient) {
     status: 200,
     headers: {
       'Content-Type': 'application/json',
-      'Content-Disposition': 'attachment; filename= + filename + ',
+      'Content-Disposition': `attachment; filename="${filename}"`,
       'Content-Length': buffer.length.toString(),
     },
   });
