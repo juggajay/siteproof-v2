@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
     // Check user has permission in the project
     const { data: project } = await supabase
       .from('projects')
-      .select('organization_id')
+      .select('organization_id, name')
       .eq('id', validatedData.project_id)
       .single();
 
@@ -411,6 +411,7 @@ export async function POST(request: NextRequest) {
         format: 'json',
         parameters: {
           project_id: validatedData.project_id,
+          project_name: project.name,
           diary_id: diary.id,
           diary_date: validatedData.diary_date,
           diary_number: diary.diary_number,

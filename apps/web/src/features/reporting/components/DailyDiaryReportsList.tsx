@@ -45,7 +45,7 @@ export function DailyDiaryReportsList() {
       if (startDate) params.append('start_date', startDate);
       if (endDate) params.append('end_date', endDate);
 
-      const response = await fetch();
+      const response = await fetch('/api/reports?' + params.toString());
       if (!response.ok) {
         throw new Error('Failed to fetch daily diary reports');
       }
@@ -66,29 +66,30 @@ export function DailyDiaryReportsList() {
 
   const downloadReport = async (report: DailyDiaryReport) => {
     try {
-      toast.loading('Preparing download...', { id:  });
+      toast.loading('Preparing download...', { id: `download-${report.id}` });
 
-      const response = await fetch(, {
+      const response = await fetch(`/api/reports/${report.id}/download`, {
         method: 'GET',
         credentials: 'include',
       });
 
       if (!response.ok) {
         const errorBody = await response.json().catch(() => ({}));
-        throw new Error(errorBody.error || 'Failed to download report');
+        throw new Error((errorBody as any).error || 'Failed to download report');
       }
 
-      const { file_url } = await response.json();
-      if (!file_url) {
+      const body = await response.json();
+      const fileUrl = body.file_url as string | undefined;
+      if (!fileUrl) {
         throw new Error('Report file not available');
       }
 
-      window.open(file_url, '_blank');
-      toast.success('Download started', { id:  });
+      window.open(fileUrl, '_blank');
+      toast.success('Download started', { id: `download-${report.id}` });
     } catch (err) {
       console.error('Download error:', err);
       toast.error(err instanceof Error ? err.message : 'Failed to download report', {
-        id: ,
+        id: `download-${report.id}`,
       });
     }
   };
@@ -121,7 +122,7 @@ export function DailyDiaryReportsList() {
             size="sm"
             onClick={() => refetch()}
           >
-            <Filter className={} />
+            <Filter className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
             Apply Filters
           </Button>
         </div>
@@ -177,8 +178,8 @@ export function DailyDiaryReportsList() {
       >
         <div className="space-y-4">
           {sortedReports.map((report) => {
-            const diaryDate = report.parameters?.diary_date;
-            const projectName = report.parameters?.project_name || report.report_name;
+            const diaryDate = report.parameters?.diary_date as string | undefined;
+            const projectName = (report.parameters?.project_name as string | undefined) || report.report_name;
 
             return (
               <div

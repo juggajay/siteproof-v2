@@ -7,6 +7,7 @@ import { Plus, FileText, History, Calendar, TrendingUp } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 import { ReportGenerationForm } from '@/features/reporting/components/ReportGenerationForm';
 import { RecentReportsList } from '@/features/reporting/components/RecentReportsList';
+import { DailyDiaryReportsList } from '@/features/reporting/components/DailyDiaryReportsList';
 // BrandedPDFExport component is available at @/components/reports/BrandedPDFExport for use when generating actual reports
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -153,7 +154,10 @@ export default function ReportsPage() {
       {/* Tab Content */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         {activeTab === 'recent' ? (
-          <RecentReportsList limit={20} />
+          <div className="space-y-8">
+            <DailyDiaryReportsList />
+            <RecentReportsList limit={20} />
+          </div>
         ) : (
           <div className="text-center py-12">
             <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
