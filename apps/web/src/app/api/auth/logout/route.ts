@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createActivityLog } from '@/lib/activity-logger';
 
 export async function POST() {
   try {
@@ -22,13 +21,6 @@ export async function POST() {
       console.error('Logout error:', error);
       return NextResponse.json({ error: 'Failed to logout' }, { status: 500 });
     }
-
-    // Log the logout activity
-    await createActivityLog(user.id, 'auth.logout', {
-      user_id: user.id,
-      email: user.email,
-      timestamp: new Date().toISOString(),
-    });
 
     // Create response with cleared cookies
     const response = NextResponse.json({ message: 'Logged out successfully' }, { status: 200 });
@@ -57,7 +49,23 @@ export async function POST() {
   }
 }
 
-// Only allow POST method
+// Support GET method for direct navigation
 export async function GET() {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+  try {
+    const supabase = await createClient();
+
+    // Sign out the user
+    await supabase.auth.signOut();
+
+    // Redirect to login page
+    return NextResponse.redirect(
+      new URL('/auth/login', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
+    );
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Redirect to login even if there's an error
+    return NextResponse.redirect(
+      new URL('/auth/login', process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
+    );
+  }
 }
