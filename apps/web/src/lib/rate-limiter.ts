@@ -89,5 +89,7 @@ class LoginRateLimiter {
   }
 }
 
-// Create a singleton instance
+// Create singleton instances
 export const loginRateLimiter = new LoginRateLimiter();
+export const signupRateLimiter = new LoginRateLimiter();
+export const apiRateLimiter = new LoginRateLimiter();
