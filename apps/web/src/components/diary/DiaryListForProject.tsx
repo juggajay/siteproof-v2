@@ -98,10 +98,9 @@ export function DiaryListForProject({ projectId }: DiaryListForProjectProps) {
                 <p className="mt-2 text-sm text-gray-600 line-clamp-2">{diary.work_summary}</p>
               )}
 
-              {(diary.weather_conditions || diary.weather_notes) && (
+              {diary.site_conditions && (
                 <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                  <span>Weather: {diary.weather_conditions || diary.weather_notes}</span>
-                  {diary.temperature_max != null && <span>• {diary.temperature_max}°C</span>}
+                  <span>Site: {diary.site_conditions}</span>
                 </div>
               )}
             </div>

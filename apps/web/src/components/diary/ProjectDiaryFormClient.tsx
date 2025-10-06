@@ -12,7 +12,7 @@ interface ProjectDiaryFormClientProps {
 export function ProjectDiaryFormClient({ project, diary }: ProjectDiaryFormClientProps) {
   const router = useRouter();
 
-  const handleSuccess = (diaryId: string) => {
+  const handleSuccess = (_diaryId: string) => {
     router.push('/dashboard/projects/' + project.id + '?section=diaries');
   };
 
