@@ -196,7 +196,7 @@ export function ComplianceCheckButton({ projectId, additionalData }: ComplianceC
         onClick={runComplianceCheck}
         disabled={isChecking}
         className="w-full"
-        variant={result && result.risk_level === 'CRITICAL' ? 'destructive' : 'default'}
+        variant={result && result.risk_level === 'CRITICAL' ? 'danger' : 'primary'}
       >
         {isChecking ? (
           <>
