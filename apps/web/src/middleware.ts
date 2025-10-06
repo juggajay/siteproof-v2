@@ -32,60 +32,97 @@ const securityHeaders = {
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self), interest-cohort=()',
 };
 
-// Rate limiting configuration
-const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const MAX_REQUESTS = {
-  auth: 5, // 5 login attempts per minute
-  api: 60, // 60 API requests per minute
-  default: 100, // 100 requests per minute for other routes
-};
+type RateLimitScope = 'default' | 'api' | 'auth';
+
+interface RateLimitResult {
+  allowed: boolean;
+  limit?: number;
+  remaining?: number;
+  resetAt?: number;
+  retryAfter?: number;
+}
+
+function shouldBypassMiddleware(pathname: string): boolean {
+  return pathname.startsWith('/api/internal/rate-limit');
+}
+
+function getRateLimitScope(pathname: string): RateLimitScope {
+  if (pathname.startsWith('/api/auth/')) {
+    return 'auth';
+  }
+
+  if (pathname.startsWith('/api/')) {
+    return 'api';
+  }
+
+  return 'default';
+}
 
 function getRateLimitKey(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0] : 'unknown';
+  const ip = forwarded ? forwarded.split(',')[0] : request.ip ?? 'unknown';
   return `${ip}:${request.nextUrl.pathname}`;
 }
 
-function checkRateLimit(request: NextRequest, limit: number): boolean {
-  const key = getRateLimitKey(request);
-  const now = Date.now();
-  const record = rateLimitStore.get(key);
+async function performRateLimitCheck(
+  request: NextRequest,
+  key: string,
+  scope: RateLimitScope
+): Promise<RateLimitResult> {
+  const endpoint = `${request.nextUrl.origin}/api/internal/rate-limit`;
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
 
-  if (!record || now > record.resetTime) {
-    rateLimitStore.set(key, {
-      count: 1,
-      resetTime: now + RATE_LIMIT_WINDOW,
+  const secret = process.env.INTERNAL_RATE_LIMIT_SECRET;
+  if (secret) {
+    headers['x-internal-rate-limit-secret'] = secret;
+  }
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ key, scope }),
+      cache: 'no-store',
     });
-    return true;
-  }
 
-  if (record.count >= limit) {
-    return false;
-  }
+    if (!response.ok) {
+      console.error('Rate limit service returned non-OK response', response.status);
+      return { allowed: true };
+    }
 
-  record.count++;
-  return true;
+    const data = (await response.json()) as RateLimitResult;
+    return data;
+  } catch (error) {
+    console.error('Rate limit check failed', error);
+    return { allowed: true };
+  }
 }
 
 export async function middleware(request: NextRequest) {
-  // Apply rate limiting
-  let rateLimit = MAX_REQUESTS.default;
-  if (request.nextUrl.pathname.startsWith('/api/auth/')) {
-    rateLimit = MAX_REQUESTS.auth;
-  } else if (request.nextUrl.pathname.startsWith('/api/')) {
-    rateLimit = MAX_REQUESTS.api;
+  if (shouldBypassMiddleware(request.nextUrl.pathname)) {
+    return NextResponse.next();
   }
 
-  if (!checkRateLimit(request, rateLimit)) {
+  const scope = getRateLimitScope(request.nextUrl.pathname);
+  const key = getRateLimitKey(request);
+  const rateLimitResult = await performRateLimitCheck(request, key, scope);
+
+  if (!rateLimitResult.allowed) {
+    const headers: Record<string, string> = {
+      'Retry-After': rateLimitResult.retryAfter?.toString() ?? '60',
+      'X-RateLimit-Limit': rateLimitResult.limit?.toString() ?? '0',
+      'X-RateLimit-Remaining': '0',
+    };
+
+    if (typeof rateLimitResult.resetAt === 'number') {
+      headers['X-RateLimit-Reset'] = new Date(rateLimitResult.resetAt).toISOString();
+    }
+
     return new NextResponse('Too Many Requests', {
       status: 429,
-      headers: {
-        'Retry-After': '60',
-        'X-RateLimit-Limit': rateLimit.toString(),
-        'X-RateLimit-Remaining': '0',
-        'X-RateLimit-Reset': new Date(Date.now() + RATE_LIMIT_WINDOW).toISOString(),
-      },
+      headers,
     });
   }
 
@@ -96,9 +133,19 @@ export async function middleware(request: NextRequest) {
   });
 
   // Apply security headers
-  Object.entries(securityHeaders).forEach(([key, value]) => {
-    response.headers.set(key, value);
+  Object.entries(securityHeaders).forEach(([headerKey, value]) => {
+    response.headers.set(headerKey, value);
   });
+
+  if (typeof rateLimitResult.limit === 'number') {
+    response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
+  }
+  if (typeof rateLimitResult.remaining === 'number') {
+    response.headers.set('X-RateLimit-Remaining', rateLimitResult.remaining.toString());
+  }
+  if (typeof rateLimitResult.resetAt === 'number') {
+    response.headers.set('X-RateLimit-Reset', new Date(rateLimitResult.resetAt).toISOString());
+  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

@@ -155,6 +155,7 @@ export function SignUpForm() {
               href="/terms"
               className="text-blue-600 hover:text-blue-700 underline"
               target="_blank"
+              rel="noopener noreferrer"
             >
               Terms and Conditions
             </Link>{' '}
@@ -163,6 +164,7 @@ export function SignUpForm() {
               href="/privacy"
               className="text-blue-600 hover:text-blue-700 underline"
               target="_blank"
+              rel="noopener noreferrer"
             >
               Privacy Policy
             </Link>

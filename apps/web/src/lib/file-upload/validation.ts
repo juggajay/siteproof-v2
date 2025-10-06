@@ -145,7 +145,7 @@ export function sanitizeFileName(fileName: string): string {
   let sanitized = fileName.replace(/\.\./g, '');
 
   // Remove special characters except for dots, dashes, and underscores
-  sanitized = sanitized.replace(/[^a-zA-Z0-9.-_]/g, '_');
+  sanitized = sanitized.replace(/[^a-zA-Z0-9._-]/g, '_');
 
   // Ensure the file has a valid extension
   const lastDot = sanitized.lastIndexOf('.');

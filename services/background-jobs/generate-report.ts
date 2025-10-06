@@ -1,7 +1,7 @@
 import { eventTrigger } from "@trigger.dev/sdk";
 import { z } from "zod";
 import { client } from "../../apps/web/src/trigger";
-import { createClient } from "../../apps/web/src/lib/supabase/server";
+import { getServiceSupabaseClient } from "./supabase-service-client";
 import { generateProjectSummaryReport } from "./reports/project-summary";
 import { generateDailyDiaryExport } from "./reports/daily-diary-export";
 import { generateInspectionSummary } from "./reports/inspection-summary";
@@ -40,7 +40,7 @@ export const generateReportJob = client.defineJob({
     const { reportId, reportType, format, parameters, organizationId, requestedBy } = payload;
 
     // Initialize Supabase client
-    const supabase = await createClient();
+    const supabase = getServiceSupabaseClient();
 
     try {
       // Update status to processing

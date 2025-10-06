@@ -61,13 +61,7 @@ cat > vercel.json << 'EOF'
     "pages/api/**/*.{js,ts}": {
       "runtime": "nodejs20.x"
     }
-  },
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/"
-    }
-  ]
+  }
 }
 EOF
 echo "✅ Updated vercel.json with explicit Next.js configuration"

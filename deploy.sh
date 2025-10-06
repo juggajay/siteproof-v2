@@ -1,28 +1,30 @@
 #!/bin/bash
 
-# SiteProof v2 Deployment Script
+set -euo pipefail
 
-echo "🚀 Starting SiteProof v2 deployment..."
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$ROOT_DIR/apps/web"
 
-# Check if Vercel CLI is installed
+echo "🚀 Starting SiteProof v2 deployment from $APP_DIR..."
+
 if ! command -v vercel &> /dev/null; then
-    echo "❌ Vercel CLI not found. Installing..."
-    npm install -g vercel
+  echo "❌ Vercel CLI not found. Installing..."
+  npm install -g vercel
 fi
 
-# Check if environment variables are set
-if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then
-    echo "❌ Missing NEXT_PUBLIC_SUPABASE_URL"
-    echo "Please set your environment variables first:"
-    echo "export NEXT_PUBLIC_SUPABASE_URL=your-url"
-    echo "export NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key"
-    echo "export SUPABASE_SERVICE_KEY=your-service-key"
-    echo "export TRIGGER_API_KEY=your-trigger-key"
-    echo "export TRIGGER_API_URL=https://api.trigger.dev"
-    exit 1
+cd "$APP_DIR"
+
+if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ]; then
+  echo "❌ Missing NEXT_PUBLIC_SUPABASE_URL"
+  echo "Please set the required environment variables before running this script:"
+  echo "  export NEXT_PUBLIC_SUPABASE_URL=your-url"
+  echo "  export NEXT_PUBLIC_SUPABASE_ANON_KEY=your-key"
+  echo "  export SUPABASE_SERVICE_KEY=your-service-key"
+  echo "  export TRIGGER_API_KEY=your-trigger-key"
+  echo "  export TRIGGER_API_URL=https://api.trigger.dev"
+  exit 1
 fi
 
-# Deploy to Vercel
 echo "📦 Deploying to Vercel..."
 vercel --prod \
   --name siteproof-app \

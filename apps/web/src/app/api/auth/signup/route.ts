@@ -19,7 +19,13 @@ export async function POST(request: Request) {
   try {
     // Check rate limiting
     const clientId = getClientIdentifier();
-    const { allowed, retryAfter, remainingAttempts } = await signupRateLimiter.checkLimit(clientId);
+    const {
+      allowed,
+      retryAfter,
+      remainingAttempts,
+      limit,
+      resetAt,
+    } = await signupRateLimiter.checkLimit(clientId);
 
     if (!allowed) {
       return NextResponse.json(
@@ -31,9 +37,11 @@ export async function POST(request: Request) {
           status: 429,
           headers: {
             'Retry-After': retryAfter?.toString() || '3600',
-            'X-RateLimit-Limit': '5',
+            'X-RateLimit-Limit': limit?.toString() ?? '5',
             'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': new Date(Date.now() + (retryAfter || 3600) * 1000).toISOString(),
+            'X-RateLimit-Reset': new Date(
+              resetAt ?? Date.now() + (retryAfter || 3600) * 1000
+            ).toISOString(),
           },
         }
       );
@@ -65,6 +73,7 @@ export async function POST(request: Request) {
       .single();
 
     if (existingUser) {
+      await signupRateLimiter.recordFailedAttempt(clientId);
       return NextResponse.json(
         {
           message: 'An account with this email already exists',
@@ -88,6 +97,7 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('Supabase signup error:', error);
+      await signupRateLimiter.recordFailedAttempt(clientId);
 
       // Handle specific error cases
       if (error.message.includes('already registered')) {
@@ -117,11 +127,23 @@ export async function POST(request: Request) {
     }
 
     if (!data.user) {
+      await signupRateLimiter.recordFailedAttempt(clientId);
       return NextResponse.json({ message: 'Failed to create account' }, { status: 400 });
     }
 
-    // Record the signup attempt
-    await signupRateLimiter.recordFailedAttempt(clientId);
+    // Clear failed attempts after a successful signup
+    await signupRateLimiter.clearAttempts(clientId);
+
+    const successHeaders: Record<string, string> = {};
+    if (typeof limit === 'number') {
+      successHeaders['X-RateLimit-Limit'] = limit.toString();
+    }
+    if (typeof remainingAttempts === 'number') {
+      successHeaders['X-RateLimit-Remaining'] = remainingAttempts.toString();
+    }
+    if (typeof resetAt === 'number') {
+      successHeaders['X-RateLimit-Reset'] = new Date(resetAt).toISOString();
+    }
 
     return NextResponse.json(
       {
@@ -133,11 +155,7 @@ export async function POST(request: Request) {
       },
       {
         status: 201,
-        headers: {
-          'X-RateLimit-Limit': '5',
-          'X-RateLimit-Remaining': (remainingAttempts! - 1).toString(),
-          'X-RateLimit-Reset': new Date(Date.now() + 3600000).toISOString(),
-        },
+        headers: successHeaders,
       }
     );
   } catch (error) {

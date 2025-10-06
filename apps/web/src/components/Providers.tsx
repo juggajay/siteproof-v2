@@ -1,10 +1,20 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import dynamic from 'next/dynamic';
 import { ServiceWorkerProvider } from './ServiceWorkerProvider';
 import { ToastProvider } from '@siteproof/design-system';
-import { useState } from 'react';
+import { useState, type ComponentType } from 'react';
+
+const ReactQueryDevtools = (
+  process.env.NODE_ENV === 'production'
+    ? () => null
+    : dynamic(
+        () =>
+          import('@tanstack/react-query-devtools').then((mod) => mod.ReactQueryDevtools),
+        { ssr: false }
+      )
+) as ComponentType<{ initialIsOpen?: boolean }>;
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -26,7 +36,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
           {children}
         </ServiceWorkerProvider>
       </ToastProvider>
-      <ReactQueryDevtools initialIsOpen={false} />
+      {process.env.NODE_ENV !== 'production' && (
+        <ReactQueryDevtools initialIsOpen={false} />
+      )}
     </QueryClientProvider>
   );
 }
