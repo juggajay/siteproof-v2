@@ -1,7 +1,27 @@
+/* Import design system */
+@import '../styles/design-tokens.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Import design system */
-@import '../styles/design-tokens.css';
+@import '../styles/siteproof-design-system.css';
 @import '../styles/mobile-optimizations.css';
+
+@layer base {
+  body {
+    @apply font-sans antialiased;
+    color: #1A1F2E; /* primary-charcoal */
+    background-color: #F9FAFB; /* background-light */
+  }
+
+  * {
+    border-color: #F3F4F6; /* secondary-light-gray */
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

@@ -36,7 +36,7 @@ export function TopNav({
       return (
         <button
           onClick={onBack}
-          className="p-tiny rounded-button hover:bg-secondary-light-gray transition-colors duration-micro"
+          className="p-tiny rounded-button hover:bg-secondary-light-gray transition-colors duration-fast min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Go back"
         >
           <ArrowLeft className="w-6 h-6 text-primary-charcoal" />
@@ -101,7 +101,7 @@ export function TopNav({
               >
                 {action.icon}
                 {action.badge !== undefined && (
-                  <span className="absolute top-0 right-0 min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-accent-red text-white text-[10px] font-medium rounded-full">
+                  <span className="absolute top-0 right-0 min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-error text-white text-[10px] font-medium rounded-full">
                     {action.badge}
                   </span>
                 )}

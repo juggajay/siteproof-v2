@@ -214,6 +214,11 @@
   background-color: rgba(59, 130, 246, 0.1);
 }
 
+/* Preserve gradient backgrounds in dark mode */
+.dark .bg-gradient-to-b {
+  background-image: linear-gradient(to bottom, var(--tw-gradient-stops));
+}
+
 /* Modals and overlays */
 .dark .modal-backdrop {
   background-color: rgba(0, 0, 0, 0.75);

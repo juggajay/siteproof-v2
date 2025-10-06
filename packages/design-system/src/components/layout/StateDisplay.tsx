@@ -88,13 +88,13 @@ export const StateDisplay: React.FC<StateDisplayProps> = ({
         >
           {errorComponent || (
             <>
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-                <AlertCircle className="w-8 h-8 text-red-600" />
+              <div className="w-16 h-16 bg-error/10 rounded-full flex items-center justify-center mb-4">
+                <AlertCircle className="w-8 h-8 text-error" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-h4 font-semibold text-primary-charcoal mb-2">
                 {errorTitle}
               </h3>
-              <p className="text-sm text-gray-600 mb-6 max-w-sm">
+              <p className="text-body-small text-secondary-gray mb-6 max-w-sm">
                 {errorMessage}
               </p>
               {onRetry && (
@@ -126,13 +126,13 @@ export const StateDisplay: React.FC<StateDisplayProps> = ({
         >
           {emptyComponent || (
             <>
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Inbox className="w-8 h-8 text-gray-400" />
+              <div className="w-16 h-16 bg-secondary-light-gray rounded-full flex items-center justify-center mb-4">
+                <Inbox className="w-8 h-8 text-secondary-gray" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-h4 font-semibold text-primary-charcoal mb-2">
                 {emptyTitle}
               </h3>
-              <p className="text-sm text-gray-600 mb-6 max-w-sm">
+              <p className="text-body-small text-secondary-gray mb-6 max-w-sm">
                 {emptyDescription}
               </p>
               {onEmptyAction && (

@@ -41,16 +41,16 @@ export function BottomNav({
               onClick={item.onClick}
               className={`
                 relative flex flex-col items-center justify-center
-                min-w-[64px] py-tiny px-small
-                transition-colors duration-micro
-                ${isActive ? 'text-primary-blue' : 'text-secondary-gray'}
-                hover:text-primary-blue
+                min-w-[56px] min-h-[56px] py-tiny px-small
+                transition-colors duration-fast rounded-button
+                ${isActive ? 'text-primary-blue bg-secondary-blue-pale' : 'text-secondary-gray'}
+                hover:text-primary-blue hover:bg-secondary-light-gray
               `}
             >
               <div className="relative">
                 {item.icon}
                 {item.badge !== undefined && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-accent-red text-white text-[10px] font-medium rounded-full">
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 bg-error text-white text-[10px] font-medium rounded-full">
                     {item.badge}
                   </span>
                 )}

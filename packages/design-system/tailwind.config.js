@@ -8,7 +8,7 @@ module.exports = {
       // COLORS - Based on Design System Spec
       colors: {
         // Primary
-        'primary-blue': '#0047AB',
+        'primary-blue': '#2196F3',  // Material Design Blue 500
         'primary-white': '#FFFFFF',
         'primary-charcoal': '#1A1F2E',
 
@@ -24,11 +24,18 @@ module.exports = {
         'accent-yellow': '#FFC107',
         'accent-red': '#EF4444',
 
-        // Functional
-        'success': '#16A34A',
-        'error': '#DC2626',
-        'warning': '#F59E0B',
-        'info': '#0EA5E9',
+        // Functional (Okabe-Ito Color-blind Safe)
+        'success': '#117733',  // Okabe-Ito bluish green
+        'success-light': '#4CAF50',
+        'success-dark': '#0D5E28',
+        'error': '#D55E00',     // Okabe-Ito vermillion
+        'error-light': '#EF5350',
+        'error-dark': '#AA4A00',
+        'warning': '#E69F00',   // Okabe-Ito orange
+        'warning-light': '#FFB74D',
+        'warning-dark': '#B87F00',
+        'info': '#0072B2',      // Okabe-Ito blue
+        'neutral': '#888888',   // Okabe-Ito grey
 
         // Background
         'background-white': '#FFFFFF',

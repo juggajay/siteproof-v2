@@ -13,10 +13,10 @@ export interface ProgressBarProps {
 }
 
 const progressBarVariants = {
-  success: 'bg-[#117733]',
-  error: 'bg-[#D55E00]',
-  warning: 'bg-[#F0E442]',
-  neutral: 'bg-blue-500',
+  success: 'bg-success',
+  error: 'bg-error',
+  warning: 'bg-warning',
+  neutral: 'bg-primary-blue',
 } as const;
 
 export function ProgressBar({
@@ -32,9 +32,9 @@ export function ProgressBar({
     <div className={cn('w-full', className)}>
       {(label || showPercentage) && (
         <div className="flex items-center justify-between mb-2">
-          {label && <span className="text-sm font-medium text-gray-700">{label}</span>}
+          {label && <span className="text-body-small font-medium text-primary-charcoal">{label}</span>}
           {showPercentage && (
-            <span className="text-sm font-medium text-gray-600">{Math.round(clampedValue)}%</span>
+            <span className="text-body-small font-medium text-secondary-gray">{Math.round(clampedValue)}%</span>
           )}
         </div>
       )}
@@ -112,7 +112,8 @@ export function ProgressRing({
               cy={config.size / 2}
               r={radius}
               fill="none"
-              stroke="#117733"
+              stroke="currentColor"
+              className="text-success"
               strokeWidth={config.strokeWidth}
               strokeDasharray={circumference}
               strokeDashoffset={strokeDashoffset}
@@ -122,7 +123,7 @@ export function ProgressRing({
           </svg>
           {showLabel && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className={cn('font-semibold text-gray-700', config.fontSize)}>
+              <span className={cn('font-semibold text-primary-charcoal', config.fontSize)}>
                 {Math.round(clampedValue)}%
               </span>
             </div>
@@ -174,17 +175,17 @@ export function ProgressRing({
             })}
           </svg>
         </div>
-        {label && <span className="text-sm text-gray-600">{label}</span>}
+        {label && <span className="text-body-small text-secondary-gray">{label}</span>}
         {segments.length > 0 && (
           <div className="flex flex-col gap-1">
             {segments.map((segment, index) => (
-              <div key={index} className="flex items-center gap-2 text-xs">
+              <div key={index} className="flex items-center gap-2 text-caption">
                 <div
                   className="w-3 h-3 rounded-full"
                   style={{ backgroundColor: segment.color }}
                   aria-hidden="true"
                 />
-                <span className="text-gray-600">
+                <span className="text-secondary-gray">
                   {segment.label}: {Math.round(segment.value)}%
                 </span>
               </div>

@@ -31,17 +31,17 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const hasSuccess = success && !hasError;
 
     const borderColor = hasError
-      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+      ? 'border-error focus:border-error focus:ring-error'
       : hasSuccess
-      ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
-      : 'border-gray-300 focus:border-blue-500 focus:ring-blue-500';
+      ? 'border-success focus:border-success focus:ring-success'
+      : 'border-gray-300 focus:border-primary-blue focus:ring-primary-blue';
 
     return (
       <div className={`${fullWidth ? 'w-full' : ''}`}>
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-gray-700 mb-1"
+            className="block text-body-small font-medium text-primary-charcoal mb-2"
           >
             {label}
           </label>
@@ -52,13 +52,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={`
-              block w-full px-3 py-2 pr-10
-              text-gray-900 placeholder-gray-500
-              border rounded-lg shadow-sm
-              focus:outline-none focus:ring-2 focus:ring-offset-0
-              disabled:bg-gray-50 disabled:cursor-not-allowed
-              transition-colors duration-200
-              ${borderColor}
+              input
+              ${hasError ? 'input-error' : ''}
+              ${hasSuccess ? 'input-success' : ''}
               ${className}
             `}
             aria-invalid={hasError}
@@ -77,9 +73,9 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
                 className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none"
               >
                 {hasError ? (
-                  <AlertCircle className="w-5 h-5 text-red-500" aria-hidden="true" />
+                  <AlertCircle className="w-5 h-5 text-error" aria-hidden="true" />
                 ) : (
-                  <CheckCircle className="w-5 h-5 text-green-500" aria-hidden="true" />
+                  <CheckCircle className="w-5 h-5 text-success" aria-hidden="true" />
                 )}
               </motion.div>
             )}
@@ -93,7 +89,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="mt-1 text-sm text-red-600"
+              className="mt-1 text-body-small text-error"
               role="alert"
             >
               {error}
@@ -106,7 +102,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mt-1 text-sm text-gray-500"
+              className="mt-1 text-body-small text-secondary-gray"
             >
               {helperText}
             </motion.p>

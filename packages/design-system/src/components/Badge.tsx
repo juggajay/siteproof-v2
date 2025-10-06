@@ -17,11 +17,11 @@ export function Badge({
   rounded = false,
 }: BadgeProps) {
   const variantClasses = {
-    default: 'bg-secondary-light-gray text-secondary-gray',
+    default: 'bg-neutral text-white',
     primary: 'bg-primary-blue text-white',
-    success: 'bg-accent-green text-white',
-    warning: 'bg-accent-yellow text-primary-charcoal',
-    error: 'bg-accent-red text-white',
+    success: 'bg-success text-white',
+    warning: 'bg-warning text-white',
+    error: 'bg-error text-white',
     info: 'bg-info text-white',
   };
 
