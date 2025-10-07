@@ -80,13 +80,40 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
+    // Transform frontend data to database format
+    // Only include fields that exist in the workers table
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    // Map frontend fields to database fields
+    if (body.first_name || body.last_name) {
+      updateData.name = `${body.first_name || ''} ${body.last_name || ''}`.trim();
+    } else if (body.name) {
+      updateData.name = body.name;
+    }
+
+    if (body.role) updateData.job_title = body.role;
+    if (body.job_title) updateData.job_title = body.job_title;
+    if (body.trade !== undefined) updateData.trade = body.trade;
+    if (body.employee_number !== undefined) updateData.employee_number = body.employee_number;
+    if (body.phone) updateData.contact_phone = body.phone;
+    if (body.contact_phone) updateData.contact_phone = body.contact_phone;
+    if (body.email) updateData.contact_email = body.email;
+    if (body.contact_email) updateData.contact_email = body.contact_email;
+    if (body.start_date !== undefined) updateData.start_date = body.start_date;
+    if (body.end_date !== undefined) updateData.end_date = body.end_date;
+    if (body.employment_type) updateData.employment_type = body.employment_type;
+    if (body.standard_hourly_rate !== undefined) updateData.hourly_rate = body.standard_hourly_rate;
+    if (body.hourly_rate !== undefined) updateData.hourly_rate = body.hourly_rate;
+    if (body.currency) updateData.currency = body.currency;
+    if (body.is_active !== undefined) updateData.is_active = body.is_active;
+    if (body.notes !== undefined) updateData.notes = body.notes;
+
     // Update employee
     const { data: employee, error: updateError } = await supabase
       .from('workers')
-      .update({
-        ...body,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', employeeId)
       .select()
       .single();
