@@ -8,7 +8,8 @@ import { toast } from 'sonner';
 
 interface LabourEntry {
   id?: string;
-  employee_id?: string;
+  worker_id?: string;
+  employee_id?: string; // Deprecated, use worker_id
   company_id: string;
   company: string;
   worker_name: string;
@@ -63,7 +64,7 @@ export function LabourSection({ entries, onChange, showFinancials = false }: Lab
   const addLabourEntry = (employee: any) => {
     const selectedCompanyData = companies?.find((c: any) => c.id === selectedCompany);
     const newEntry: LabourEntry = {
-      employee_id: employee.id,
+      worker_id: employee.id,
       company_id: selectedCompany,
       company: selectedCompanyData?.name || '',
       worker_name: `${employee.first_name} ${employee.last_name}`,

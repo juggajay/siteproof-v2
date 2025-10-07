@@ -81,7 +81,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
       .from('diary_labour_entries')
       .select('*')
       .eq('diary_id', params.id);
-    
+
     if (labourError) {
       console.error('Error fetching labour entries:', labourError);
     } else {
@@ -193,7 +193,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       if (labour_entries && labour_entries.length > 0) {
         const labourData = labour_entries.map((entry: any) => ({
           diary_id: params.id,
-          employee_id: entry.employee_id || null,
+          worker_id: entry.worker_id || entry.employee_id || null,
           trade: entry.trade || '',
           company_id: entry.company_id || null,
           worker_name: entry.worker_name || '',

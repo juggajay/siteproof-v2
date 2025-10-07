@@ -1,8 +1,8 @@
 -- Enhanced Cost Tracking System Tables
 -- This migration adds comprehensive cost tracking for labour, plant, and materials
 
--- 1. Employees table (linked to companies)
-CREATE TABLE IF NOT EXISTS employees (
+-- 1. Workers table (linked to companies)
+CREATE TABLE IF NOT EXISTS workers (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   company_id UUID NOT NULL REFERENCES company_profiles(id) ON DELETE CASCADE,
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -117,10 +117,10 @@ CREATE TABLE IF NOT EXISTS materials (
   created_by UUID REFERENCES auth.users(id)
 );
 
--- 4. Employee rates history (track rate changes over time)
-CREATE TABLE IF NOT EXISTS employee_rates (
+-- 4. Worker rates history (track rate changes over time)
+CREATE TABLE IF NOT EXISTS worker_rates (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  employee_id UUID NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+  worker_id UUID NOT NULL REFERENCES workers(id) ON DELETE CASCADE,
   project_id UUID REFERENCES projects(id) ON DELETE CASCADE, -- NULL for standard rates
   
   -- Rates
@@ -136,9 +136,9 @@ CREATE TABLE IF NOT EXISTS employee_rates (
   created_at TIMESTAMPTZ DEFAULT NOW(),
   created_by UUID REFERENCES auth.users(id),
   
-  -- Ensure no overlapping periods for same employee/project
+  -- Ensure no overlapping periods for same worker/project
   CONSTRAINT no_overlapping_rates EXCLUDE USING gist (
-    employee_id WITH =,
+    worker_id WITH =,
     project_id WITH =,
     daterange(effective_from, effective_to, '[)') WITH &&
   )
@@ -193,9 +193,9 @@ CREATE TABLE IF NOT EXISTS material_costs (
 CREATE TABLE IF NOT EXISTS diary_labour_entries (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   diary_id UUID NOT NULL REFERENCES daily_diaries(id) ON DELETE CASCADE,
-  
-  -- Employee or trade group
-  employee_id UUID REFERENCES employees(id),
+
+  -- Worker or trade group
+  worker_id UUID REFERENCES workers(id),
   trade VARCHAR(100),
   company_id UUID REFERENCES company_profiles(id),
   
@@ -236,7 +236,7 @@ CREATE TABLE IF NOT EXISTS diary_plant_entries (
   total_hours DECIMAL(5, 2),
   
   -- Operator
-  operator_id UUID REFERENCES employees(id),
+  operator_id UUID REFERENCES workers(id),
   operator_name VARCHAR(255),
   
   -- Costs
@@ -283,9 +283,9 @@ CREATE TABLE IF NOT EXISTS diary_material_entries (
 );
 
 -- Create indexes for performance
-CREATE INDEX idx_employees_company ON employees(company_id);
-CREATE INDEX idx_employees_organization ON employees(organization_id);
-CREATE INDEX idx_employees_active ON employees(is_active);
+CREATE INDEX idx_workers_company ON workers(company_id);
+CREATE INDEX idx_workers_organization ON workers(organization_id);
+CREATE INDEX idx_workers_active ON workers(is_active);
 
 CREATE INDEX idx_plant_company ON plant_equipment(company_id);
 CREATE INDEX idx_plant_organization ON plant_equipment(organization_id);
@@ -300,28 +300,28 @@ CREATE INDEX idx_diary_material_diary ON diary_material_entries(diary_id);
 
 -- RLS Policies
 
--- Employees policies
-ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
+-- Workers policies
+ALTER TABLE workers ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Users can view employees in their organization"
-  ON employees FOR SELECT
+CREATE POLICY "Users can view workers in their organization"
+  ON workers FOR SELECT
   TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM organization_members om
       WHERE om.user_id = auth.uid()
-      AND om.organization_id = employees.organization_id
+      AND om.organization_id = workers.organization_id
     )
   );
 
-CREATE POLICY "Admins can manage employees"
-  ON employees FOR ALL
+CREATE POLICY "Admins can manage workers"
+  ON workers FOR ALL
   TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM organization_members om
       WHERE om.user_id = auth.uid()
-      AND om.organization_id = employees.organization_id
+      AND om.organization_id = workers.organization_id
       AND om.role IN ('owner', 'admin')
     )
   );

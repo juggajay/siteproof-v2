@@ -18,7 +18,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 
     // Get employees for the company
     const { data: employees, error } = await supabase
-      .from('employees')
+      .from('workers')
       .select('*')
       .eq('company_id', companyId)
       .eq('is_active', true)
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Create employee
     const { data: employee, error: createError } = await supabase
-      .from('employees')
+      .from('workers')
       .insert({
         ...body,
         company_id: companyId,
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // If rates are provided, create initial rate entry
     if (body.standard_hourly_rate || body.overtime_hourly_rate || body.daily_rate) {
-      await supabase.from('employee_rates').insert({
-        employee_id: employee.id,
+      await supabase.from('worker_rates').insert({
+        worker_id: employee.id,
         standard_hourly_rate: body.standard_hourly_rate,
         overtime_hourly_rate: body.overtime_hourly_rate,
         daily_rate: body.daily_rate,
@@ -147,7 +147,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const updates = await Promise.all(
       employees.map(async (emp: any) => {
         const { data, error } = await supabase
-          .from('employees')
+          .from('workers')
           .update({
             ...emp,
             updated_at: new Date().toISOString(),

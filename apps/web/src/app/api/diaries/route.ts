@@ -298,7 +298,7 @@ export async function POST(request: NextRequest) {
       // First try with all fields, then fallback to basic fields if it fails
       const labourData = labour_entries.map((entry: any) => ({
         diary_id: diary.id,
-        employee_id: entry.employee_id || null,
+        worker_id: entry.worker_id || entry.employee_id || null,
         trade: entry.trade || '',
         company_id: entry.company_id || null,
         // These fields might not exist if migration hasn't been run
@@ -329,7 +329,7 @@ export async function POST(request: NextRequest) {
         // Try fallback with only basic fields if new columns don't exist
         const basicLabourData = labour_entries.map((entry: any) => ({
           diary_id: diary.id,
-          employee_id: entry.employee_id || null,
+          worker_id: entry.worker_id || entry.employee_id || null,
           trade: entry.trade || '',
           company_id: entry.company_id || null,
           start_time: entry.start_time || null,

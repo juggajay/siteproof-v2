@@ -18,12 +18,12 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
 
     // Get employee with current rates
     const { data: employee, error } = await supabase
-      .from('employees')
+      .from('workers')
       .select(
         `
         *,
         company:company_profiles(id, company_name),
-        current_rates:employee_rates(
+        current_rates:worker_rates(
           standard_hourly_rate,
           overtime_hourly_rate,
           daily_rate,
@@ -82,7 +82,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
     // Update employee
     const { data: employee, error: updateError } = await supabase
-      .from('employees')
+      .from('workers')
       .update({
         ...body,
         updated_at: new Date().toISOString(),
@@ -103,8 +103,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       body.daily_rate !== undefined;
 
     if (rateChanged) {
-      await supabase.from('employee_rates').insert({
-        employee_id: employeeId,
+      await supabase.from('worker_rates').insert({
+        worker_id: employeeId,
         standard_hourly_rate: body.standard_hourly_rate,
         overtime_hourly_rate: body.overtime_hourly_rate,
         daily_rate: body.daily_rate,
@@ -148,7 +148,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
 
     // Soft delete (deactivate) employee
     const { error: deleteError } = await supabase
-      .from('employees')
+      .from('workers')
       .update({
         is_active: false,
         end_date: new Date().toISOString().split('T')[0],
