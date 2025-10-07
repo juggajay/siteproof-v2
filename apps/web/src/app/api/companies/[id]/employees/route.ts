@@ -20,7 +20,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     const { data: employees, error } = await supabase
       .from('workers')
       .select('*')
-      .eq('contractor_id', companyId)
+      .eq('company_profile_id', companyId)
       .eq('is_active', true)
       .order('name', { ascending: true });
 
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Verify the company belongs to the organization
     const { data: company } = await supabase
-      .from('contractors')
+      .from('company_profiles')
       .select('id, organization_id')
       .eq('id', companyId)
       .eq('organization_id', member.organization_id)
@@ -85,8 +85,9 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       .from('workers')
       .insert({
         ...body,
-        contractor_id: companyId,
+        company_profile_id: companyId,
         organization_id: member.organization_id,
+        created_by: user.id,
       })
       .select()
       .single();
@@ -152,7 +153,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
             updated_at: new Date().toISOString(),
           })
           .eq('id', emp.id)
-          .eq('contractor_id', companyId)
+          .eq('company_profile_id', companyId)
           .select()
           .single();
 
