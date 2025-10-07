@@ -80,15 +80,30 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Company not found' }, { status: 404 });
     }
 
+    // Transform request data to match workers table schema
+    const workerData = {
+      company_profile_id: companyId,
+      organization_id: member.organization_id,
+      name: body.name || `${body.first_name || ''} ${body.last_name || ''}`.trim(),
+      job_title: body.job_title || body.role || body.trade || '',
+      trade: body.trade || '',
+      employee_number: body.employee_number || '',
+      contact_phone: body.contact_phone || body.phone || '',
+      contact_email: body.contact_email || body.email || '',
+      start_date: body.start_date || null,
+      end_date: body.end_date || null,
+      employment_type: body.employment_type || '',
+      hourly_rate: body.hourly_rate || body.standard_hourly_rate || null,
+      currency: body.currency || 'AUD',
+      is_active: body.is_active !== undefined ? body.is_active : true,
+      notes: body.notes || '',
+      created_by: user.id,
+    };
+
     // Create employee
     const { data: employee, error: createError } = await supabase
       .from('workers')
-      .insert({
-        ...body,
-        company_profile_id: companyId,
-        organization_id: member.organization_id,
-        created_by: user.id,
-      })
+      .insert(workerData)
       .select()
       .single();
 
