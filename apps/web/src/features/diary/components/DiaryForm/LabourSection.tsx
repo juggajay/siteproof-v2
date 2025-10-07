@@ -54,7 +54,17 @@ export function LabourSection({ entries, onChange, showFinancials = false }: Lab
       const response = await fetch(`/api/companies/${selectedCompany}/employees`);
       if (!response.ok) throw new Error('Failed to fetch employees');
       const data = await response.json();
-      return data.employees || [];
+      // Transform employee data to match expected format
+      return (data.employees || []).map((emp: any) => {
+        const nameParts = (emp.name || '').split(' ');
+        return {
+          ...emp,
+          first_name: nameParts[0] || '',
+          last_name: nameParts.slice(1).join(' ') || '',
+          standard_hourly_rate: emp.hourly_rate || emp.standard_hourly_rate || 0,
+          overtime_hourly_rate: emp.overtime_rate || emp.overtime_hourly_rate,
+        };
+      });
     },
     enabled: !!selectedCompany,
   });

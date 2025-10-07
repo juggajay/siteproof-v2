@@ -29,7 +29,23 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Failed to fetch employees' }, { status: 500 });
     }
 
-    return NextResponse.json({ employees: employees || [] });
+    // Transform data to match frontend expectations
+    const transformedEmployees = (employees || []).map((emp: any) => {
+      const nameParts = (emp.name || '').split(' ');
+      const first_name = nameParts[0] || '';
+      const last_name = nameParts.slice(1).join(' ') || '';
+      return {
+        ...emp,
+        first_name,
+        last_name,
+        email: emp.contact_email || emp.email,
+        phone: emp.contact_phone || emp.phone,
+        role: emp.job_title || emp.role,
+        standard_hourly_rate: emp.hourly_rate || emp.standard_hourly_rate,
+      };
+    });
+
+    return NextResponse.json({ employees: transformedEmployees });
   } catch (error) {
     console.error('Error in employees GET:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
