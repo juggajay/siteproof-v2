@@ -64,7 +64,21 @@ export function EmployeeManagement({
       const response = await fetch(`/api/companies/${companyId}/employees`);
       if (!response.ok) throw new Error('Failed to fetch employees');
       const data = await response.json();
-      return data.employees;
+      // Transform database format (name) to frontend format (first_name/last_name)
+      return data.employees.map((emp: any) => {
+        const nameParts = (emp.name || '').split(' ');
+        const first_name = nameParts[0] || '';
+        const last_name = nameParts.slice(1).join(' ') || '';
+        return {
+          ...emp,
+          first_name,
+          last_name,
+          email: emp.contact_email || emp.email,
+          phone: emp.contact_phone || emp.phone,
+          role: emp.job_title || emp.role,
+          standard_hourly_rate: emp.hourly_rate || emp.standard_hourly_rate,
+        };
+      });
     },
   });
 
