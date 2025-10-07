@@ -589,50 +589,247 @@ async function generateITPReport(report: any, _supabase: SupabaseClient): Promis
   }
 }
 async function downloadDailyDiaryEntry(report: any, supabase: SupabaseClient) {
-  const diaryId = report.parameters?.diary_id;
-  const projectId = report.parameters?.project_id;
+  try {
+    const diaryId = report.parameters?.diary_id;
+    const projectId = report.parameters?.project_id;
+    const projectName = report.parameters?.project_name || 'Unknown Project';
 
-  if (!diaryId || !projectId) {
-    return NextResponse.json(
-      { error: 'Diary reference is missing from report parameters' },
-      { status: 400 }
-    );
+    if (!diaryId || !projectId) {
+      return NextResponse.json(
+        { error: 'Diary reference is missing from report parameters' },
+        { status: 400 }
+      );
+    }
+
+    const { data: diary, error: diaryError } = await supabase
+      .from('daily_diaries')
+      .select('*')
+      .eq('id', diaryId)
+      .eq('project_id', projectId)
+      .single();
+
+    if (diaryError || !diary) {
+      return NextResponse.json({ error: 'Diary not found' }, { status: 404 });
+    }
+
+    const [{ data: labour }, { data: plant }] = await Promise.all([
+      supabase.from('diary_labor').select('*').eq('diary_id', diaryId),
+      supabase.from('diary_plant').select('*').eq('diary_id', diaryId),
+    ]);
+
+    // Generate PDF
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+    const { width, height } = page.getSize();
+
+    const titleFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+    let y = height - 50;
+
+    // Title
+    page.drawText('Daily Diary Report', {
+      x: 50,
+      y,
+      size: 24,
+      font: titleFont,
+      color: rgb(0, 0, 0),
+    });
+    y -= 40;
+
+    // Project and Date info
+    page.drawText(`Project: ${projectName}`, {
+      x: 50,
+      y,
+      size: 14,
+      font: titleFont,
+      color: rgb(0, 0, 0),
+    });
+    y -= 25;
+
+    const diaryDate = diary.diary_date ? format(new Date(diary.diary_date), 'dd/MM/yyyy') : 'N/A';
+    page.drawText(`Date: ${diaryDate}`, {
+      x: 50,
+      y,
+      size: 12,
+      font,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+    y -= 20;
+
+    page.drawText(`Diary Number: ${diary.diary_number || 'N/A'}`, {
+      x: 50,
+      y,
+      size: 12,
+      font,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+    y -= 30;
+
+    // Line separator
+    page.drawLine({
+      start: { x: 50, y },
+      end: { x: width - 50, y },
+      thickness: 1,
+      color: rgb(0.8, 0.8, 0.8),
+    });
+    y -= 30;
+
+    // Weather & Site Conditions
+    if (diary.weather || diary.site_conditions) {
+      page.drawText('Weather & Site Conditions', {
+        x: 50,
+        y,
+        size: 16,
+        font: titleFont,
+        color: rgb(0, 0, 0),
+      });
+      y -= 25;
+
+      if (diary.weather?.conditions) {
+        page.drawText(`Weather: ${diary.weather.conditions}`, {
+          x: 70,
+          y,
+          size: 11,
+          font,
+          color: rgb(0.2, 0.2, 0.2),
+        });
+        y -= 18;
+      }
+
+      if (diary.site_conditions) {
+        const conditions = String(diary.site_conditions).substring(0, 100);
+        page.drawText(
+          `Site: ${conditions}${String(diary.site_conditions).length > 100 ? '...' : ''}`,
+          {
+            x: 70,
+            y,
+            size: 11,
+            font,
+            color: rgb(0.2, 0.2, 0.2),
+          }
+        );
+        y -= 25;
+      }
+    }
+
+    // Work Summary
+    if (diary.work_summary) {
+      page.drawText('Work Summary', {
+        x: 50,
+        y,
+        size: 16,
+        font: titleFont,
+        color: rgb(0, 0, 0),
+      });
+      y -= 25;
+
+      const summary = String(diary.work_summary).substring(0, 200);
+      const lines = summary.match(/.{1,70}/g) || [summary];
+      for (const line of lines.slice(0, 3)) {
+        page.drawText(line, {
+          x: 70,
+          y,
+          size: 11,
+          font,
+          color: rgb(0.2, 0.2, 0.2),
+        });
+        y -= 16;
+      }
+      y -= 10;
+    }
+
+    // Labour Summary
+    if (labour && labour.length > 0) {
+      page.drawText('Labour On Site', {
+        x: 50,
+        y,
+        size: 16,
+        font: titleFont,
+        color: rgb(0, 0, 0),
+      });
+      y -= 25;
+
+      page.drawText(`Total Workers: ${labour.length}`, {
+        x: 70,
+        y,
+        size: 12,
+        font,
+        color: rgb(0.2, 0.2, 0.2),
+      });
+      y -= 25;
+
+      for (const worker of labour.slice(0, 8)) {
+        const name = worker.worker_name || 'Unknown';
+        const trade = worker.trade || 'N/A';
+        const hours = worker.total_hours || 0;
+
+        page.drawText(`• ${name} (${trade}) - ${hours}h`, {
+          x: 70,
+          y,
+          size: 10,
+          font,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+        y -= 16;
+
+        if (y < 150) break;
+      }
+      y -= 10;
+    }
+
+    // Plant & Equipment Summary
+    if (plant && plant.length > 0 && y > 150) {
+      page.drawText('Plant & Equipment', {
+        x: 50,
+        y,
+        size: 16,
+        font: titleFont,
+        color: rgb(0, 0, 0),
+      });
+      y -= 25;
+
+      for (const equipment of plant.slice(0, 5)) {
+        const name = equipment.equipment_name || equipment.name || 'Unknown';
+        const type = equipment.type || '';
+        const hours = equipment.total_hours || equipment.hours_used || 0;
+
+        page.drawText(`• ${name}${type ? ` (${type})` : ''} - ${hours}h`, {
+          x: 70,
+          y,
+          size: 10,
+          font,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+        y -= 16;
+
+        if (y < 100) break;
+      }
+    }
+
+    // Footer
+    page.drawText(`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, {
+      x: 50,
+      y: 30,
+      size: 9,
+      font,
+      color: rgb(0.5, 0.5, 0.5),
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const fileBuffer = Buffer.from(pdfBytes);
+    const filename = (report.report_name || 'daily-diary') + '.pdf';
+
+    return new NextResponse(fileBuffer, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Length': fileBuffer.length.toString(),
+      },
+    });
+  } catch (error) {
+    console.error('Error generating daily diary PDF:', error);
+    return NextResponse.json({ error: 'Failed to generate daily diary PDF' }, { status: 500 });
   }
-
-  const { data: diary, error: diaryError } = await supabase
-    .from('daily_diaries')
-    .select('*')
-    .eq('id', diaryId)
-    .eq('project_id', projectId)
-    .single();
-
-  if (diaryError || !diary) {
-    return NextResponse.json({ error: 'Diary not found' }, { status: 404 });
-  }
-
-  const [{ data: labour }, { data: plant }, { data: materials }] = await Promise.all([
-    supabase.from('diary_labour_entries').select('*').eq('diary_id', diaryId),
-    supabase.from('diary_plant_entries').select('*').eq('diary_id', diaryId),
-    supabase.from('diary_material_entries').select('*').eq('diary_id', diaryId),
-  ]);
-
-  const payload = {
-    diary,
-    labour_entries: labour || [],
-    plant_entries: plant || [],
-    material_entries: materials || [],
-  };
-
-  const json = JSON.stringify(payload, null, 2);
-  const buffer = Buffer.from(json, 'utf-8');
-  const filename = (report.report_name || 'daily-diary') + '.json';
-
-  return new NextResponse(buffer, {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-      'Content-Length': buffer.length.toString(),
-    },
-  });
 }

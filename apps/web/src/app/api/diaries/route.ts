@@ -253,6 +253,7 @@ export async function POST(request: NextRequest) {
       temperature_min,
       temperature_max,
       wind_conditions,
+      notes_for_tomorrow,
       ...diaryData
     } = validatedData;
 
@@ -285,6 +286,8 @@ export async function POST(request: NextRequest) {
         organization_id: project.organization_id,
         diary_number: diaryNumber,
         created_by: user.id,
+        // Map notes_for_tomorrow to the correct database column
+        tomorrow_planned_work: notes_for_tomorrow || diaryData.tomorrow_planned_work,
       })
       .select()
       .single();
@@ -295,58 +298,43 @@ export async function POST(request: NextRequest) {
 
     // Insert labour entries if provided
     if (labour_entries && labour_entries.length > 0) {
-      // First try with all fields, then fallback to basic fields if it fails
+      // Map to diary_labor table schema
       const labourData = labour_entries.map((entry: any) => ({
         diary_id: diary.id,
         worker_id: entry.worker_id || entry.employee_id || null,
-        trade: entry.trade || '',
-        company_id: entry.company_id || null,
-        // These fields might not exist if migration hasn't been run
+        company_profile_id: entry.company_id || null,
         worker_name: entry.worker_name || '',
-        company: entry.company || '',
-        workers: entry.workers || 1,
+        trade: entry.trade || null,
+        job_title: entry.job_title || null,
         start_time: entry.start_time || null,
         end_time: entry.end_time || null,
-        break_duration: entry.break_duration ? `${entry.break_duration} minutes` : null,
+        break_duration_minutes: entry.break_duration || 0,
         total_hours: entry.total_hours || 0,
-        overtime_hours: entry.overtime_hours || 0,
-        standard_rate: entry.standard_rate || null,
-        overtime_rate: entry.overtime_rate || null,
-        total_cost: entry.total_cost || null,
-        work_performed: entry.work_performed || '',
+        activities: entry.work_performed ? [entry.work_performed] : null,
         location: entry.location || null,
+        notes: entry.notes || null,
         created_by: user.id,
       }));
 
       const { data: insertedLabour, error: labourError } = await supabase
-        .from('diary_labour_entries')
+        .from('diary_labor')
         .insert(labourData)
         .select();
 
       if (labourError) {
         console.error('Error inserting labour entries with new fields:', labourError);
 
-        // Try fallback with only basic fields if new columns don't exist
+        // Retry with minimal fields
         const basicLabourData = labour_entries.map((entry: any) => ({
           diary_id: diary.id,
           worker_id: entry.worker_id || entry.employee_id || null,
-          trade: entry.trade || '',
-          company_id: entry.company_id || null,
-          start_time: entry.start_time || null,
-          end_time: entry.end_time || null,
-          break_duration: entry.break_duration ? `${entry.break_duration} minutes` : null,
-          total_hours: entry.total_hours || 0,
-          overtime_hours: entry.overtime_hours || 0,
-          standard_rate: entry.standard_rate || null,
-          overtime_rate: entry.overtime_rate || null,
-          total_cost: entry.total_cost || null,
-          work_performed: entry.work_performed || '',
-          location: entry.location || null,
+          company_profile_id: entry.company_id || null,
+          worker_name: entry.worker_name || 'Unknown',
           created_by: user.id,
         }));
 
         const { data: fallbackLabour, error: fallbackError } = await supabase
-          .from('diary_labour_entries')
+          .from('diary_labor')
           .insert(basicLabourData)
           .select();
 
@@ -388,7 +376,7 @@ export async function POST(request: NextRequest) {
         created_by: user.id,
       }));
 
-      const { error: plantError } = await supabase.from('diary_plant_entries').insert(plantData);
+      const { error: plantError } = await supabase.from('diary_plant').insert(plantData);
 
       if (plantError) {
         console.error('Error inserting plant entries:', plantError);
@@ -454,9 +442,7 @@ export async function POST(request: NextRequest) {
         created_by: user.id,
       }));
 
-      const { error: materialError } = await supabase
-        .from('diary_material_entries')
-        .insert(materialData);
+      const { error: materialError } = await supabase.from('diary_materials').insert(materialData);
 
       if (materialError) {
         console.error('Error inserting material entries:', materialError);
