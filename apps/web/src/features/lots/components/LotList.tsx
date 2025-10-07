@@ -31,7 +31,7 @@ interface Lot {
   reviewed_by: string | null;
 }
 
-export function LotList({ projectId, onRefreshNeeded }: LotListProps) {
+export function LotList({ projectId, canEdit, onRefreshNeeded }: LotListProps) {
   const router = useRouter();
   const [lots, setLots] = useState<Lot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -92,6 +92,11 @@ export function LotList({ projectId, onRefreshNeeded }: LotListProps) {
   };
 
   const deleteLot = async (lotId: string, lotName: string) => {
+    if (!canEdit) {
+      toast.error('You do not have permission to delete lots.');
+      return;
+    }
+
     if (
       !window.confirm(
         `Are you sure you want to delete lot "${lotName}"? This action cannot be undone.`
@@ -209,18 +214,20 @@ export function LotList({ projectId, onRefreshNeeded }: LotListProps) {
               </div>
 
               {/* Delete button */}
-              <button
-                data-delete-button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  deleteLot(lot.id, `Lot #${lot.lot_number}${lot.name ? `: ${lot.name}` : ''}`);
-                }}
-                className="ml-4 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
-                title="Delete Lot"
-                disabled={deletingLot === lot.id}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {canEdit && (
+                <button
+                  data-delete-button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteLot(lot.id, `Lot #${lot.lot_number}${lot.name ? `: ${lot.name}` : ''}`);
+                  }}
+                  className="ml-4 p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+                  title="Delete Lot"
+                  disabled={deletingLot === lot.id}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         );

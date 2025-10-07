@@ -11,6 +11,74 @@ interface BasicItpManagerProps {
   lotId: string;
 }
 
+function deriveInspectionResults(data: any): Record<string, any> {
+  if (!data || typeof data !== 'object') {
+    return {};
+  }
+
+  if (data.inspection_results && typeof data.inspection_results === 'object') {
+    return data.inspection_results as Record<string, any>;
+  }
+
+  return data as Record<string, any>;
+}
+
+function calculateCompletion(results: Record<string, any>): number {
+  let totalItems = 0;
+  let completedItems = 0;
+
+  Object.values(results || {}).forEach((section: any) => {
+    if (section && typeof section === 'object') {
+      Object.values(section).forEach((item: any) => {
+        if (item && typeof item === 'object') {
+          totalItems += 1;
+          if (item.result && ['pass', 'fail', 'na'].includes(item.result)) {
+            completedItems += 1;
+          }
+        }
+      });
+    }
+  });
+
+  if (totalItems === 0) {
+    return 0;
+  }
+
+  return Math.round((completedItems / totalItems) * 100);
+}
+
+function getStatusFromCompletion(completion: number): 'pending' | 'in_progress' | 'completed' {
+  if (completion === 100) {
+    return 'completed';
+  }
+
+  if (completion > 0) {
+    return 'in_progress';
+  }
+
+  return 'pending';
+}
+
+function normalizeInstance(instance: any) {
+  const rawData = instance?.data || {};
+  const inspectionResults = deriveInspectionResults(rawData);
+  const completion = calculateCompletion(inspectionResults);
+  const status =
+    instance?.inspection_status || rawData?.overall_status || getStatusFromCompletion(completion);
+
+  return {
+    ...instance,
+    data: inspectionResults,
+    inspection_status: status,
+    completion_percentage: completion,
+    __rawData: {
+      ...rawData,
+      inspection_results: inspectionResults,
+      completion_percentage: completion,
+      overall_status: status,
+    },
+  };
+}
 export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
   const router = useRouter();
   const [instances, setInstances] = useState<any[]>([]);
@@ -27,13 +95,14 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
       .then((res) => res.json())
       .then((data) => {
         console.log('ITP Data received:', data); // Debug log
-        const items = data.instances || [];
-        setInstances(items);
-        // Start with ITPs collapsed so user can see the expand action
-        // Only expand first one if there's only one ITP
-        if (items.length === 1) {
-          setExpandedIds(new Set([items[0].id]));
+        const items = Array.isArray(data?.instances) ? data.instances : [];
+        const normalizedItems = items.map(normalizeInstance);
+        setInstances(normalizedItems);
+
+        if (normalizedItems.length === 1) {
+          setExpandedIds(new Set([normalizedItems[0].id]));
         }
+
         setLoading(false);
       })
       .catch((err) => {
@@ -56,35 +125,62 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
   ) => {
     console.log('Updating:', { instanceId, sectionId, itemId, status });
 
-    // Update local state
-    const newInstances = instances.map((inst) => {
-      if (inst.id === instanceId) {
-        const newData = { ...(inst.data || {}) };
-        if (!newData[sectionId]) newData[sectionId] = {};
-        newData[sectionId][itemId] = { result: status };
-        return { ...inst, data: newData };
-      }
-      return inst;
-    });
-    setInstances(newInstances);
+    const targetInstance = instances.find((inst) => inst.id === instanceId);
+    if (!targetInstance) {
+      console.warn('Attempted to update unknown ITP instance', instanceId);
+      return;
+    }
 
-    // Send to server
+    const inspectionResults = { ...(targetInstance.data || {}) };
+    const sectionResults = { ...(inspectionResults[sectionId] || {}) };
+    const existingResult = sectionResults[itemId] || {};
+
+    sectionResults[itemId] = { ...existingResult, result: status };
+    inspectionResults[sectionId] = sectionResults;
+
+    const completion = calculateCompletion(inspectionResults);
+    const nextStatus = getStatusFromCompletion(completion);
+
+    const updatedRawData = {
+      ...(targetInstance.__rawData || {}),
+      inspection_results: inspectionResults,
+      completion_percentage: completion,
+      overall_status: nextStatus,
+    };
+
+    setInstances((prev) =>
+      prev.map((inst) =>
+        inst.id === instanceId
+          ? {
+              ...inst,
+              data: inspectionResults,
+              inspection_status: nextStatus,
+              completion_percentage: completion,
+              __rawData: updatedRawData,
+            }
+          : inst
+      )
+    );
+
     try {
-      const instance = instances.find((i) => i.id === instanceId);
-      const updatedData = { ...(instance?.data || {}) };
-      if (!updatedData[sectionId]) updatedData[sectionId] = {};
-      updatedData[sectionId][itemId] = { result: status };
-
-      await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${instanceId}`, {
+      const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${instanceId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          data: updatedData,
-          inspection_status: 'in_progress',
+          data: updatedRawData,
+          inspection_status: nextStatus,
+          completion_percentage: completion,
         }),
       });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || payload.message || 'Failed to update ITP instance');
+      }
     } catch (error) {
       console.error('Update failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update ITP instance.');
+      loadItps();
     }
   };
 

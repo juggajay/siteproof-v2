@@ -22,6 +22,53 @@ interface FormData {
     };
   };
 }
+const extractInspectionResults = (data: any): FormData => {
+  if (!data || typeof data !== 'object') {
+    return {};
+  }
+
+  if (data.inspection_results && typeof data.inspection_results === 'object') {
+    return data.inspection_results as FormData;
+  }
+
+  return data as FormData;
+};
+
+const calculateCompletion = (results: FormData): number => {
+  let totalItems = 0;
+  let completedItems = 0;
+
+  Object.values(results || {}).forEach((section) => {
+    if (section && typeof section === 'object') {
+      Object.values(section).forEach((item) => {
+        if (item && typeof item === 'object' && item.result) {
+          totalItems += 1;
+          if (['pass', 'fail', 'na'].includes(item.result)) {
+            completedItems += 1;
+          }
+        }
+      });
+    }
+  });
+
+  if (totalItems === 0) {
+    return 0;
+  }
+
+  return Math.round((completedItems / totalItems) * 100);
+};
+
+const deriveStatus = (submit: boolean, completion: number, fallback: string): string => {
+  if (submit) {
+    return 'completed';
+  }
+
+  if (completion > 0) {
+    return 'in_progress';
+  }
+
+  return fallback || 'pending';
+};
 
 export default function ItpInstanceClient({
   itpInstance,
@@ -34,12 +81,29 @@ export default function ItpInstanceClient({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [baseData, setBaseData] = useState<any>(itpInstance.data || {});
+  const [currentStatus, setCurrentStatus] = useState<string>(
+    itpInstance.inspection_status || itpInstance.data?.overall_status || 'pending'
+  );
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string | null>(itpInstance.updated_at || null);
+  const [inspectionDate, setInspectionDate] = useState<string | null>(
+    itpInstance.inspection_date || itpInstance.data?.inspection_date || null
+  );
 
-  // Initialize form data from existing instance data
+  // Initialize form data and derived state from existing instance data
   useEffect(() => {
-    if (itpInstance.data) {
-      setFormData(itpInstance.data as FormData);
-    }
+    const rawData = itpInstance.data || {};
+    const inspectionResults = extractInspectionResults(rawData);
+
+    setFormData(inspectionResults);
+    setBaseData({
+      ...rawData,
+      inspection_results: inspectionResults,
+    });
+    setCurrentStatus(itpInstance.inspection_status || rawData.overall_status || 'pending');
+    setLastUpdatedAt(itpInstance.updated_at || null);
+    setInspectionDate(itpInstance.inspection_date || rawData.inspection_date || null);
+    setHasChanges(false);
   }, [itpInstance]);
 
   const formatDate = (dateString: string | null) => {
@@ -56,6 +120,7 @@ export default function ItpInstanceClient({
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
       case 'draft':
+      case 'pending':
         return 'bg-gray-100 text-gray-800';
       case 'in_progress':
         return 'bg-yellow-100 text-yellow-800';
@@ -70,9 +135,8 @@ export default function ItpInstanceClient({
     }
   };
 
-
   const updateItemResult = (sectionId: string, itemId: string, result: InspectionResult) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [sectionId]: {
         ...prev[sectionId],
@@ -86,7 +150,7 @@ export default function ItpInstanceClient({
   };
 
   const updateItemNotes = (sectionId: string, itemId: string, notes: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [sectionId]: {
         ...prev[sectionId],
@@ -100,7 +164,7 @@ export default function ItpInstanceClient({
   };
 
   const updateFieldValue = (sectionId: string, itemId: string, fieldId: string, value: any) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       [sectionId]: {
         ...prev[sectionId],
@@ -118,28 +182,59 @@ export default function ItpInstanceClient({
     setError(null);
 
     try {
-      const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${itpInstance.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          data: formData,
-          inspection_status: submit ? 'completed' : 'in_progress',
-          inspection_date: submit ? new Date().toISOString() : null,
-        }),
-      });
+      const completion = calculateCompletion(formData);
+      const nextStatus = deriveStatus(submit, completion, currentStatus);
+      const nextInspectionDate = submit ? new Date().toISOString() : (inspectionDate ?? null);
+
+      const payloadData = {
+        ...(baseData || {}),
+        inspection_results: formData,
+        completion_percentage: completion,
+        overall_status: nextStatus,
+        inspection_date: nextInspectionDate,
+      };
+
+      const response = await fetch(
+        `/api/projects/${projectId}/lots/${lotId}/itp/${itpInstance.id}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data: payloadData,
+            inspection_status: nextStatus,
+            inspection_date: nextInspectionDate,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save ITP instance');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.error || 'Failed to save ITP instance');
       }
 
+      const updatedInstance = await response.json().catch(() => null);
+      const updatedData = (updatedInstance && updatedInstance.data) || payloadData;
+      const updatedResults = extractInspectionResults(updatedData);
+
+      setFormData(updatedResults);
+      setBaseData({
+        ...updatedData,
+        inspection_results: updatedResults,
+      });
+      setCurrentStatus(updatedInstance?.inspection_status || nextStatus);
+      setLastUpdatedAt(updatedInstance?.updated_at ?? lastUpdatedAt ?? new Date().toISOString());
+      setInspectionDate(
+        updatedInstance?.inspection_date ?? nextInspectionDate ?? inspectionDate ?? null
+      );
       setHasChanges(false);
-      
+
       if (submit) {
         router.push(`/dashboard/projects/${projectId}/lots/${lotId}`);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      const message =
+        err instanceof Error ? err.message : 'An error occurred while saving the ITP instance.';
+      setError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -166,23 +261,21 @@ export default function ItpInstanceClient({
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {template.name}
-                </h1>
+                <h1 className="text-3xl font-bold text-gray-900">{template.name}</h1>
                 <p className="text-lg text-gray-600 mt-2">
                   Lot #{itpInstance.lot?.lot_number} - {itpInstance.lot?.project?.name}
                 </p>
                 {template.description && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    {template.description}
-                  </p>
+                  <p className="text-sm text-gray-500 mt-1">{template.description}</p>
                 )}
               </div>
               <div className="flex items-center space-x-4">
                 <span
-                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(itpInstance.inspection_status)}`}
+                  className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(currentStatus)}`}
                 >
-                  {itpInstance.inspection_status?.charAt(0).toUpperCase() + itpInstance.inspection_status?.slice(1) || 'Draft'}
+                  {currentStatus
+                    ? currentStatus.charAt(0).toUpperCase() + currentStatus.slice(1)
+                    : 'Draft'}
                 </span>
                 <span className="text-sm text-gray-500">Role: {userRole}</span>
               </div>
@@ -200,7 +293,7 @@ export default function ItpInstanceClient({
                   <p className="text-sm text-gray-600 mt-1">{section.description}</p>
                 )}
               </div>
-              
+
               <div className="p-6 space-y-6">
                 {section.items?.map((item: any) => (
                   <div key={item.id} className="border border-gray-200 rounded-lg p-4">
@@ -211,7 +304,7 @@ export default function ItpInstanceClient({
                           <p className="text-sm text-gray-600 mt-1">{item.description}</p>
                         )}
                       </div>
-                      
+
                       {/* Pass/Fail/N/A Buttons */}
                       <div className="flex items-center space-x-2 ml-4">
                         <button
@@ -257,31 +350,37 @@ export default function ItpInstanceClient({
                           {field.label}
                           {field.required && <span className="text-red-500 ml-1">*</span>}
                         </label>
-                        
+
                         {field.type === 'text' && (
                           <input
                             type="text"
                             value={formData[section.id]?.[item.id]?.[field.id] || ''}
-                            onChange={(e) => updateFieldValue(section.id, item.id, field.id, e.target.value)}
+                            onChange={(e) =>
+                              updateFieldValue(section.id, item.id, field.id, e.target.value)
+                            }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder={field.placeholder}
                           />
                         )}
-                        
+
                         {field.type === 'textarea' && (
                           <textarea
                             value={formData[section.id]?.[item.id]?.[field.id] || ''}
-                            onChange={(e) => updateFieldValue(section.id, item.id, field.id, e.target.value)}
+                            onChange={(e) =>
+                              updateFieldValue(section.id, item.id, field.id, e.target.value)
+                            }
                             rows={3}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder={field.placeholder}
                           />
                         )}
-                        
+
                         {field.type === 'select' && (
                           <select
                             value={formData[section.id]?.[item.id]?.[field.id] || ''}
-                            onChange={(e) => updateFieldValue(section.id, item.id, field.id, e.target.value)}
+                            onChange={(e) =>
+                              updateFieldValue(section.id, item.id, field.id, e.target.value)
+                            }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           >
                             <option value="">Select...</option>
@@ -292,24 +391,28 @@ export default function ItpInstanceClient({
                             ))}
                           </select>
                         )}
-                        
+
                         {field.type === 'checkbox' && (
                           <div className="flex items-center">
                             <input
                               type="checkbox"
                               checked={formData[section.id]?.[item.id]?.[field.id] || false}
-                              onChange={(e) => updateFieldValue(section.id, item.id, field.id, e.target.checked)}
+                              onChange={(e) =>
+                                updateFieldValue(section.id, item.id, field.id, e.target.checked)
+                              }
                               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                             />
                             <span className="ml-2 text-sm text-gray-700">{field.label}</span>
                           </div>
                         )}
-                        
+
                         {field.type === 'date' && (
                           <input
                             type="date"
                             value={formData[section.id]?.[item.id]?.[field.id] || ''}
-                            onChange={(e) => updateFieldValue(section.id, item.id, field.id, e.target.value)}
+                            onChange={(e) =>
+                              updateFieldValue(section.id, item.id, field.id, e.target.value)
+                            }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         )}
@@ -318,9 +421,7 @@ export default function ItpInstanceClient({
 
                     {/* Notes Field */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Notes
-                      </label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
                       <textarea
                         value={formData[section.id]?.[item.id]?.notes || ''}
                         onChange={(e) => updateItemNotes(section.id, item.id, e.target.value)}
@@ -341,7 +442,7 @@ export default function ItpInstanceClient({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600">
-                Last updated: {formatDate(itpInstance.updated_at)}
+                Last updated: {formatDate(lastUpdatedAt)}
               </span>
               {hasChanges && (
                 <div className="flex items-center text-yellow-600">
@@ -350,7 +451,7 @@ export default function ItpInstanceClient({
                 </div>
               )}
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <button
                 onClick={() => saveInstance(false)}
@@ -369,7 +470,7 @@ export default function ItpInstanceClient({
                   </>
                 )}
               </button>
-              
+
               <button
                 onClick={() => saveInstance(true)}
                 disabled={isSubmitting}
@@ -389,7 +490,7 @@ export default function ItpInstanceClient({
               </button>
             </div>
           </div>
-          
+
           {error && (
             <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-600">{error}</p>
