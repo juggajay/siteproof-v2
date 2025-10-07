@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileText, Calendar, CheckCircle, Clock, XCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -38,7 +38,7 @@ export function LotList({ projectId, canEdit, onRefreshNeeded }: LotListProps) {
   const [error, setError] = useState<string | null>(null);
   const [deletingLot, setDeletingLot] = useState<string | null>(null);
 
-  const fetchLots = async () => {
+  const fetchLots = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await fetch(`/api/projects/${projectId}/lots`);
@@ -54,16 +54,19 @@ export function LotList({ projectId, canEdit, onRefreshNeeded }: LotListProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [projectId]);
 
+  // Fetch lots on mount and when projectId changes
   useEffect(() => {
     fetchLots();
+  }, [fetchLots]);
 
-    // Expose refresh function to parent
+  // Expose refresh function to parent (separate effect to prevent loops)
+  useEffect(() => {
     if (onRefreshNeeded) {
       onRefreshNeeded(fetchLots);
     }
-  }, [projectId, onRefreshNeeded]);
+  }, [onRefreshNeeded, fetchLots]);
 
   const getStatusIcon = (status: 'pending' | 'in_review' | 'approved' | 'rejected') => {
     switch (status) {

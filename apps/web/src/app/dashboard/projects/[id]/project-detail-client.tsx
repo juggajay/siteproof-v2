@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -66,12 +66,12 @@ export default function ProjectDetailClient({ project, userRole }: ProjectDetail
   const [_showUploadDocumentModal, setShowUploadDocumentModal] = useState(false);
   const [refreshLotsFn, setRefreshLotsFn] = useState<(() => Promise<void>) | null>(null);
 
-  // Simple refresh function that calls the LotList's fetchLots
-  const refreshLots = async () => {
+  // Use useCallback to create stable refresh function reference
+  const refreshLots = useCallback(async () => {
     if (refreshLotsFn) {
       await refreshLotsFn();
     }
-  };
+  }, [refreshLotsFn]);
 
   useEffect(() => {
     if (

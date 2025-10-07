@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+// Enable caching for GET requests with revalidation
+export const revalidate = 10; // Revalidate every 10 seconds
+
 export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ projectId: string }> }
@@ -56,7 +59,12 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(lots || []);
+    // Return with cache headers
+    return NextResponse.json(lots || [], {
+      headers: {
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30',
+      },
+    });
   } catch (error) {
     console.error('Lots endpoint error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

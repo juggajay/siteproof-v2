@@ -65,8 +65,9 @@ export default async function LotDetailPage({ params }: PageProps) {
 
     console.log('[LotDetailPage] User authenticated:', user.id);
 
-    // Get lot details with related ITP instances
-    const { data: lot, error } = await supabase
+    // Optimize: Split into parallel queries for better performance
+    // Query 1: Get lot details with project info (fast query)
+    const lotPromise = supabase
       .from('lots')
       .select(
         `
@@ -79,35 +80,55 @@ export default async function LotDetailPage({ params }: PageProps) {
             id,
             name
           )
-        ),
-        itp_instances(
-          id,
-          template_id,
-          project_id,
-          lot_id,
-          organization_id,
-          created_by,
-          data,
-          evidence_files,
-          inspection_status,
-          inspection_date,
-          sync_status,
-          is_active,
-          created_at,
-          updated_at,
-          deleted_at,
-          itp_templates(
-            id,
-            name,
-            description,
-            structure
-          )
         )
       `
       )
       .eq('id', lotId)
       .eq('project_id', projectId)
       .single();
+
+    // Query 2: Get ITP instances separately (can be slower without blocking page load)
+    const itpPromise = supabase
+      .from('itp_instances')
+      .select(
+        `
+        id,
+        template_id,
+        project_id,
+        lot_id,
+        organization_id,
+        created_by,
+        data,
+        evidence_files,
+        inspection_status,
+        inspection_date,
+        sync_status,
+        is_active,
+        created_at,
+        updated_at,
+        deleted_at,
+        itp_templates(
+          id,
+          name,
+          description,
+          structure
+        )
+      `
+      )
+      .eq('lot_id', lotId)
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+
+    // Execute queries in parallel
+    const [{ data: lot, error }, { data: itpInstances }] = await Promise.all([
+      lotPromise,
+      itpPromise,
+    ]);
+
+    // Attach ITP instances to lot object
+    if (lot && itpInstances) {
+      lot.itp_instances = itpInstances;
+    }
 
     console.log('[LotDetailPage] Lot query result:', { hasLot: !!lot, error: error?.message });
 
