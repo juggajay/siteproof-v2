@@ -99,9 +99,7 @@ export function DailyDiaryReportsList() {
       <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold text-gray-900">Daily Diary Reports</h2>
-          <p className="text-sm text-gray-600">
-            Search saved diary snapshots by project and date
-          </p>
+          <p className="text-sm text-gray-600">Search saved diary snapshots by project and date</p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -117,11 +115,7 @@ export function DailyDiaryReportsList() {
             <RotateCcw className="w-4 h-4" />
             Reset
           </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => refetch()}
-          >
+          <Button variant="secondary" size="sm" onClick={() => refetch()}>
             <Filter className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
             Apply Filters
           </Button>
@@ -179,7 +173,8 @@ export function DailyDiaryReportsList() {
         <div className="space-y-4">
           {sortedReports.map((report) => {
             const diaryDate = report.parameters?.diary_date as string | undefined;
-            const projectName = (report.parameters?.project_name as string | undefined) || report.report_name;
+            const projectName =
+              (report.parameters?.project_name as string | undefined) || report.report_name;
 
             return (
               <div
@@ -189,9 +184,7 @@ export function DailyDiaryReportsList() {
                 <div className="flex items-start gap-3">
                   <Calendar className="w-5 h-5 text-gray-400 mt-1" />
                   <div>
-                    <h3 className="text-base font-semibold text-gray-900">
-                      {projectName}
-                    </h3>
+                    <h3 className="text-base font-semibold text-gray-900">{projectName}</h3>
                     <p className="text-sm text-gray-600">
                       {diaryDate
                         ? new Date(diaryDate).toLocaleDateString('en-AU', {
@@ -203,19 +196,16 @@ export function DailyDiaryReportsList() {
                         : 'Diary entry'}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      Recorded {formatDistanceToNow(new Date(report.requested_at), { addSuffix: true })}
+                      Recorded{' '}
+                      {formatDistanceToNow(new Date(report.requested_at), { addSuffix: true })}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => downloadReport(report)}
-                  >
+                  <Button variant="secondary" size="sm" onClick={() => downloadReport(report)}>
                     <Download className="w-4 h-4 mr-2" />
-                    Download JSON
+                    Download PDF
                   </Button>
                 </div>
               </div>
