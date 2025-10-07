@@ -347,10 +347,18 @@ export function EmployeeManagement({
           employee={selectedEmployee}
           companyId={companyId}
           onSave={(data) => {
+            // Combine first_name and last_name into name field for database
+            const { first_name, last_name, ...restData } = data;
+            const employeeData = {
+              ...restData,
+              name: `${first_name || ''} ${last_name || ''}`.trim(),
+              job_title: data.role || data.trade || '',
+            };
+
             if (selectedEmployee) {
-              updateMutation.mutate({ ...selectedEmployee, ...data });
+              updateMutation.mutate({ ...selectedEmployee, ...employeeData });
             } else {
-              addMutation.mutate(data);
+              addMutation.mutate(employeeData);
             }
           }}
           onClose={() => {
