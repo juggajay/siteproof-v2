@@ -1,41 +1,48 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import type { Project, User } from '@siteproof/database';
+import { validateParams } from '@/lib/validation/schemas';
+import {
+  handleAPIError,
+  assertAuthenticated,
+  assertExists,
+  assertPermission,
+} from '@/lib/errors/api-errors';
+import { diaryPermissions, filterFinancialDataArray, type Role } from '@/lib/auth/permissions';
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   try {
+    // Validate UUID parameter
+    const { id } = validateParams(params);
+
     const supabase = await createClient();
 
     const {
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
+
     if (userError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    assertAuthenticated(user);
 
     // Get user's organization and role
-    const { data: member, error: memberError } = await supabase
+    const { data: member } = await supabase
       .from('organization_members')
       .select('organization_id, role')
       .eq('user_id', user.id)
       .single();
 
-    if (memberError || !member) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 });
-    }
+    assertExists(member, 'Organization membership');
+
+    // Check if user has permission to view diaries
+    assertPermission(diaryPermissions.canView(member.role as Role), 'Cannot view diaries');
 
     // Fetch diary directly from table
-    const { data: diary, error } = await supabase
-      .from('daily_diaries')
-      .select('*')
-      .eq('id', params?.id)
-      .single();
+    const { data: diary } = await supabase.from('daily_diaries').select('*').eq('id', id).single();
 
-    if (error || !diary) {
-      console.error('Error fetching diary:', error);
-      return NextResponse.json({ error: 'Diary not found' }, { status: 404 });
-    }
+    assertExists(diary, 'Diary');
 
     // Check if user belongs to the same organization
     if (diary.organization_id !== member.organization_id) {
@@ -63,100 +70,115 @@ export async function GET(_request: Request, { params }: { params: { id: string 
           .single<Pick<User, 'id' | 'email' | 'full_name'>>()
       : { data: null };
 
-    // Filter trades data based on user role
-    const hasFinancialAccess = ['owner', 'admin', 'finance_manager', 'accountant'].includes(
-      member.role
-    );
-    const filteredTrades = hasFinancialAccess
+    // Filter trades data based on user role - SECURE: Remove properties entirely, not just set to undefined
+    const filteredTrades = diaryPermissions.canViewFinancials(member.role as Role)
       ? diary.trades_on_site
-      : diary.trades_on_site?.map((trade: any) => ({
-          ...trade,
-          hourly_rate: undefined,
-          daily_rate: undefined,
-          total_cost: undefined,
-        }));
+      : diary.trades_on_site?.map((trade: any) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const {
+            hourly_rate: _hourly,
+            daily_rate: _daily,
+            total_cost: _total,
+            ...safeTrade
+          } = trade;
+          return safeTrade;
+        });
 
     // Fetch labour entries
     const { data: labourEntries, error: labourError } = await supabase
       .from('diary_labour_entries')
       .select('*')
-      .eq('diary_id', params.id);
+      .eq('diary_id', id);
 
     if (labourError) {
       console.error('Error fetching labour entries:', labourError);
-    } else {
-      console.log(`Found ${labourEntries?.length || 0} labour entries for diary ${params.id}`);
     }
 
     // Fetch plant entries
     const { data: plantEntries } = await supabase
       .from('diary_plant_entries')
       .select('*')
-      .eq('diary_id', params.id);
+      .eq('diary_id', id);
 
     // Fetch material entries
     const { data: materialEntries } = await supabase
       .from('diary_material_entries')
       .select('*')
-      .eq('diary_id', params.id);
+      .eq('diary_id', id);
+
+    // Filter financial data from all entries
+    const filteredLabourEntries = filterFinancialDataArray(
+      labourEntries || [],
+      member.role as Role,
+      ['standard_rate', 'overtime_rate', 'total_cost']
+    );
+
+    const filteredPlantEntries = filterFinancialDataArray(plantEntries || [], member.role as Role, [
+      'hourly_rate',
+      'fuel_cost',
+      'total_cost',
+    ]);
+
+    const filteredMaterialEntries = filterFinancialDataArray(
+      materialEntries || [],
+      member.role as Role,
+      ['unit_cost', 'total_cost']
+    );
 
     return NextResponse.json({
       diary: {
         ...diary,
-        trades_on_site: filteredTrades || diary.trades_on_site,
-        labour_entries: labourEntries || [],
-        plant_entries: plantEntries || [],
-        material_entries: materialEntries || [],
+        trades_on_site: filteredTrades || [],
+        labour_entries: filteredLabourEntries,
+        plant_entries: filteredPlantEntries,
+        material_entries: filteredMaterialEntries,
         project,
         createdBy,
         approvedBy,
       },
     });
   } catch (error) {
-    console.error('Error in diary GET:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
   try {
+    // Validate UUID parameter
+    const { id } = validateParams(params);
+
     const supabase = await createClient();
     const body = await request.json();
 
     const {
       data: { user },
-      error: userError,
     } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+
+    assertAuthenticated(user);
 
     // Get user's organization and check permissions
-    const { data: member, error: memberError } = await supabase
+    const { data: member } = await supabase
       .from('organization_members')
       .select('organization_id, role')
       .eq('user_id', user.id)
       .single();
 
-    if (memberError || !member) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 });
-    }
+    assertExists(member, 'Organization membership');
 
     // Check if user can edit diaries
-    const canEdit = ['owner', 'admin', 'project_manager', 'site_foreman'].includes(member.role);
-    if (!canEdit) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
+    assertPermission(diaryPermissions.canEdit(member.role as Role), 'Cannot edit diaries');
 
     // Check if diary exists
     const { data: existingDiary } = await supabase
       .from('daily_diaries')
       .select('organization_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single<{ organization_id: string }>();
 
-    if (!existingDiary || existingDiary.organization_id !== member.organization_id) {
-      return NextResponse.json({ error: 'Diary not found' }, { status: 404 });
+    assertExists(existingDiary, 'Diary');
+
+    if (existingDiary.organization_id !== member.organization_id) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     // Note: is_locked functionality is not implemented in the current schema
@@ -175,7 +197,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         ...diaryData,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single();
 
@@ -187,12 +209,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     // Update labour entries
     if (labour_entries !== undefined) {
       // Delete existing entries
-      await supabase.from('diary_labour_entries').delete().eq('diary_id', params.id);
+      await supabase.from('diary_labour_entries').delete().eq('diary_id', id);
 
       // Insert new entries
       if (labour_entries && labour_entries.length > 0) {
         const labourData = labour_entries.map((entry: any) => ({
-          diary_id: params.id,
+          diary_id: id,
           worker_id: entry.worker_id || entry.employee_id || null,
           trade: entry.trade || '',
           company_id: entry.company_id || null,
@@ -225,12 +247,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     // Update plant entries
     if (plant_entries !== undefined) {
       // Delete existing entries
-      await supabase.from('diary_plant_entries').delete().eq('diary_id', params.id);
+      await supabase.from('diary_plant_entries').delete().eq('diary_id', id);
 
       // Insert new entries
       if (plant_entries && plant_entries.length > 0) {
         const plantData = plant_entries.map((entry: any) => ({
-          diary_id: params.id,
+          diary_id: id,
           equipment_id: entry.equipment_id || null,
           equipment_name: entry.equipment_name || entry.name || '',
           name: entry.name || '',
@@ -263,12 +285,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
     // Update material entries
     if (material_entries !== undefined) {
       // Delete existing entries
-      await supabase.from('diary_material_entries').delete().eq('diary_id', params.id);
+      await supabase.from('diary_material_entries').delete().eq('diary_id', id);
 
       // Insert new entries
       if (material_entries && material_entries.length > 0) {
         const materialData = material_entries.map((entry: any) => ({
-          diary_id: params.id,
+          diary_id: id,
           material_id: entry.material_id || null,
           material_name: entry.material_name || entry.name || '',
           name: entry.name || '',
@@ -302,7 +324,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     return NextResponse.json({ diary });
   } catch (error) {
-    console.error('Error in diary PUT:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return handleAPIError(error);
   }
 }

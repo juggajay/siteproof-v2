@@ -157,7 +157,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     if (failedItems.length > 0) {
       // Create NCRs for failed items
-      for (const [itemId, _] of failedItems) {
+      for (const [itemId] of failedItems) {
         const item = findItemInTemplate(templateStructure, itemId);
         if (item?.raise_ncr_on_fail) {
           const { data: ncrNumber } = await supabase.rpc('generate_ncr_number', {

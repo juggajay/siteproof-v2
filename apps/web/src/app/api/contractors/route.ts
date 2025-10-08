@@ -15,7 +15,7 @@ export async function GET() {
     }
 
     // Build query - use company_profiles filtered by company_type = 'contractor'
-    let query = supabase
+    const query = supabase
       .from('company_profiles')
       .select('*')
       .eq('company_type', 'contractor')

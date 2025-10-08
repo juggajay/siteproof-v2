@@ -1,38 +1,8 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { randomBytes, createHash } from 'crypto';
 
-// Security headers configuration
-const securityHeaders = {
-  // Content Security Policy
-  'Content-Security-Policy': [
-    "default-src 'self'",
-    "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://*.supabase.co https://vercel.live",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "img-src 'self' data: blob: https:",
-    "font-src 'self' data: https://fonts.gstatic.com",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openweathermap.org https://vercel.live https://fonts.googleapis.com https://fonts.gstatic.com",
-    "media-src 'self'",
-    "object-src 'none'",
-    "frame-src 'self'",
-    "base-uri 'self'",
-    "form-action 'self'",
-    "frame-ancestors 'none'",
-    'upgrade-insecure-requests',
-  ].join('; '),
-
-  // Strict Transport Security
-  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-
-  // Other security headers
-  'X-Frame-Options': 'DENY',
-  'X-Content-Type-Options': 'nosniff',
-  'X-DNS-Prefetch-Control': 'on',
-  'X-XSS-Protection': '1; mode=block',
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
-  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self), interest-cohort=()',
-};
-
-type RateLimitScope = 'default' | 'api' | 'auth';
+type RateLimitScope = 'default' | 'api' | 'auth' | 'auth-page' | 'dashboard';
 
 interface RateLimitResult {
   allowed: boolean;
@@ -51,6 +21,14 @@ function getRateLimitScope(pathname: string): RateLimitScope {
     return 'auth';
   }
 
+  if (pathname.startsWith('/auth/')) {
+    return 'auth-page';
+  }
+
+  if (pathname.startsWith('/dashboard')) {
+    return 'dashboard';
+  }
+
   if (pathname.startsWith('/api/')) {
     return 'api';
   }
@@ -60,7 +38,7 @@ function getRateLimitScope(pathname: string): RateLimitScope {
 
 function getRateLimitKey(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0] : request.ip ?? 'unknown';
+  const ip = forwarded ? forwarded.split(',')[0] : (request.ip ?? 'unknown');
   return `${ip}:${request.nextUrl.pathname}`;
 }
 
@@ -105,6 +83,9 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Generate nonce for CSP
+  const nonce = Buffer.from(randomBytes(16)).toString('base64');
+
   const scope = getRateLimitScope(request.nextUrl.pathname);
   const key = getRateLimitKey(request);
   const rateLimitResult = await performRateLimitCheck(request, key, scope);
@@ -132,10 +113,36 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  // Build CSP with nonce
+  const cspHeader = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://*.supabase.co https://vercel.live`,
+    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com`,
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data: https://fonts.gstatic.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.openweathermap.org https://vercel.live",
+    "media-src 'self'",
+    "object-src 'none'",
+    "frame-src 'self'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    'upgrade-insecure-requests',
+  ].join('; ');
+
   // Apply security headers
-  Object.entries(securityHeaders).forEach(([headerKey, value]) => {
-    response.headers.set(headerKey, value);
-  });
+  response.headers.set('Content-Security-Policy', cspHeader);
+  response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-DNS-Prefetch-Control', 'on');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set(
+    'Permissions-Policy',
+    'camera=(), microphone=(), geolocation=(self), interest-cohort=()'
+  );
+  response.headers.set('X-Nonce', nonce);
 
   if (typeof rateLimitResult.limit === 'number') {
     response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
@@ -155,6 +162,34 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
+  // CSRF Protection for state-changing methods
+  if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(request.method)) {
+    const csrfCookie = request.cookies.get('csrf-token')?.value;
+    const csrfHeader = request.headers.get('x-csrf-token');
+
+    // Skip CSRF check for auth routes (they have their own protection)
+    if (!request.nextUrl.pathname.startsWith('/api/auth/')) {
+      if (!csrfCookie || csrfCookie !== csrfHeader) {
+        return new NextResponse('Invalid CSRF token', { status: 403 });
+      }
+    }
+  }
+
+  // Generate CSRF token for GET requests
+  const sessionCookie = request.cookies.get('sb-access-token')?.value;
+  if (sessionCookie && request.method === 'GET') {
+    const csrfToken = createHash('sha256')
+      .update(`${sessionCookie}-${process.env.CSRF_SECRET || 'fallback-secret'}`)
+      .digest('hex');
+
+    response.cookies.set('csrf-token', csrfToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      path: '/',
+    });
+  }
+
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
@@ -171,6 +206,9 @@ export async function middleware(request: NextRequest) {
             headers: request.headers,
           },
         });
+        // Re-apply security headers and nonce
+        response.headers.set('Content-Security-Policy', cspHeader);
+        response.headers.set('X-Nonce', nonce);
         response.cookies.set({
           name,
           value,
@@ -188,6 +226,9 @@ export async function middleware(request: NextRequest) {
             headers: request.headers,
           },
         });
+        // Re-apply security headers and nonce
+        response.headers.set('Content-Security-Policy', cspHeader);
+        response.headers.set('X-Nonce', nonce);
         response.cookies.set({
           name,
           value: '',

@@ -1,35 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
-
-const updateNcrSchema = z.object({
-  title: z.string().min(5).optional(),
-  description: z.string().min(20).optional(),
-  severity: z.enum(['low', 'medium', 'high', 'critical']).optional(),
-  category: z.string().optional(),
-  location: z.string().optional(),
-  trade: z.string().optional(),
-  assigned_to: z.string().uuid().optional().nullable(),
-  contractor_id: z.string().uuid().optional().nullable(),
-  due_date: z.string().optional().nullable(),
-  tags: z.array(z.string()).optional(),
-  estimated_cost: z.number().optional(),
-  actual_cost: z.number().optional(),
-  cost_notes: z.string().optional(),
-});
+import { validateParams, updateNcrSchema } from '@/lib/validation/schemas';
+import { handleAPIError, assertAuthenticated, assertExists } from '@/lib/errors/api-errors';
+import { ncrPermissions, type Role } from '@/lib/auth/permissions';
 
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    // Validate UUID parameter
+    const { id } = validateParams(params);
+
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    assertAuthenticated(user);
+
+    // Get user's organization and role
+    const { data: member } = await supabase
+      .from('organization_members')
+      .select('organization_id, role')
+      .eq('user_id', user.id)
+      .single();
+
+    assertExists(member, 'Organization membership');
+
+    // Check permission to view NCRs
+    if (!ncrPermissions.canView(member.role as Role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    const { data: ncr, error } = await supabase
+    const { data: ncr } = await supabase
       .from('ncrs')
       .select(
         `
@@ -42,30 +44,42 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
         inspection:inspections(id)
       `
       )
-      .eq('id', params.id)
+      .eq('id', id)
       .single();
 
-    if (error || !ncr) {
-      return NextResponse.json({ error: 'NCR not found' }, { status: 404 });
+    assertExists(ncr, 'NCR');
+
+    // Verify user has access to this NCR's organization
+    if (ncr.organization_id !== member.organization_id) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
     return NextResponse.json({ ncr });
   } catch (error) {
-    console.error('Error fetching NCR:', error);
-    return NextResponse.json({ error: 'Failed to fetch NCR' }, { status: 500 });
+    return handleAPIError(error);
   }
 }
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    // Validate UUID parameter
+    const { id } = validateParams(params);
+
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    assertAuthenticated(user);
+
+    // Get user's organization and role
+    const { data: member } = await supabase
+      .from('organization_members')
+      .select('organization_id, role')
+      .eq('user_id', user.id)
+      .single();
+
+    assertExists(member, 'Organization membership');
 
     const body = await request.json();
     const validatedData = updateNcrSchema.parse(body);
@@ -73,9 +87,16 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     // Check if user can edit this NCR
     const { data: ncr } = await supabase
       .from('ncrs')
-      .select('raised_by, status')
-      .eq('id', params.id)
+      .select('raised_by, status, organization_id')
+      .eq('id', id)
       .single();
+
+    assertExists(ncr, 'NCR');
+
+    // Verify user has access to this NCR's organization
+    if (ncr.organization_id !== member.organization_id) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
 
     if (!ncr) {
       return NextResponse.json({ error: 'NCR not found' }, { status: 404 });

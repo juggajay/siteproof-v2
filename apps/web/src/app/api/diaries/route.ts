@@ -237,7 +237,7 @@ export async function POST(request: NextRequest) {
       } else {
         diaryNumber = rpcNumber;
       }
-    } catch (error) {
+    } catch {
       // Fallback: Generate diary number manually
       const dateStr = validatedData.diary_date.replace(/-/g, '');
       const randomSuffix = Math.random().toString(36).substring(2, 6).toUpperCase();
