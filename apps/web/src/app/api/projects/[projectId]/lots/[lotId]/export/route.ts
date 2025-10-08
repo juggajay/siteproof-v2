@@ -40,6 +40,7 @@ export async function GET(
 
     console.log('[Export] Querying ITP instances...');
     // RLS policy requires explicit join with projects table to verify organization membership
+    // We must join with projects table for RLS to allow the query
     const itpPromise = supabase
       .from('itp_instances')
       .select(
@@ -49,7 +50,8 @@ export async function GET(
         status,
         completion_percentage,
         data,
-        project_id
+        project_id,
+        projects!inner(id, organization_id)
       `
       )
       .eq('lot_id', lotId)
@@ -75,8 +77,14 @@ export async function GET(
       return NextResponse.json({ error: 'Lot not found' }, { status: 404 });
     }
 
+    // Clean up ITP instances data - remove the nested projects object added for RLS
+    const cleanedItpInstances = (itpInstances || []).map((itp: any) => {
+      const { projects, ...cleanedItp } = itp;
+      return cleanedItp;
+    });
+
     // Attach ITP instances to lot
-    lot.itp_instances = itpInstances || [];
+    lot.itp_instances = cleanedItpInstances;
 
     // Count completed ITPs
     const completedItps =
