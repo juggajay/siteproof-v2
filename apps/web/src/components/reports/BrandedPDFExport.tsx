@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import { Download, Upload, Settings, Loader2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 import { toast } from 'sonner';
@@ -173,7 +173,7 @@ export function BrandedPDFExport({
     // Add logo
     if (brandingSettings.logoUrl) {
       try {
-        const img = new Image();
+        const img = new window.Image();
         img.src = brandingSettings.logoUrl;
         await new Promise((resolve) => {
           img.onload = resolve;
@@ -471,7 +471,7 @@ export function BrandedPDFExport({
             <div className="flex items-center gap-3">
               {brandingSettings.logoUrl ? (
                 <div className="relative h-12 w-24">
-                  <Image
+                  <NextImage
                     src={brandingSettings.logoUrl}
                     alt="Company Logo"
                     fill
