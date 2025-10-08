@@ -393,7 +393,8 @@ function generateExcel(data: any): Buffer {
     XLSX.utils.book_append_sheet(workbook, ncrSheet, 'NCRs');
   }
 
-  return Buffer.from(XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }));
+  const output = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  return Buffer.from(output as ArrayBuffer);
 }
 
 function generateCSV(data: any): Buffer {

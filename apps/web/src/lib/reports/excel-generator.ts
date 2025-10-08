@@ -36,7 +36,8 @@ export class ExcelReportGenerator {
     });
 
     // Generate buffer
-    return XLSX.write(this.workbook, { type: 'buffer', bookType: 'xlsx' });
+    const output = XLSX.write(this.workbook, { type: 'buffer', bookType: 'xlsx' });
+    return Buffer.from(output as ArrayBuffer);
   }
 
   private addSummarySheet(data: ExcelReportData): void {
@@ -50,9 +51,7 @@ export class ExcelReportGenerator {
     ];
 
     if (data.dateRange) {
-      summaryData.push(
-        ['Report Period:', `${data.dateRange.start} to ${data.dateRange.end}`]
-      );
+      summaryData.push(['Report Period:', `${data.dateRange.start} to ${data.dateRange.end}`]);
     }
 
     summaryData.push(
@@ -116,7 +115,7 @@ export class ExcelReportGenerator {
 
       // Auto-size columns
       const range = XLSX.utils.decode_range(ws['!ref'] || 'A1');
-      const cols: any[] = [];
+      const cols: XLSX.ColInfo[] = [];
 
       for (let C = range.s.c; C <= range.e.c; ++C) {
         let maxWidth = 10; // Minimum width
@@ -125,7 +124,8 @@ export class ExcelReportGenerator {
           const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
           const cell = ws[cellAddress];
 
-          if (cell && cell.v) {
+          // Type guard to check if cell is a CellObject
+          if (cell && typeof cell === 'object' && 'v' in cell && cell.v != null) {
             const cellValue = String(cell.v);
             maxWidth = Math.max(maxWidth, cellValue.length);
           }
@@ -138,9 +138,7 @@ export class ExcelReportGenerator {
     }
 
     // Sanitize sheet name (Excel has restrictions)
-    const safeName = sheet.name
-      .replace(/[\[\]\*\/\\\?:]/g, '')
-      .substring(0, 31); // Excel max sheet name length
+    const safeName = sheet.name.replace(/[\[\]\*\/\\\?:]/g, '').substring(0, 31); // Excel max sheet name length
 
     XLSX.utils.book_append_sheet(this.workbook, ws, safeName);
   }
@@ -159,11 +157,11 @@ export class ExcelReportGenerator {
           data: [
             {
               'Project Name': projectData.name,
-              'Client': projectData.client_name,
-              'Status': projectData.status,
+              Client: projectData.client_name,
+              Status: projectData.status,
               'Start Date': projectData.start_date,
               'Due Date': projectData.due_date,
-              'Progress': `${projectData.progress || 0}%`,
+              Progress: `${projectData.progress || 0}%`,
             },
           ],
         },
@@ -187,8 +185,8 @@ export class ExcelReportGenerator {
           data: projectData.ncrs || [],
           summary: {
             'Total NCRs': projectData.ncrs?.length || 0,
-            'Open': projectData.open_ncrs || 0,
-            'Closed': projectData.closed_ncrs || 0,
+            Open: projectData.open_ncrs || 0,
+            Closed: projectData.closed_ncrs || 0,
           },
         },
       ],
@@ -209,13 +207,13 @@ export class ExcelReportGenerator {
           name: 'Daily Entries',
           data: diaryData.map((entry) => ({
             Date: format(new Date(entry.diary_date), 'dd/MM/yyyy'),
-            'Site': entry.site_name || 'N/A',
-            'Weather': entry.weather?.description || 'N/A',
-            'Temperature': entry.weather?.temperature ? `${entry.weather.temperature}°C` : 'N/A',
-            'Workers': entry.workforce_count || 0,
-            'Equipment': entry.equipment?.length || 0,
-            'Activities': entry.activities || 'N/A',
-            'Issues': entry.issues || 'None',
+            Site: entry.site_name || 'N/A',
+            Weather: entry.weather?.description || 'N/A',
+            Temperature: entry.weather?.temperature ? `${entry.weather.temperature}°C` : 'N/A',
+            Workers: entry.workforce_count || 0,
+            Equipment: entry.equipment?.length || 0,
+            Activities: entry.activities || 'N/A',
+            Issues: entry.issues || 'None',
             'Created By': entry.created_by_name || 'Unknown',
           })),
           summary: {
@@ -243,8 +241,8 @@ export class ExcelReportGenerator {
           data: [
             {
               'Total Inspections': inspectionData.total,
-              'Passed': inspectionData.passed,
-              'Failed': inspectionData.failed,
+              Passed: inspectionData.passed,
+              Failed: inspectionData.failed,
               'In Progress': inspectionData.in_progress,
               'Pass Rate': `${inspectionData.pass_rate}%`,
             },
@@ -282,10 +280,10 @@ export class ExcelReportGenerator {
           data: [
             {
               'Total NCRs': ncrData.total,
-              'Open': ncrData.open,
+              Open: ncrData.open,
               'In Progress': ncrData.in_progress,
-              'Resolved': ncrData.resolved,
-              'Closed': ncrData.closed,
+              Resolved: ncrData.resolved,
+              Closed: ncrData.closed,
               'Average Resolution Time': ncrData.avg_resolution_time || 'N/A',
             },
           ],
@@ -294,14 +292,16 @@ export class ExcelReportGenerator {
           name: 'NCR List',
           data: (ncrData.ncrs || []).map((ncr: any) => ({
             'NCR Number': ncr.ncr_number,
-            'Title': ncr.title,
-            'Status': ncr.status,
-            'Severity': ncr.severity,
+            Title: ncr.title,
+            Status: ncr.status,
+            Severity: ncr.severity,
             'Raised Date': format(new Date(ncr.raised_date), 'dd/MM/yyyy'),
             'Raised By': ncr.raised_by_name,
             'Assigned To': ncr.assigned_to_name,
             'Due Date': ncr.due_date ? format(new Date(ncr.due_date), 'dd/MM/yyyy') : 'N/A',
-            'Closed Date': ncr.closed_date ? format(new Date(ncr.closed_date), 'dd/MM/yyyy') : 'N/A',
+            'Closed Date': ncr.closed_date
+              ? format(new Date(ncr.closed_date), 'dd/MM/yyyy')
+              : 'N/A',
           })),
         },
         {
