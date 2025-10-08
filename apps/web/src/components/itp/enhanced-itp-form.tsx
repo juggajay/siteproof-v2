@@ -779,3 +779,4 @@ const EnhancedITPForm: React.FC<EnhancedITPFormProps> = ({ projectId, lotId, itp
 };
 
 export default EnhancedITPForm;
+export { EnhancedITPForm };

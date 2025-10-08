@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { Toaster } from 'sonner';
+import { Toaster } from '@siteproof/design-system';
 import { Providers } from '@/components/Providers';
 import './globals.css';
 
@@ -31,7 +31,7 @@ export const viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="touch-manipulation">
+    <html lang="en" className="touch-manipulation" suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -42,15 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.className} overscroll-none`}>
         <Providers>
           {children}
-          <Toaster
-            position="bottom-right"
-            toastOptions={{
-              className: 'font-medium',
-              duration: 4000,
-            }}
-            richColors
-            closeButton
-          />
+          <Toaster />
         </Providers>
       </body>
     </html>

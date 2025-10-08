@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ===== Surfaces (Light Mode) ===== */
+    --surface: 0 0% 100%;
+    --surface-container: 210 20% 98%;
+    --surface-container-low: 210 20% 96%;
+    --surface-container-high: 210 20% 92%;
+    --surface-elevated: 0 0% 100%;
+
+    /* ===== Backgrounds (Light Mode) ===== */
+    --background: 0 0% 100%;
+    --background-subtle: 210 20% 98%;
+    --background-overlay: 0 0% 0% / 0.5;
+
+    /* ===== Foregrounds/Text (Light Mode) ===== */
+    --foreground: 222 47% 11%;
+    --foreground-muted: 215 16% 47%;
+    --foreground-subtle: 215 16% 65%;
+
+    /* ===== Borders (Light Mode) ===== */
+    --border: 214 32% 91%;
+    --border-hover: 215 20% 65%;
+    --border-focus: 210 100% 50%;
+
+    /* ===== Interactive States (Light Mode) ===== */
+    --hover-overlay: 0 0% 0% / 0.04;
+    --active-overlay: 0 0% 0% / 0.08;
+    --focus-ring: 210 100% 50% / 0.3;
+
+    /* ===== Status Colors (Remain same for both modes - Okabe-Ito) ===== */
+    --success: 151 55% 41.5%;
+    --success-foreground: 0 0% 100%;
+    --error: 16 100% 50%;
+    --error-foreground: 0 0% 100%;
+    --warning: 40 100% 50%;
+    --warning-foreground: 0 0% 0%;
+    --info: 201 100% 40%;
+    --info-foreground: 0 0% 100%;
+
+    /* ===== Elevation Shadows ===== */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-base: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px 0 rgb(0 0 0 / 0.06);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -1px rgb(0 0 0 / 0.06);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 10px 10px -5px rgb(0 0 0 / 0.04);
+  }
+
+  .dark {
+    /* ===== Surfaces (Dark Mode) ===== */
+    --surface: 222 47% 11%;
+    --surface-container: 217 33% 17%;
+    --surface-container-low: 220 40% 13%;
+    --surface-container-high: 215 28% 20%;
+    --surface-elevated: 215 28% 25%;
+
+    /* ===== Backgrounds (Dark Mode) ===== */
+    --background: 222 47% 11%;
+    --background-subtle: 217 33% 17%;
+    --background-overlay: 0 0% 0% / 0.75;
+
+    /* ===== Foregrounds/Text (Dark Mode) ===== */
+    --foreground: 0 0% 98%;
+    --foreground-muted: 215 20% 65%;
+    --foreground-subtle: 215 16% 47%;
+
+    /* ===== Borders (Dark Mode) ===== */
+    --border: 217 33% 23%;
+    --border-hover: 215 20% 35%;
+    --border-focus: 210 100% 50%;
+
+    /* ===== Interactive States (Dark Mode) ===== */
+    --hover-overlay: 0 0% 100% / 0.08;
+    --active-overlay: 0 0% 100% / 0.12;
+    --focus-ring: 210 100% 50% / 0.4;
+
+    /* ===== Elevation Shadows (Enhanced for dark mode) ===== */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-base: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 1px 2px 0 rgb(0 0 0 / 0.3);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -1px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -2px rgb(0 0 0 / 0.4);
+    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 10px 10px -5px rgb(0 0 0 / 0.5);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    transition: background-color 200ms ease-in-out, color 200ms ease-in-out;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Hover and focus utilities */
+  .hover-lift {
+    transition: transform 150ms ease-in-out, box-shadow 150ms ease-in-out;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Focus visible for accessibility */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-background;
+  }
+}

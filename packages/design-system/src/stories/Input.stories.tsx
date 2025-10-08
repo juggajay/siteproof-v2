@@ -238,7 +238,7 @@ export const Form: Story = {
   },
 };
 
-export const Search: Story = {
+export const SearchInput: Story = {
   render: () => {
     const [query, setQuery] = useState('');
 

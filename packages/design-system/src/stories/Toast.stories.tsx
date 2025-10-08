@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { Toaster } from '../components/ui/toast';
+import { Toaster } from '../components/ui/toaster';
 import { useToast } from '../hooks/use-toast';
 import { Button } from '../components/ui/Button';
 

@@ -175,7 +175,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     });
 
     // Return the file
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': contentType,

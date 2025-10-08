@@ -7,6 +7,26 @@
 2. **NEVER save working files, text/mds and tests to the root folder**
 3. ALWAYS organize files in appropriate subdirectories
 
+## 🤖 AUTONOMOUS DEBUGGING & PERSISTENCE
+
+**MANDATORY BEHAVIOR**:
+1. **NEVER GIVE UP**: When encountering errors, AUTOMATICALLY retry with different approaches
+2. **USE DEBUGGER AGENT**: Spawn the debugger agent for ANY error or failure
+3. **ITERATE UNTIL SUCCESS**: Continue trying fixes until the task is 100% complete
+4. **NO USER INTERVENTION**: Fix issues autonomously without asking for manual steps
+5. **RETRY STRATEGIES**:
+   - Try 1: Direct fix
+   - Try 2: Alternative approach
+   - Try 3: Clean slate (remove/reinstall)
+   - Try 4: Spawn debugger agent
+   - Try 5+: Continue indefinitely until resolved
+
+**When to spawn debugger agent:**
+- Dependency/installation errors → `Task(subagent_type="debugger", prompt="Fix pnpm dependency errors...")`
+- Build failures → spawn debugger
+- Test failures → spawn debugger
+- Any error that blocks progress → spawn debugger immediately
+
 ### ⚡ GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
 
 **MANDATORY PATTERNS:**

@@ -1,0 +1,26 @@
+{
+  "entryPoints": ["./src/index.ts"],
+  "out": "../../docs/design-system/api",
+  "plugin": ["typedoc-plugin-markdown"],
+  "readme": "none",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "includeVersion": true,
+  "name": "SiteProof Design System API",
+  "tsconfig": "./tsconfig.json",
+  "categorizeByGroup": true,
+  "categoryOrder": [
+    "UI Components",
+    "Layout Components",
+    "Specialized Components",
+    "Hooks",
+    "Utilities",
+    "*"
+  ],
+  "sort": ["source-order"],
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": true
+  }
+}

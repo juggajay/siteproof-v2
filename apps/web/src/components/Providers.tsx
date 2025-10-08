@@ -3,7 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import dynamic from 'next/dynamic';
 import { ServiceWorkerProvider } from './ServiceWorkerProvider';
-import { ToastProvider } from '@siteproof/design-system';
+import { ToastProvider, ThemeProvider } from '@siteproof/design-system';
 import { useState, type ComponentType } from 'react';
 
 const ReactQueryDevtools = (
@@ -31,11 +31,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <ServiceWorkerProvider>
-          {children}
-        </ServiceWorkerProvider>
-      </ToastProvider>
+      <ThemeProvider defaultTheme="light" storageKey="siteproof-theme">
+        <ToastProvider>
+          <ServiceWorkerProvider>
+            {children}
+          </ServiceWorkerProvider>
+        </ToastProvider>
+      </ThemeProvider>
       {process.env.NODE_ENV !== 'production' && (
         <ReactQueryDevtools initialIsOpen={false} />
       )}

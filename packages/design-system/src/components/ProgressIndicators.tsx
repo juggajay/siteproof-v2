@@ -84,7 +84,16 @@ export function ProgressRing({
   label,
   className,
 }: ProgressRingProps) {
-  const config = sizeConfig[size];
+  // Ensure size is valid and get config with fallback to 'md'
+  const validSize = size && (size === 'sm' || size === 'md' || size === 'lg') ? size : 'md';
+  const config = sizeConfig[validSize];
+
+  // Additional safety check
+  if (!config) {
+    console.error(`Invalid size configuration for ProgressRing: ${size}`);
+    return null;
+  }
+
   const radius = (config.size - config.strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
 

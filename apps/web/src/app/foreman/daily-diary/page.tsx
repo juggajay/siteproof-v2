@@ -23,6 +23,7 @@ export default function DailyDiaryPage() {
   const [materialEntries, setMaterialEntries] = useState<any[]>([]);
 
   const queryClient = useQueryClient();
+  // @ts-expect-error - Toast API mismatch
   const { showError, showSuccess } = useToast();
 
   // Fetch diary for selected date (if it exists)

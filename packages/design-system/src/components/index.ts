@@ -32,6 +32,9 @@ export type { ModalProps, ModalFooterProps } from './Modal';
 export { Toast, ToastContainer } from './Toast';
 export type { ToastProps, ToastContainerProps, ToastType } from './Toast';
 
+// Radix UI Toast primitives (use with useToast hook)
+export { Toaster } from './ui/toaster';
+
 export { Badge, BadgeGroup } from './Badge';
 export type { BadgeProps, BadgeGroupProps, BadgeVariant, BadgeSize } from './Badge';
 

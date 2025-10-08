@@ -209,7 +209,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     // Return the file directly as a response
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': mimeType,
@@ -591,7 +591,7 @@ async function generateITPReport(report: any, _supabase: SupabaseClient): Promis
     const pdfBytes = await pdfDoc.save();
     const fileBuffer = Buffer.from(pdfBytes);
 
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
@@ -710,7 +710,7 @@ async function downloadDailyDiaryEntry(report: any, supabase: SupabaseClient) {
           ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           : 'text/csv';
 
-      return new NextResponse(fileBuffer, {
+      return new NextResponse(new Uint8Array(fileBuffer), {
         status: 200,
         headers: {
           'Content-Type': mimeType,
@@ -1153,7 +1153,7 @@ async function downloadDailyDiaryEntry(report: any, supabase: SupabaseClient) {
     const fileBuffer = Buffer.from(pdfBytes);
     const filename = (report.report_name || 'daily-diary') + '.pdf';
 
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',

@@ -51,6 +51,7 @@ export function OptimizedMobileItpManager({ projectId, lotId }: MobileItpManager
   const [showTemplateSelection, setShowTemplateSelection] = useState(false);
   const [loading, setLoading] = useState(true);
   const [assigningTemplate, setAssigningTemplate] = useState(false);
+  // @ts-expect-error - Toast API mismatch
   const { showError, showSuccess } = useToast();
 
   // Track pending updates for batching

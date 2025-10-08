@@ -1,0 +1,97 @@
+{
+  "name": "SiteProof - Construction Management",
+  "short_name": "SiteProof",
+  "description": "Professional construction site management and inspection platform with offline support",
+  "theme_color": "#2563eb",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "orientation": "any",
+  "scope": "/",
+  "start_url": "/dashboard?source=pwa",
+  "id": "siteproof-pwa",
+  "categories": ["business", "productivity", "utilities"],
+  "lang": "en-US",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Inspection",
+      "short_name": "Inspect",
+      "description": "Start a new ITP inspection",
+      "url": "/dashboard/projects",
+      "icons": [{ "src": "/icons/inspection.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Reports",
+      "short_name": "Reports",
+      "description": "View and download reports",
+      "url": "/dashboard/reports",
+      "icons": [{ "src": "/icons/reports.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-dashboard.png",
+      "type": "image/png",
+      "sizes": "540x1200",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/desktop-dashboard.png",
+      "type": "image/png",
+      "sizes": "1920x1080",
+      "form_factor": "wide"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": []
+}
