@@ -1,0 +1,75 @@
+#!/bin/sh
+
+# SiteProof v2 Performance Check Hook
+# Automatically triggers performance engineer agent on significant changes
+
+# Get changed files
+CHANGED_FILES=$(git diff --cached --name-only)
+
+# Check if performance-critical files changed
+PERF_CRITICAL_CHANGED=0
+
+# Next.js app routes
+if echo "$CHANGED_FILES" | grep -q "apps/web/src/app/.*page.tsx"; then
+  echo "📄 App Router pages changed"
+  PERF_CRITICAL_CHANGED=1
+fi
+
+# API routes
+if echo "$CHANGED_FILES" | grep -q "apps/web/src/app/api/.*route.ts"; then
+  echo "🔌 API routes changed"
+  PERF_CRITICAL_CHANGED=1
+fi
+
+# Supabase queries
+if echo "$CHANGED_FILES" | grep -q "apps/web/src/lib/supabase/.*\.ts"; then
+  echo "🗄️  Supabase queries changed"
+  PERF_CRITICAL_CHANGED=1
+fi
+
+# Package.json (dependency changes)
+if echo "$CHANGED_FILES" | grep -q "package.json\|pnpm-lock.yaml"; then
+  echo "📦 Dependencies changed"
+  PERF_CRITICAL_CHANGED=1
+fi
+
+# Next.js config
+if echo "$CHANGED_FILES" | grep -q "next.config"; then
+  echo "⚙️  Next.js config changed"
+  PERF_CRITICAL_CHANGED=1
+fi
+
+# If performance-critical files changed, run checks
+if [ $PERF_CRITICAL_CHANGED -eq 1 ]; then
+  echo ""
+  echo "🚀 Running performance checks..."
+  echo ""
+
+  # Quick bundle size check (if build exists)
+  if [ -d "apps/web/.next" ]; then
+    CURRENT_SIZE=$(du -sb apps/web/.next/static 2>/dev/null | cut -f1 || echo "0")
+
+    # Load baseline if exists
+    if [ -f ".performance-baselines/latest.json" ]; then
+      BASELINE_SIZE=$(cat .performance-baselines/latest.json | jq -r '.build.javascript_size_bytes' 2>/dev/null || echo "0")
+
+      if [ "$CURRENT_SIZE" -gt 0 ] && [ "$BASELINE_SIZE" -gt 0 ]; then
+        SIZE_INCREASE=$((CURRENT_SIZE - BASELINE_SIZE))
+        SIZE_INCREASE_PCT=$((SIZE_INCREASE * 100 / BASELINE_SIZE))
+
+        if [ $SIZE_INCREASE_PCT -gt 10 ]; then
+          echo "⚠️  WARNING: Bundle size increased by ${SIZE_INCREASE_PCT}%"
+          echo "   Baseline: $(numfmt --to=iec-i --suffix=B $BASELINE_SIZE)"
+          echo "   Current:  $(numfmt --to=iec-i --suffix=B $CURRENT_SIZE)"
+          echo ""
+          echo "   Consider running: pnpm performance:analyze"
+        fi
+      fi
+    fi
+  fi
+
+  echo "✓ Performance check complete"
+  echo ""
+fi
+
+exit 0

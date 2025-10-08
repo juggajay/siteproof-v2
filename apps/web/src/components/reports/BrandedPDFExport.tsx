@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { Download, Upload, Settings, Loader2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 import { toast } from 'sonner';
@@ -469,7 +470,15 @@ export function BrandedPDFExport({
             <label className="block text-sm font-medium text-gray-700 mb-1">Company Logo</label>
             <div className="flex items-center gap-3">
               {brandingSettings.logoUrl ? (
-                <img src={brandingSettings.logoUrl} alt="Company Logo" className="h-12 w-auto" />
+                <div className="relative h-12 w-24">
+                  <Image
+                    src={brandingSettings.logoUrl}
+                    alt="Company Logo"
+                    fill
+                    sizes="96px"
+                    className="object-contain"
+                  />
+                </div>
               ) : (
                 <div className="h-12 w-12 bg-gray-100 rounded flex items-center justify-center">
                   <ImageIcon className="w-6 h-6 text-gray-400" />

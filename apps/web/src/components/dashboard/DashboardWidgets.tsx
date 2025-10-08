@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Responsive, WidthProvider, Layout } from 'react-grid-layout';
 import {
   Plus,
@@ -54,12 +54,7 @@ export function DashboardWidgets({ userId, organizationId }: DashboardWidgetsPro
   const [showAddWidget, setShowAddWidget] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load saved layout and widgets
-  useEffect(() => {
-    loadDashboard();
-  }, [userId]);
-
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     try {
       const response = await fetch(`/api/dashboard/layout?userId=${userId}`);
       if (response.ok) {
@@ -78,7 +73,12 @@ export function DashboardWidgets({ userId, organizationId }: DashboardWidgetsPro
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [userId]);
+
+  // Load saved layout and widgets
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
 
   const getDefaultLayouts = () => ({
     lg: [

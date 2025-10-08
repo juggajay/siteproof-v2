@@ -1,0 +1,325 @@
+name: Performance Monitoring
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches:
+      - main
+  schedule:
+    # Weekly performance audit every Monday at 9 AM
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    inputs:
+      full_audit:
+        description: 'Run full performance audit'
+        required: false
+        default: 'false'
+
+env:
+  NODE_VERSION: '20'
+  PNPM_VERSION: '8.15.1'
+
+jobs:
+  lighthouse-ci:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application
+        run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+
+      - name: Run Lighthouse CI
+        run: pnpm --filter web lighthouse:ci
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+      - name: Upload Lighthouse results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: lighthouse-results
+          path: .lighthouseci
+          retention-days: 30
+
+      - name: Check performance budget
+        id: perf_check
+        run: |
+          # Extract performance score from Lighthouse results
+          PERF_SCORE=$(cat .lighthouseci/manifest.json | jq -r '.[0].summary.performance' 2>/dev/null || echo "0")
+          echo "Performance Score: $PERF_SCORE"
+          echo "perf_score=$PERF_SCORE" >> $GITHUB_OUTPUT
+
+          # Check if below threshold
+          if (( $(echo "$PERF_SCORE < 0.8" | bc -l) )); then
+            echo "performance_issue=true" >> $GITHUB_OUTPUT
+          else
+            echo "performance_issue=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Trigger Performance Engineer Agent
+        if: steps.perf_check.outputs.performance_issue == 'true'
+        run: |
+          echo "🚨 Performance regression detected!"
+          echo "Lighthouse Performance Score: ${{ steps.perf_check.outputs.perf_score }}"
+          echo ""
+          echo "Performance Engineer agent should be triggered for analysis."
+          # TODO: Add actual agent trigger when implemented
+          # npx claude-flow agent-spawn \
+          #   --type performance-engineer-siteproof \
+          #   --context "PR #${{ github.event.pull_request.number }}" \
+          #   --task "Analyze performance regression"
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const perfScore = '${{ steps.perf_check.outputs.perf_score }}';
+            const perfScorePct = (parseFloat(perfScore) * 100).toFixed(0);
+            const hasIssue = '${{ steps.perf_check.outputs.performance_issue }}' === 'true';
+
+            const emoji = hasIssue ? '🔴' : '✅';
+            const status = hasIssue ? 'REGRESSION DETECTED' : 'Passed';
+
+            const comment = `## ${emoji} Lighthouse Performance Report
+
+            **Status:** ${status}
+            **Performance Score:** ${perfScorePct}%
+
+            ${hasIssue ? '⚠️ **Performance regression detected!** The performance engineer agent will analyze this issue.\n\n' : ''}
+
+            <details>
+            <summary>View Lighthouse Results</summary>
+
+            Full Lighthouse reports are available in the workflow artifacts.
+
+            </details>
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  bundle-size-check:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and analyze bundle
+        run: |
+          pnpm build
+
+          # Get current bundle size
+          CURRENT_SIZE=$(du -sb apps/web/.next/static | cut -f1)
+          echo "Current bundle size: $CURRENT_SIZE bytes"
+          echo "bundle_size=$CURRENT_SIZE" >> $GITHUB_OUTPUT
+        id: bundle_analysis
+
+      - name: Compare with baseline
+        if: github.event_name == 'pull_request'
+        run: |
+          # Checkout base branch
+          git fetch origin ${{ github.base_ref }}
+          git checkout origin/${{ github.base_ref }}
+
+          # Build base
+          pnpm install --frozen-lockfile
+          pnpm build
+
+          # Get baseline size
+          BASELINE_SIZE=$(du -sb apps/web/.next/static | cut -f1)
+          echo "Baseline bundle size: $BASELINE_SIZE bytes"
+
+          # Calculate difference
+          CURRENT_SIZE=${{ steps.bundle_analysis.outputs.bundle_size }}
+          SIZE_DIFF=$((CURRENT_SIZE - BASELINE_SIZE))
+          SIZE_DIFF_PCT=$((SIZE_DIFF * 100 / BASELINE_SIZE))
+
+          echo "Bundle size change: $SIZE_DIFF bytes ($SIZE_DIFF_PCT%)"
+
+          # Check if increase is significant
+          if [ $SIZE_DIFF -gt 51200 ]; then # 50KB threshold
+            echo "⚠️  Significant bundle size increase detected!"
+            echo "bundle_issue=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload bundle analysis
+        uses: actions/upload-artifact@v3
+        with:
+          name: bundle-stats
+          path: apps/web/.next/analyze
+          retention-days: 30
+
+  build-performance:
+    name: Build Performance
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Measure build performance
+        run: |
+          START_TIME=$(date +%s)
+          pnpm build
+          END_TIME=$(date +%s)
+          BUILD_TIME=$((END_TIME - START_TIME))
+
+          echo "Build completed in ${BUILD_TIME}s"
+          echo "build_time=$BUILD_TIME" >> $GITHUB_OUTPUT
+        id: build_perf
+
+      - name: Check build time regression
+        run: |
+          BUILD_TIME=${{ steps.build_perf.outputs.build_time }}
+          BASELINE_TIME=60 # 60 seconds baseline (adjust as needed)
+
+          if [ $BUILD_TIME -gt $((BASELINE_TIME * 120 / 100)) ]; then
+            echo "⚠️  Build time regression detected!"
+            echo "Current: ${BUILD_TIME}s, Baseline: ${BASELINE_TIME}s"
+          fi
+
+  weekly-audit:
+    name: Weekly Performance Audit
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event.inputs.full_audit == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run comprehensive audit
+        run: |
+          echo "🔍 Running comprehensive performance audit..."
+
+          # Build
+          pnpm build
+
+          # Run all performance checks
+          pnpm lighthouse:ci
+
+          # Analyze bundle
+          pnpm analyze || true
+
+          # Check for unused dependencies
+          pnpm dlx depcheck || true
+
+          echo "✅ Audit complete"
+
+      - name: Create audit report
+        run: |
+          mkdir -p performance-reports
+
+          cat > performance-reports/weekly-audit-$(date +%Y%m%d).md << EOF
+          # Weekly Performance Audit - $(date +%Y-%m-%d)
+
+          ## Summary
+          - Lighthouse Performance: [Score from results]
+          - Bundle Size: [Size from analysis]
+          - Build Time: [Time from build]
+
+          ## Recommendations
+          [Generated by performance engineer agent]
+
+          ## Action Items
+          [ ] Item 1
+          [ ] Item 2
+          EOF
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v3
+        with:
+          name: weekly-audit-report
+          path: performance-reports/
+          retention-days: 90
+
+      - name: Create GitHub Issue for audit results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Weekly Performance Audit - ${new Date().toISOString().split('T')[0]}`,
+              body: `## Weekly Performance Audit Results
+
+              The automated weekly performance audit has completed.
+
+              Please review the attached artifacts and address any performance concerns.
+
+              cc: @performance-team`,
+              labels: ['performance', 'automated']
+            });

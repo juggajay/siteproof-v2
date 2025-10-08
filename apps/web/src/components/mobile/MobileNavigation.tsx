@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
@@ -126,12 +127,14 @@ export function MobileNavigation({ user }: MobileNavigationProps) {
             {user && (
               <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                     {user.avatar ? (
-                      <img
+                      <Image
                         src={user.avatar}
-                        alt={user.name}
-                        className="w-full h-full rounded-full object-cover"
+                        alt={user.name || 'User avatar'}
+                        width={48}
+                        height={48}
+                        className="rounded-full object-cover"
                       />
                     ) : (
                       <User className="w-6 h-6 text-gray-600" />

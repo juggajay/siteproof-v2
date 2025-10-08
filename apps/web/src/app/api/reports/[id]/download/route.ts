@@ -619,6 +619,92 @@ async function downloadDailyDiaryEntry(report: any, supabase: SupabaseClient) {
       supabase.from('diary_material_entries').select('*').eq('diary_id', diaryId),
     ]);
 
+    // Handle non-PDF formats
+    if (report.format === 'json') {
+      const diaryData = {
+        diary,
+        labour_entries: labour || [],
+        plant_entries: plant || [],
+        material_entries: materials || [],
+      };
+
+      const jsonBuffer = Buffer.from(JSON.stringify(diaryData, null, 2));
+      const filename = (report.report_name || 'daily-diary') + '.json';
+
+      return new NextResponse(jsonBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Content-Length': jsonBuffer.length.toString(),
+        },
+      });
+    }
+
+    if (report.format === 'csv' || report.format === 'excel') {
+      const wb = XLSX.utils.book_new();
+
+      // Diary Info Sheet
+      const diaryInfo = [
+        ['Field', 'Value'],
+        ['Diary Number', diary.diary_number || ''],
+        ['Date', diary.diary_date || ''],
+        ['Project', projectName],
+        ['Weather Conditions', diary.weather?.conditions || ''],
+        ['Temperature Min', diary.weather?.temperature?.min || ''],
+        ['Temperature Max', diary.weather?.temperature?.max || ''],
+        ['Wind', diary.weather?.wind || ''],
+        ['Site Conditions', diary.site_conditions || ''],
+        ['Access Issues', diary.access_issues || ''],
+        ['Work Summary', diary.work_summary || ''],
+        ['Total Workers', diary.total_workers || 0],
+        ['Trades', Array.isArray(diary.trades_on_site) ? diary.trades_on_site.join(', ') : ''],
+        ['General Notes', diary.general_notes || ''],
+        ['Planned Work Tomorrow', diary.planned_work_tomorrow || ''],
+      ];
+      const diarySheet = XLSX.utils.aoa_to_sheet(diaryInfo);
+      XLSX.utils.book_append_sheet(wb, diarySheet, 'Diary Info');
+
+      // Labour Entries Sheet
+      if (labour && labour.length > 0) {
+        const labourSheet = XLSX.utils.json_to_sheet(labour);
+        XLSX.utils.book_append_sheet(wb, labourSheet, 'Labour');
+      }
+
+      // Plant Entries Sheet
+      if (plant && plant.length > 0) {
+        const plantSheet = XLSX.utils.json_to_sheet(plant);
+        XLSX.utils.book_append_sheet(wb, plantSheet, 'Plant');
+      }
+
+      // Material Entries Sheet
+      if (materials && materials.length > 0) {
+        const materialsSheet = XLSX.utils.json_to_sheet(materials);
+        XLSX.utils.book_append_sheet(wb, materialsSheet, 'Materials');
+      }
+
+      const excelBuffer = XLSX.write(wb, {
+        type: 'buffer',
+        bookType: report.format === 'excel' ? 'xlsx' : 'csv',
+      }) as Buffer;
+      const fileBuffer = excelBuffer;
+      const extension = report.format === 'excel' ? 'xlsx' : 'csv';
+      const filename = (report.report_name || 'daily-diary') + '.' + extension;
+      const mimeType =
+        report.format === 'excel'
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : 'text/csv';
+
+      return new NextResponse(fileBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': mimeType,
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Content-Length': fileBuffer.length.toString(),
+        },
+      });
+    }
+
     // Generate comprehensive PDF with all diary data
     const pdfDoc = await PDFDocument.create();
     let currentPage = pdfDoc.addPage([595.28, 841.89]); // A4 size

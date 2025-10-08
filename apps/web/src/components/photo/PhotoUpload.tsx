@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
+import NextImage from 'next/image';
 import { Camera, Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 import { toast } from 'sonner';
@@ -354,10 +355,12 @@ export function PhotoUpload({
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {existingPhotos.map((photo, index) => (
               <div key={index} className="relative aspect-square">
-                <img
+                <NextImage
                   src={photo}
                   alt={`Existing ${index + 1}`}
-                  className="w-full h-full object-cover rounded-lg"
+                  fill
+                  sizes="(max-width: 640px) 33vw, 25vw"
+                  className="object-cover rounded-lg"
                 />
               </div>
             ))}
@@ -372,10 +375,13 @@ export function PhotoUpload({
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
             {previews.map((preview, index) => (
               <div key={index} className="relative aspect-square">
-                <img
+                <NextImage
                   src={preview}
                   alt={`Preview ${index + 1}`}
-                  className="w-full h-full object-cover rounded-lg"
+                  fill
+                  sizes="(max-width: 640px) 33vw, 25vw"
+                  className="object-cover rounded-lg"
+                  unoptimized
                 />
                 <button
                   onClick={() => removeFile(index)}
