@@ -268,6 +268,9 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
         return;
       }
       console.log('Format updated successfully to', format);
+
+      // Wait for database to propagate the change
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
 
     try {
