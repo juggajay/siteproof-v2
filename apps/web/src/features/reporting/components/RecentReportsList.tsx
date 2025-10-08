@@ -295,9 +295,17 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
         throw new Error('Downloaded file is empty');
       }
 
-      // Create a download link
+      // Map format to file extension
+      const extensionMap = {
+        pdf: 'pdf',
+        excel: 'xlsx',
+        csv: 'csv',
+        json: 'json',
+      };
+
+      // Create a download link with correct extension based on selected format
       const url = window.URL.createObjectURL(blob);
-      const fileName = `${report.report_name}.${report.format}`;
+      const fileName = `${report.report_name}.${extensionMap[selectedFormat]}`;
 
       const link = document.createElement('a');
       link.href = url;
