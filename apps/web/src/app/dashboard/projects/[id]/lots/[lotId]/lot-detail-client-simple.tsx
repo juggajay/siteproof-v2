@@ -52,7 +52,10 @@ export default function LotDetailClientSimple({
     setReportStatus(null);
 
     try {
-      const response = await fetch(`/api/projects/${projectId}/lots/${lot.id}/export`);
+      const response = await fetch(`/api/projects/${projectId}/lots/${lot.id}/export`, {
+        credentials: 'include',
+        cache: 'no-store',
+      });
       
       // Check if response is JSON
       const contentType = response.headers.get("content-type");

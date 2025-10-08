@@ -12,10 +12,18 @@ export async function GET(
     // Check authentication
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser();
-    console.log('[Export] User check:', { hasUser: !!user });
+    console.log('[Export] User check:', { hasUser: !!user, authError });
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        {
+          error: 'Authentication required. Please log out and log back in.',
+          code: 'AUTH_REQUIRED',
+          details: authError?.message,
+        },
+        { status: 401 }
+      );
     }
 
     const { projectId, lotId } = await params;
