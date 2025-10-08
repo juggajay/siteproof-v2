@@ -12,7 +12,7 @@ const bulkUpdateSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string; lotId: string; itpId: string } }
+  { params }: { params: Promise<{ projectId: string; lotId: string; itpId: string }> }
 ) {
   try {
     const supabase = await createClient();
@@ -29,7 +29,7 @@ export async function POST(
     const body = await request.json();
     const { sectionId, itemIds, status, timestamp, comment } = bulkUpdateSchema.parse(body);
 
-    const { projectId, lotId, itpId } = params;
+    const { projectId, lotId, itpId } = await params;
 
     // Get current ITP instance
     const { data: itpInstance, error: fetchError } = await supabase
