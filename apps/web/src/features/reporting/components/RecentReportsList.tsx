@@ -244,7 +244,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
   };
 
   const downloadReport = async (report: Report, format?: 'pdf' | 'excel' | 'csv' | 'json') => {
-    console.log('downloadReport called for report:', report.id, report.report_name);
+    console.log('downloadReport called for report:', report.id, 'format:', format || report.format);
 
     if (report.status !== 'completed' && report.status !== 'processing') {
       console.log('Report not ready, status:', report.status);
@@ -261,10 +261,13 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
 
     // If format is specified and different from current, update it first
     if (format && format !== report.format) {
+      console.log('Updating report format from', report.format, 'to', format);
       const success = await changeReportFormat(report.id, format);
-      if (!success) return;
-      // Wait a moment for the update to propagate
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (!success) {
+        console.error('Failed to update format');
+        return;
+      }
+      console.log('Format updated successfully to', format);
     }
 
     try {

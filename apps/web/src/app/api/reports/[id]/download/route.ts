@@ -30,6 +30,10 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
+    console.log(
+      `[Download] Report ${reportId} - Type: ${report.report_type}, Format: ${report.format}`
+    );
+
     // Auto-fix stuck reports (queued or processing)
     if (report.status === 'queued' || report.status === 'processing') {
       const timeSinceRequest = new Date().getTime() - new Date(report.requested_at).getTime();
