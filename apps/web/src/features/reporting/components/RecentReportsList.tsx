@@ -14,6 +14,7 @@ import {
   FileJson,
   FileType,
   Trash2,
+  ChevronDown,
 } from 'lucide-react';
 import { Button, StateDisplay } from '@siteproof/design-system';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -211,7 +212,38 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
     };
   }, [user, supabase, queryClient]);
 
-  const downloadReport = async (report: Report) => {
+  const [openFormatDropdown, setOpenFormatDropdown] = useState<string | null>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!openFormatDropdown) return;
+
+    const handleClickOutside = () => setOpenFormatDropdown(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openFormatDropdown]);
+
+  const changeReportFormat = async (
+    reportId: string,
+    newFormat: 'pdf' | 'excel' | 'csv' | 'json'
+  ) => {
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('report_queue')
+      .update({ format: newFormat })
+      .eq('id', reportId);
+
+    if (error) {
+      toast.error('Failed to change format');
+      console.error('Format change error:', error);
+      return false;
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['reports'] });
+    return true;
+  };
+
+  const downloadReport = async (report: Report, format?: 'pdf' | 'excel' | 'csv' | 'json') => {
     console.log('downloadReport called for report:', report.id, report.report_name);
 
     if (report.status !== 'completed' && report.status !== 'processing') {
@@ -225,6 +257,14 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
       console.error('No user found, cannot download report');
       toast.error('You must be logged in to download reports');
       return;
+    }
+
+    // If format is specified and different from current, update it first
+    if (format && format !== report.format) {
+      const success = await changeReportFormat(report.id, format);
+      if (!success) return;
+      // Wait a moment for the update to propagate
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
 
     try {
@@ -543,17 +583,76 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
 
                     {/* Actions */}
                     {(report.status === 'completed' || report.status === 'processing') && (
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          downloadReport(report);
-                        }}
-                        title="Download Report"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
+                      <div className="relative">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenFormatDropdown(
+                              openFormatDropdown === report.id ? null : report.id
+                            );
+                          }}
+                          title="Download Report"
+                          className="flex items-center gap-1"
+                        >
+                          <Download className="w-4 h-4" />
+                          <ChevronDown className="w-3 h-3" />
+                        </Button>
+
+                        {/* Format Dropdown */}
+                        {openFormatDropdown === report.id && (
+                          <div
+                            className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-t-lg"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                setOpenFormatDropdown(null);
+                                await downloadReport(report, 'pdf');
+                              }}
+                            >
+                              <FileText className="w-4 h-4" />
+                              PDF
+                            </button>
+                            <button
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                setOpenFormatDropdown(null);
+                                await downloadReport(report, 'excel');
+                              }}
+                            >
+                              <FileSpreadsheet className="w-4 h-4" />
+                              Excel
+                            </button>
+                            <button
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                setOpenFormatDropdown(null);
+                                await downloadReport(report, 'csv');
+                              }}
+                            >
+                              <FileType className="w-4 h-4" />
+                              CSV
+                            </button>
+                            <button
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-b-lg"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                setOpenFormatDropdown(null);
+                                await downloadReport(report, 'json');
+                              }}
+                            >
+                              <FileJson className="w-4 h-4" />
+                              JSON
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
 
                     {report.status === 'processing' && (
