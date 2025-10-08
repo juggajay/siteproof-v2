@@ -396,7 +396,7 @@ export async function POST(request: NextRequest) {
         report_type: 'daily_diary_entry',
         report_name: 'Daily Diary - ' + formattedDate,
         description: diary.work_summary?.slice(0, 160) || 'Daily diary entry',
-        format: 'json',
+        format: 'pdf',
         parameters: {
           project_id: validatedData.project_id,
           project_name: project.name,
