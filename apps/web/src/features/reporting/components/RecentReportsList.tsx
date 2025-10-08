@@ -603,7 +603,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
                         {/* Format Dropdown */}
                         {openFormatDropdown === report.id && (
                           <div
-                            className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10"
+                            className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
                             onClick={(e) => e.stopPropagation()}
                           >
                             <button
