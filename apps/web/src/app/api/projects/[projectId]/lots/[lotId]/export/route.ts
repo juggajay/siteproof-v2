@@ -39,6 +39,7 @@ export async function GET(
       .single();
 
     console.log('[Export] Querying ITP instances...');
+    // RLS policy requires explicit join with projects table to verify organization membership
     const itpPromise = supabase
       .from('itp_instances')
       .select(
@@ -47,10 +48,12 @@ export async function GET(
         name,
         status,
         completion_percentage,
-        data
+        data,
+        project_id
       `
       )
-      .eq('lot_id', lotId);
+      .eq('lot_id', lotId)
+      .eq('project_id', projectId);
 
     // Execute queries in parallel
     console.log('[Export] Executing queries...');
