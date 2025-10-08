@@ -1,0 +1,92 @@
+# Percy Visual Testing Configuration
+# Documentation: https://docs.percy.io/docs/configuration
+
+version: 2
+
+# Static assets to include in snapshots
+static:
+  include:
+    - "**/*.png"
+    - "**/*.jpg"
+    - "**/*.jpeg"
+    - "**/*.svg"
+    - "**/*.gif"
+    - "**/*.webp"
+
+# Snapshot configuration
+snapshot:
+  # Responsive breakpoints to capture
+  widths:
+    - 375   # Mobile (iPhone)
+    - 768   # Tablet (iPad)
+    - 1280  # Desktop
+    - 1920  # Large Desktop
+
+  # Minimum height for snapshots
+  min-height: 1024
+
+  # Enable JavaScript for dynamic content
+  enable-javascript: true
+
+  # Percy-specific CSS to hide dynamic content
+  percy-css: |
+    /* Hide time-based content that changes frequently */
+    [data-testid="current-time"],
+    [data-testid="relative-time"],
+    [data-testid="notification-badge"],
+    [data-testid="unread-count"] {
+      visibility: hidden !important;
+    }
+
+    /* Hide animations for consistent snapshots */
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0s !important;
+      animation-delay: 0s !important;
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+    }
+
+    /* Hide loading spinners */
+    [data-testid="loading-spinner"],
+    [data-testid="skeleton-loader"] {
+      display: none !important;
+    }
+
+    /* Stabilize random UUIDs and IDs */
+    [data-uuid],
+    [data-random-id] {
+      opacity: 0 !important;
+    }
+
+# Discovery configuration
+discovery:
+  # Disable automatic snapshot discovery
+  disable-cache: false
+
+  # Network idle timeout
+  network-idle-timeout: 750
+
+# Agent configuration
+agent:
+  # Asset discovery
+  asset-discovery:
+    # Allowed hostnames for assets
+    allowed-hostnames:
+      - "*.siteproof.com"
+      - "localhost"
+
+    # Network idle timeout for asset discovery
+    network-idle-timeout: 125
+
+    # Cache responses for faster subsequent runs
+    cache-responses: true
+
+# Defer uploads until after tests complete
+defer-uploads: true
+
+# Parallel test execution
+parallel:
+  total: 1
+  nonce: "percy-${GITHUB_SHA:-local}"

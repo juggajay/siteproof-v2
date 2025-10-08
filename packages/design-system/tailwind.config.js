@@ -1,43 +1,108 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: ['class'],
   content: [
     './src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {
-      // COLORS - Based on Design System Spec
+      // COLORS - Semantic Design Tokens
       colors: {
-        // Primary
-        'primary-blue': '#2196F3',  // Material Design Blue 500
+        // Primary (Blue) - Material Design Blue 500
+        primary: {
+          50: '#e3f2fd',
+          100: '#bbdefb',
+          200: '#90caf9',
+          300: '#64b5f6',
+          400: '#42a5f5',
+          500: '#2196f3',
+          600: '#1e88e5',
+          700: '#1976d2',
+          800: '#1565c0',
+          900: '#0d47a1',
+          DEFAULT: '#2196f3',
+          foreground: '#ffffff',
+        },
+
+        // Success (Okabe-Ito colorblind-safe bluish green)
+        success: {
+          light: '#4caf50',
+          DEFAULT: '#117733',
+          dark: '#0d5e28',
+          foreground: '#ffffff',
+        },
+
+        // Error (Okabe-Ito vermillion)
+        error: {
+          light: '#ef5350',
+          DEFAULT: '#d55e00',
+          dark: '#aa4a00',
+          foreground: '#ffffff',
+        },
+
+        // Warning (Okabe-Ito orange)
+        warning: {
+          light: '#ffb74d',
+          DEFAULT: '#e69f00',
+          dark: '#b87f00',
+          foreground: '#000000',
+        },
+
+        // Info (Okabe-Ito blue)
+        info: {
+          light: '#56b4e9',
+          DEFAULT: '#0072b2',
+          dark: '#004d80',
+          foreground: '#ffffff',
+        },
+
+        // Neutral scale (comprehensive grayscale)
+        gray: {
+          50: '#fafafa',
+          100: '#f5f5f5',
+          200: '#eeeeee',
+          300: '#e0e0e0',
+          400: '#bdbdbd',
+          500: '#9e9e9e',
+          600: '#757575',
+          700: '#616161',
+          800: '#424242',
+          900: '#212121',
+          950: '#0a0a0a',
+        },
+
+        // Surface colors (semantic - use CSS variables)
+        surface: {
+          DEFAULT: 'hsl(var(--surface))',
+          container: 'hsl(var(--surface-container))',
+          containerLow: 'hsl(var(--surface-container-low))',
+          containerHigh: 'hsl(var(--surface-container-high))',
+        },
+
+        // Semantic backgrounds
+        background: {
+          DEFAULT: 'hsl(var(--background))',
+          subtle: 'hsl(var(--background-subtle))',
+        },
+
+        foreground: {
+          DEFAULT: 'hsl(var(--foreground))',
+          muted: 'hsl(var(--foreground-muted))',
+        },
+
+        // Legacy color aliases (for backwards compatibility - mark for deprecation)
+        'primary-blue': '#2196F3',
         'primary-white': '#FFFFFF',
         'primary-charcoal': '#1A1F2E',
-
-        // Secondary
         'secondary-blue-light': '#4A90E2',
         'secondary-blue-pale': '#E8F0FE',
         'secondary-gray': '#6B7280',
         'secondary-light-gray': '#F3F4F6',
-
-        // Accent
         'accent-orange': '#FF6B35',
         'accent-green': '#22C55E',
         'accent-yellow': '#FFC107',
         'accent-red': '#EF4444',
-
-        // Functional (Okabe-Ito Color-blind Safe)
-        'success': '#117733',  // Okabe-Ito bluish green
-        'success-light': '#4CAF50',
-        'success-dark': '#0D5E28',
-        'error': '#D55E00',     // Okabe-Ito vermillion
-        'error-light': '#EF5350',
-        'error-dark': '#AA4A00',
-        'warning': '#E69F00',   // Okabe-Ito orange
-        'warning-light': '#FFB74D',
-        'warning-dark': '#B87F00',
-        'info': '#0072B2',      // Okabe-Ito blue
-        'neutral': '#888888',   // Okabe-Ito grey
-
-        // Background
+        'neutral': '#888888',
         'background-white': '#FFFFFF',
         'background-light': '#F9FAFB',
         'background-offwhite': '#F5F7FA',
@@ -59,6 +124,9 @@ module.exports = {
 
       // BORDER RADIUS
       borderRadius: {
+        lg: '12px',
+        md: '8px',
+        sm: '4px',
         'card': '12px',
         'button': '8px',
         'input': '8px',
@@ -129,7 +197,23 @@ module.exports = {
         'modal': '40',
         'toast': '50',
       },
+
+      // KEYFRAMES for animations
+      keyframes: {
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
+      },
+      animation: {
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+      },
     },
   },
-  plugins: [],
+  plugins: [require('tailwindcss-animate')],
 };
