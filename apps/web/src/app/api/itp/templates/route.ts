@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import {
+  type ITPTemplateRow,
+  type ITPTemplateStructure,
+  type OrganizationMember,
+} from '@/types/itp';
 
 // Schema for template fields
 const fieldSchema = z.object({
@@ -37,6 +42,11 @@ const createTemplateSchema = z.object({
   }),
 });
 
+/**
+ * GET /api/itp/templates
+ *
+ * Retrieve ITP templates with optional filters
+ */
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -63,11 +73,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not part of any organization' }, { status: 403 });
     }
 
+    const typedMembership = membership as OrganizationMember;
+
     // Build query
     let query = supabase
       .from('itp_templates')
       .select('*')
-      .eq('organization_id', membership.organization_id)
+      .eq('organization_id', typedMembership.organization_id)
       .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
@@ -85,13 +97,18 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    return NextResponse.json({ templates: templates || [] });
+    return NextResponse.json({ templates: (templates || []) as ITPTemplateRow[] });
   } catch (error) {
     console.error('Error fetching ITP templates:', error);
     return NextResponse.json({ error: 'Failed to fetch templates' }, { status: 500 });
   }
 }
 
+/**
+ * POST /api/itp/templates
+ *
+ * Create a new ITP template
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -127,8 +144,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not part of any organization' }, { status: 403 });
     }
 
+    const typedMembership = membership as OrganizationMember;
+
     // Only admin and owner can create templates
-    if (membership.role !== 'admin' && membership.role !== 'owner') {
+    if (typedMembership.role !== 'admin' && typedMembership.role !== 'owner') {
       return NextResponse.json({ error: 'Only admins can create templates' }, { status: 403 });
     }
 
@@ -136,7 +155,7 @@ export async function POST(request: NextRequest) {
     const { data: existing } = await supabase
       .from('itp_templates')
       .select('id')
-      .eq('organization_id', membership.organization_id)
+      .eq('organization_id', typedMembership.organization_id)
       .eq('name', data.name)
       .is('deleted_at', null)
       .single();
@@ -149,19 +168,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the template
+    const templateData: Omit<ITPTemplateRow, 'id' | 'created_at' | 'updated_at'> = {
+      organization_id: typedMembership.organization_id,
+      name: data.name,
+      description: data.description || null,
+      category: data.category || null,
+      structure: data.structure as ITPTemplateStructure,
+      is_active: true,
+      version: 1,
+      usage_count: 0,
+      created_by: user.id,
+      deleted_at: null,
+    };
+
     const { data: template, error: createError } = await supabase
       .from('itp_templates')
-      .insert({
-        organization_id: membership.organization_id,
-        name: data.name,
-        description: data.description,
-        category: data.category,
-        structure: data.structure,
-        is_active: true,
-        version: 1,
-        usage_count: 0,
-        created_by: user.id,
-      })
+      .insert(templateData)
       .select()
       .single();
 
@@ -171,7 +193,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Template created successfully',
-      template,
+      template: template as ITPTemplateRow,
     });
   } catch (error) {
     console.error('Error creating ITP template:', error);

@@ -1,22 +1,96 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
+import { type FormSpecificData, type ITPFormRow, type OrganizationMember } from '@/types/itp';
 
 const baseFormSchema = z.object({
   formType: z.string(),
   projectId: z.string(),
   inspectorName: z.string(),
-  inspectionDate: z.string().transform(str => new Date(str)),
+  inspectionDate: z.string().transform((str) => new Date(str)),
   inspectionStatus: z.enum(['pending', 'approved', 'rejected']),
   comments: z.string().optional(),
   evidenceFiles: z.array(z.any()).optional(),
-  localId: z.string().optional()
+  localId: z.string().optional(),
 });
 
+/**
+ * Insert form-specific data based on form type
+ */
+async function insertFormSpecificData(
+  supabase: SupabaseClient,
+  formData: FormSpecificData,
+  formId: string
+): Promise<void> {
+  switch (formData.formType) {
+    case 'earthworks_preconstruction': {
+      const { error } = await supabase.from('itp_earthworks_preconstruction').insert({
+        form_id: formId,
+        approved_plans_available: formData.data.approvedPlansAvailable,
+        start_date_advised: formData.data.startDateAdvised,
+        erosion_control_implemented: formData.data.erosionControlImplemented,
+        erosion_control_photo: formData.data.erosionControlPhoto,
+        hold_point_signature: formData.data.holdPointSignature,
+        hold_point_date: formData.data.holdPointDate,
+      });
+      if (error) throw error;
+      break;
+    }
+
+    case 'earthworks_subgrade': {
+      const { error } = await supabase.from('itp_earthworks_subgrade').insert({
+        form_id: formId,
+        erosion_controls_in_place: formData.data.erosionControlsInPlace,
+        groundwater_control_measures: formData.data.groundwaterControlMeasures,
+        compaction_percentage: formData.data.compactionPercentage,
+        surface_tolerances_met: formData.data.surfaceTolerancesMet,
+        surface_measurements: formData.data.surfaceMeasurements,
+        proof_rolling_completed: formData.data.proofRollingCompleted,
+        proof_rolling_photo: formData.data.proofRollingPhoto,
+        nata_certificates: formData.data.nataCertificates,
+      });
+      if (error) throw error;
+      break;
+    }
+
+    case 'concrete_formwork':
+    case 'concrete_reinforcement':
+    case 'concrete_placement':
+    case 'structural_steel':
+    case 'masonry':
+    case 'roofing':
+    case 'plumbing_roughin':
+    case 'plumbing_final':
+    case 'electrical_roughin':
+    case 'electrical_final':
+    case 'hvac_roughin':
+    case 'hvac_final': {
+      // These form types don't have specific tables yet
+      // Data is stored in the base itp_forms table
+      console.log(`Form type ${formData.formType} does not have a specific table yet`);
+      break;
+    }
+
+    default: {
+      // Exhaustiveness check - TypeScript will error if we miss a case
+      const _exhaustiveCheck: never = formData;
+      throw new Error(`Unhandled form type: ${(_exhaustiveCheck as FormSpecificData).formType}`);
+    }
+  }
+}
+
+/**
+ * POST /api/itp-forms
+ *
+ * Create a new ITP form submission
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -45,6 +119,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User not part of any organization' }, { status: 403 });
     }
 
+    const typedMembership = membership as OrganizationMember;
+
     // Insert base form
     const { data: baseForm, error: baseFormError } = await supabase
       .from('itp_forms')
@@ -57,9 +133,9 @@ export async function POST(request: NextRequest) {
         comments: formData.comments,
         evidence_files: formData.evidenceFiles || [],
         local_id: formData.localId,
-        organization_id: membership.organization_id,
+        organization_id: typedMembership.organization_id,
         created_by: user.id,
-        sync_status: 'synced'
+        sync_status: 'synced',
       })
       .select()
       .single();
@@ -68,12 +144,19 @@ export async function POST(request: NextRequest) {
       throw baseFormError;
     }
 
+    const typedForm = baseForm as ITPFormRow;
+
     // Insert form-specific data based on type
-    await insertFormSpecificData(supabase, body, baseForm.id);
+    const formSpecificData: FormSpecificData = {
+      formType: body.formType,
+      data: body,
+    };
+
+    await insertFormSpecificData(supabase, formSpecificData, typedForm.id);
 
     return NextResponse.json({
       message: 'Form submitted successfully',
-      form: baseForm
+      form: typedForm,
     });
   } catch (error) {
     console.error('Error creating ITP form:', error);
@@ -81,48 +164,17 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function insertFormSpecificData(supabase: any, formData: any, formId: string) {
-  switch (formData.formType) {
-    case 'earthworks_preconstruction': {
-      const { error } = await supabase
-        .from('itp_earthworks_preconstruction')
-        .insert({
-          form_id: formId,
-          approved_plans_available: formData.approvedPlansAvailable,
-          start_date_advised: formData.startDateAdvised,
-          erosion_control_implemented: formData.erosionControlImplemented,
-          erosion_control_photo: formData.erosionControlPhoto,
-          hold_point_signature: formData.holdPointSignature,
-          hold_point_date: formData.holdPointDate
-        });
-      if (error) throw error;
-      break;
-    }
-    case 'earthworks_subgrade': {
-      const { error } = await supabase
-        .from('itp_earthworks_subgrade')
-        .insert({
-          form_id: formId,
-          erosion_controls_in_place: formData.erosionControlsInPlace,
-          groundwater_control_measures: formData.groundwaterControlMeasures,
-          compaction_percentage: formData.compactionPercentage,
-          surface_tolerances_met: formData.surfaceTolerancesMet,
-          surface_measurements: formData.surfaceMeasurements,
-          proof_rolling_completed: formData.proofRollingCompleted,
-          proof_rolling_photo: formData.proofRollingPhoto,
-          nata_certificates: formData.nataCertificates
-        });
-      if (error) throw error;
-      break;
-    }
-    // Add other form types as needed
-  }
-}
-
+/**
+ * GET /api/itp-forms
+ *
+ * Retrieve ITP forms with optional filters
+ */
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -144,11 +196,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User not part of any organization' }, { status: 403 });
     }
 
+    const typedMembership = membership as OrganizationMember;
+
     // Build query
     let query = supabase
       .from('itp_forms')
       .select('*')
-      .eq('organization_id', membership.organization_id)
+      .eq('organization_id', typedMembership.organization_id)
       .order('created_at', { ascending: false });
 
     if (projectId) {
@@ -169,7 +223,7 @@ export async function GET(request: NextRequest) {
       throw error;
     }
 
-    return NextResponse.json({ forms: forms || [] });
+    return NextResponse.json({ forms: (forms || []) as ITPFormRow[] });
   } catch (error) {
     console.error('Error fetching ITP forms:', error);
     return NextResponse.json({ error: 'Failed to fetch forms' }, { status: 500 });

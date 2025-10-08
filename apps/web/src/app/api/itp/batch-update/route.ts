@@ -1,156 +1,210 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import {
+  type ITPBatchUpdateRequest,
+  type ITPBatchResult,
+  type ITPBatchResponse,
+  type ITPInstanceRow,
+  type ITPInstanceData,
+  type ITPInspectionStatus,
+  isValidBatchUpdate,
+  calculateCompletion,
+  determineStatus,
+  parseItemId,
+  createItemResult,
+} from '@/types/itp';
 
-interface BatchUpdate {
-  instanceId: string;
-  updates: {
-    itemId: string;
-    status: 'pass' | 'fail' | 'na';
-    notes?: string;
-  }[];
+/**
+ * Process a single ITP instance update
+ */
+async function processInstanceUpdate(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  update: ITPBatchUpdateRequest,
+  userId: string
+): Promise<ITPBatchResult> {
+  try {
+    // Fetch current instance
+    const { data: instance, error: fetchError } = await supabase
+      .from('itp_instances')
+      .select('*')
+      .eq('id', update.instanceId)
+      .single();
+
+    if (fetchError || !instance) {
+      return {
+        success: false,
+        instanceId: update.instanceId,
+        error: 'Instance not found',
+        code: 'INSTANCE_NOT_FOUND',
+      };
+    }
+
+    // Type-safe instance data
+    const currentData: ITPInstanceData = (instance.data as ITPInstanceData) || {};
+
+    // Apply all updates for this instance
+    for (const itemUpdate of update.updates) {
+      const { sectionId, itemId } = parseItemId(itemUpdate.itemId);
+
+      if (!currentData[sectionId]) {
+        currentData[sectionId] = {};
+      }
+
+      currentData[sectionId][itemId] = createItemResult(
+        itemUpdate.status,
+        itemUpdate.notes || '',
+        userId
+      );
+    }
+
+    // Calculate completion metrics
+    const { completionPercentage } = calculateCompletion(currentData);
+    const status: ITPInspectionStatus = determineStatus(completionPercentage);
+
+    // Prepare update object with proper types
+    const updateData = {
+      data: currentData,
+      inspection_status: status,
+      completion_percentage: completionPercentage,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Update instance
+    const { data: updatedInstance, error: updateError } = await supabase
+      .from('itp_instances')
+      .update(updateData)
+      .eq('id', update.instanceId)
+      .select()
+      .single();
+
+    if (updateError) {
+      // Fallback: Try with 'status' column instead of 'inspection_status'
+      const { data: fallbackInstance, error: fallbackError } = await supabase
+        .from('itp_instances')
+        .update({
+          data: currentData,
+          status: status,
+          completion_percentage: completionPercentage,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', update.instanceId)
+        .select()
+        .single();
+
+      if (fallbackError) {
+        return {
+          success: false,
+          instanceId: update.instanceId,
+          error: fallbackError.message,
+          code: 'UPDATE_FAILED',
+        };
+      }
+
+      return {
+        success: true,
+        instanceId: update.instanceId,
+        data: fallbackInstance as ITPInstanceRow,
+      };
+    }
+
+    return {
+      success: true,
+      instanceId: update.instanceId,
+      data: updatedInstance as ITPInstanceRow,
+    };
+  } catch (error) {
+    console.error('[Batch Update] Error processing instance:', update.instanceId, error);
+    return {
+      success: false,
+      instanceId: update.instanceId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      code: 'PROCESSING_ERROR',
+    };
+  }
 }
 
+/**
+ * POST /api/itp/batch-update
+ *
+ * Batch update multiple ITP instances with inspection results
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    
-    const { data: { user } } = await supabase.auth.getUser();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { updates } = body as { updates: BatchUpdate[] };
+    const { updates } = body as { updates: unknown[] };
 
+    // Validate request format
     if (!updates || !Array.isArray(updates)) {
       return NextResponse.json({ error: 'Invalid request format' }, { status: 400 });
     }
 
-    console.log('[Batch Update] Processing', updates.length, 'instance updates');
-
-    const results = [];
-    const errors = [];
-
+    // Validate each update
+    const validUpdates: ITPBatchUpdateRequest[] = [];
     for (const update of updates) {
-      try {
-        // Fetch current instance
-        const { data: instance, error: fetchError } = await supabase
-          .from('itp_instances')
-          .select('*')
-          .eq('id', update.instanceId)
-          .single();
+      if (!isValidBatchUpdate(update)) {
+        return NextResponse.json(
+          {
+            error: 'Invalid update format',
+            details: 'Each update must have instanceId and valid updates array',
+          },
+          { status: 400 }
+        );
+      }
+      validUpdates.push(update);
+    }
 
-        if (fetchError || !instance) {
-          errors.push({ instanceId: update.instanceId, error: 'Instance not found' });
-          continue;
-        }
+    console.log('[Batch Update] Processing', validUpdates.length, 'instance updates');
 
-        // Update the data structure
-        const currentData = instance.data || {};
-        let totalItems = 0;
-        let completedItems = 0;
+    // Process all updates
+    const results: ITPBatchResult[] = await Promise.all(
+      validUpdates.map((update) => processInstanceUpdate(supabase, update, user.id))
+    );
 
-        // Apply all updates for this instance
-        for (const itemUpdate of update.updates) {
-          const [sectionId, itemId] = itemUpdate.itemId.includes('-') 
-            ? itemUpdate.itemId.split('-') 
-            : ['items', itemUpdate.itemId];
+    // Separate successes and failures
+    const successResults: ITPInstanceRow[] = [];
+    const errorResults: Array<{ instanceId: string; error: string }> = [];
 
-          if (!currentData[sectionId]) {
-            currentData[sectionId] = {};
-          }
-
-          currentData[sectionId][itemId] = {
-            result: itemUpdate.status,
-            notes: itemUpdate.notes || '',
-            updated_at: new Date().toISOString(),
-            updated_by: user.id
-          };
-        }
-
-        // Calculate completion percentage
-        for (const section in currentData) {
-          for (const item in currentData[section]) {
-            totalItems++;
-            if (currentData[section][item]?.result) {
-              completedItems++;
-            }
-          }
-        }
-
-        const completionPercentage = totalItems > 0 
-          ? Math.round((completedItems / totalItems) * 100) 
-          : 0;
-
-        // Determine status based on completion
-        let status = 'pending';
-        if (completionPercentage === 100) {
-          status = 'completed';
-        } else if (completionPercentage > 0) {
-          status = 'in_progress';
-        }
-
-        // Prepare update object - using the columns we know exist
-        const updateData: any = {
-          data: currentData,
-          updated_at: new Date().toISOString()
-        };
-
-        // Try to update with new columns first
-        const { data: updatedInstance, error: updateError } = await supabase
-          .from('itp_instances')
-          .update({
-            ...updateData,
-            inspection_status: status,
-            completion_percentage: completionPercentage
-          })
-          .eq('id', update.instanceId)
-          .select()
-          .single();
-
-        if (updateError) {
-          // Fallback to basic columns if new ones don't exist
-          const { data: fallbackInstance, error: fallbackError } = await supabase
-            .from('itp_instances')
-            .update({
-              ...updateData,
-              status: status,
-              completion_percentage: completionPercentage
-            })
-            .eq('id', update.instanceId)
-            .select()
-            .single();
-
-          if (fallbackError) {
-            errors.push({ instanceId: update.instanceId, error: fallbackError.message });
-          } else {
-            results.push(fallbackInstance);
-          }
-        } else {
-          results.push(updatedInstance);
-        }
-      } catch (error) {
-        console.error('[Batch Update] Error processing instance:', update.instanceId, error);
-        errors.push({ 
-          instanceId: update.instanceId, 
-          error: error instanceof Error ? error.message : 'Unknown error' 
-        });
+    for (const result of results) {
+      if (result.success) {
+        successResults.push(result.data);
+      } else {
+        errorResults.push({ instanceId: result.instanceId, error: result.error });
       }
     }
 
-    console.log('[Batch Update] Complete:', results.length, 'succeeded,', errors.length, 'failed');
+    console.log(
+      '[Batch Update] Complete:',
+      successResults.length,
+      'succeeded,',
+      errorResults.length,
+      'failed'
+    );
 
-    return NextResponse.json({
+    const response: ITPBatchResponse = {
       success: true,
-      updated: results.length,
-      errors: errors.length > 0 ? errors : undefined,
-      results
-    });
+      updated: successResults.length,
+      errors: errorResults.length > 0 ? errorResults : undefined,
+      results: successResults,
+    };
 
+    return NextResponse.json(response);
   } catch (error) {
     console.error('[Batch Update] Fatal error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown' },
+      {
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown',
+      },
       { status: 500 }
     );
   }

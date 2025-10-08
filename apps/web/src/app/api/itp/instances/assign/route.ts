@@ -1,13 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import {
+  type LotWithProject,
+  type OrganizationMember,
+  type AssignITPRequest,
+  type AssignITPResponse,
+  type ITPTemplateRow,
+  type ITPInstanceRow,
+  type InitializedITPData,
+  type ITPInstanceData,
+} from '@/types/itp';
 
 const assignITPSchema = z.object({
-  templateIds: z.array(z.string()).min(1, 'At least one template ID is required'),
-  lotId: z.string().min(1, 'Lot ID is required'),
-  projectId: z.string().min(1, 'Project ID is required'),
+  templateIds: z.array(z.string().uuid()).min(1, 'At least one template ID is required'),
+  lotId: z.string().uuid('Invalid lot ID format'),
+  projectId: z.string().uuid('Invalid project ID format'),
 });
 
+/**
+ * POST /api/itp/instances/assign
+ *
+ * Assign ITP templates to a lot, creating new instances
+ */
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -34,7 +49,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { templateIds, lotId, projectId } = validationResult.data;
+    const { templateIds, lotId, projectId }: AssignITPRequest = validationResult.data;
 
     // Verify lot exists and user has access
     const { data: lot, error: lotError } = await supabase
@@ -58,24 +73,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Lot not found' }, { status: 404 });
     }
 
+    // Type-safe access to nested project data
+    const typedLot = lot as unknown as LotWithProject;
+    const organizationId = typedLot.projects.organization_id;
+
     // Check user membership
-    const { data: membership } = await supabase
+    const { data: membership, error: membershipError } = await supabase
       .from('organization_members')
       .select('role')
-      .eq('organization_id', (lot.projects as any).organization_id)
+      .eq('organization_id', organizationId)
       .eq('user_id', user.id)
       .single();
 
-    if (!membership || !['owner', 'admin', 'member'].includes(membership.role)) {
+    if (membershipError || !membership) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Validate templates exist and are accessible (include structure)
+    const typedMembership = membership as OrganizationMember;
+
+    if (!['owner', 'admin', 'member'].includes(typedMembership.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    // Validate templates exist and are accessible
     const { data: templates, error: templatesError } = await supabase
       .from('itp_templates')
       .select('id, name, organization_id, structure')
       .in('id', templateIds)
-      .eq('organization_id', (lot.projects as any).organization_id)
+      .eq('organization_id', organizationId)
       .eq('is_active', true)
       .is('deleted_at', null);
 
@@ -83,7 +108,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to validate templates' }, { status: 400 });
     }
 
-    if (!templates || templates.length !== templateIds.length) {
+    const typedTemplates = (templates || []) as ITPTemplateRow[];
+
+    if (typedTemplates.length !== templateIds.length) {
       return NextResponse.json({ error: 'Some templates are not available' }, { status: 400 });
     }
 
@@ -96,7 +123,7 @@ export async function POST(request: NextRequest) {
 
     if (existingInstances && existingInstances.length > 0) {
       const alreadyAssigned = existingInstances.map((instance) => instance.template_id);
-      const conflictingTemplates = templates.filter((template) =>
+      const conflictingTemplates = typedTemplates.filter((template) =>
         alreadyAssigned.includes(template.id)
       );
 
@@ -113,12 +140,12 @@ export async function POST(request: NextRequest) {
     // Create ITP instances with initialized data
     console.log(
       'Creating instances for templates:',
-      templates.map((t) => t.name)
+      typedTemplates.map((t) => t.name)
     );
 
-    const itpInstances = [];
+    const itpInstances: Omit<ITPInstanceRow, 'id' | 'created_at' | 'updated_at'>[] = [];
 
-    for (const template of templates) {
+    for (const template of typedTemplates) {
       try {
         console.log('Processing template:', template.name, 'with structure:', template.structure);
 
@@ -130,21 +157,21 @@ export async function POST(request: NextRequest) {
           }
         );
 
-        let finalData: any;
+        let finalData: ITPInstanceData;
+
         if (initError) {
           console.error('RPC Error initializing data for template', template.name, ':', initError);
           console.error('Template structure was:', template.structure);
-          // Try without initialization as fallback
           console.log('Falling back to empty data object for', template.name);
           finalData = {};
         } else {
           console.log('Successfully initialized data for', template.name, ':', initialData);
-          finalData = initialData || {};
+          finalData = (initialData as ITPInstanceData) || {};
         }
 
-        // Create proper data structure with completion_percentage inside JSONB
-        const properData = {
-          inspection_results: finalData || {},
+        // Create proper data structure
+        const properData: InitializedITPData = {
+          inspection_results: finalData,
           overall_status: 'pending',
           completion_percentage: 0,
         };
@@ -153,13 +180,13 @@ export async function POST(request: NextRequest) {
           template_id: template.id,
           project_id: projectId,
           lot_id: lotId,
-          organization_id: (lot.projects as any).organization_id,
+          organization_id: organizationId,
           created_by: user.id,
           inspection_status: 'pending',
           inspection_date: null,
           sync_status: 'local',
           is_active: true,
-          data: properData,
+          data: properData as unknown as ITPInstanceData,
           evidence_files: null,
         });
       } catch (templateError) {
@@ -189,10 +216,12 @@ export async function POST(request: NextRequest) {
     console.log('Successfully created', createdInstances?.length || 0, 'instances');
     console.log('=================================');
 
-    return NextResponse.json({
+    const response: AssignITPResponse = {
       message: 'ITP templates assigned successfully',
-      instances: createdInstances,
-    });
+      instances: (createdInstances || []) as ITPInstanceRow[],
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error assigning ITP templates:', error);
     console.error('Full error stack:', error);
