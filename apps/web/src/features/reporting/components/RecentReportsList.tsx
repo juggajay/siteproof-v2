@@ -463,78 +463,75 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
                   }
                 }}
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-start gap-3">
-                      <FormatIcon className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-gray-900">{report.report_name}</h4>
-                          {(report.status === 'completed' || report.status === 'processing') && (
-                            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                              Click to download
-                            </span>
-                          )}
-                        </div>
-                        {report.description && (
-                          <p className="text-sm text-gray-600 mt-1">{report.description}</p>
-                        )}
-
-                        <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                          <span>
-                            Requested by{' '}
-                            {report.requested_by.full_name || report.requested_by.email}
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <FormatIcon className="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-gray-900">{report.report_name}</h4>
+                        {(report.status === 'completed' || report.status === 'processing') && (
+                          <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                            Click to download
                           </span>
-                          <span>•</span>
-                          <span>
-                            {formatDistanceToNow(new Date(report.requested_at), {
-                              addSuffix: true,
-                            })}
-                          </span>
-                          {report.file_size_bytes && (
-                            <>
-                              <span>•</span>
-                              <span>{formatFileSize(report.file_size_bytes)}</span>
-                            </>
-                          )}
-                        </div>
-
-                        {/* Progress Bar */}
-                        {report.status === 'processing' && (
-                          <div className="mt-3">
-                            <div className="flex items-center justify-between text-sm mb-1">
-                              <span className="text-gray-600">
-                                {report.current_step || 'Processing...'}
-                              </span>
-                              <span className="text-gray-500">{report.progress}%</span>
-                            </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className="bg-blue-600 h-2 rounded-full transition-all"
-                                style={{ width: `${report.progress}%` }}
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Error Message */}
-                        {report.status === 'failed' && report.error_message && (
-                          <div className="mt-3 p-3 bg-red-50 rounded-lg">
-                            <div className="flex items-start gap-2">
-                              <AlertCircle className="w-4 h-4 text-red-600 mt-0.5" />
-                              <p className="text-sm text-red-700">{report.error_message}</p>
-                            </div>
-                          </div>
                         )}
                       </div>
+                      {report.description && (
+                        <p className="text-sm text-gray-600 mt-1">{report.description}</p>
+                      )}
+
+                      <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                        <span>
+                          Requested by {report.requested_by.full_name || report.requested_by.email}
+                        </span>
+                        <span>•</span>
+                        <span>
+                          {formatDistanceToNow(new Date(report.requested_at), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                        {report.file_size_bytes && (
+                          <>
+                            <span>•</span>
+                            <span>{formatFileSize(report.file_size_bytes)}</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Progress Bar */}
+                      {report.status === 'processing' && (
+                        <div className="mt-3">
+                          <div className="flex items-center justify-between text-sm mb-1">
+                            <span className="text-gray-600">
+                              {report.current_step || 'Processing...'}
+                            </span>
+                            <span className="text-gray-500">{report.progress}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all"
+                              style={{ width: `${report.progress}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Error Message */}
+                      {report.status === 'failed' && report.error_message && (
+                        <div className="mt-3 p-3 bg-red-50 rounded-lg">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="w-4 h-4 text-red-600 mt-0.5" />
+                            <p className="text-sm text-red-700">{report.error_message}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2 ml-4">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {/* Status Badge */}
                     <span
                       className={cn(
-                        'px-2 py-1 text-xs font-medium rounded-full flex items-center gap-1',
+                        'px-2 py-1 text-xs font-medium rounded-full flex items-center gap-1 whitespace-nowrap',
                         status.color
                       )}
                     >
