@@ -6,45 +6,66 @@ export async function GET(
   { params }: { params: Promise<{ projectId: string; lotId: string }> }
 ) {
   try {
+    console.log('[Export] Starting export request');
     const supabase = await createClient();
 
     // Check authentication
     const {
       data: { user },
     } = await supabase.auth.getUser();
+    console.log('[Export] User check:', { hasUser: !!user });
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { projectId, lotId } = await params;
+    console.log('[Export] Params:', { projectId, lotId });
 
-    // Get lot details with ITPs
-    const { data: lot, error: lotError } = await supabase
+    // Query lot and ITP instances separately to avoid implicit join issues
+    console.log('[Export] Querying lot...');
+    const lotPromise = supabase
       .from('lots')
-      .select(
-        `
-        *,
-        itp_instances (
-          id,
-          name,
-          status,
-          completion_percentage,
-          data
-        )
-      `
-      )
+      .select('*')
       .eq('id', lotId)
       .eq('project_id', projectId)
       .single();
+
+    console.log('[Export] Querying ITP instances...');
+    const itpPromise = supabase
+      .from('itp_instances')
+      .select(
+        `
+        id,
+        name,
+        status,
+        completion_percentage,
+        data
+      `
+      )
+      .eq('lot_id', lotId);
+
+    // Execute queries in parallel
+    console.log('[Export] Executing queries...');
+    const [{ data: lot, error: lotError }, { data: itpInstances, error: itpError }] =
+      await Promise.all([lotPromise, itpPromise]);
+    console.log('[Export] Queries complete:', { hasLot: !!lot, hasItps: !!itpInstances });
 
     if (lotError) {
       console.error('Error fetching lot:', lotError);
       return NextResponse.json({ error: 'Failed to fetch lot data' }, { status: 500 });
     }
 
+    if (itpError) {
+      console.error('Error fetching ITP instances:', itpError);
+      return NextResponse.json({ error: 'Failed to fetch ITP instances' }, { status: 500 });
+    }
+
     if (!lot) {
       return NextResponse.json({ error: 'Lot not found' }, { status: 404 });
     }
+
+    // Attach ITP instances to lot
+    lot.itp_instances = itpInstances || [];
 
     // Count completed ITPs
     const completedItps =
