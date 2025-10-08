@@ -6,10 +6,14 @@ import { format } from 'date-fns';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 // GET /api/reports/[id]/download - Generate and download report directly
-export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id: reportId } = params;
     const supabase = await createClient();
+
+    // Get format from query parameter if provided
+    const { searchParams } = new URL(request.url);
+    const formatOverride = searchParams.get('format') as 'pdf' | 'excel' | 'csv' | 'json' | null;
 
     // Get current user
     const {
@@ -30,9 +34,16 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
+    // Use format override from query parameter if provided
+    const finalFormat = formatOverride || report.format;
     console.log(
-      `[Download] Report ${reportId} - Type: ${report.report_type}, Format: ${report.format}`
+      `[Download] Report ${reportId} - Type: ${report.report_type}, DB Format: ${report.format}, Override: ${formatOverride}, Final: ${finalFormat}`
     );
+
+    // Temporarily override the format for this request
+    if (formatOverride) {
+      report.format = formatOverride;
+    }
 
     // Auto-fix stuck reports (queued or processing)
     if (report.status === 'queued' || report.status === 'processing') {

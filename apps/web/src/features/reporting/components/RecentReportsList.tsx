@@ -223,28 +223,9 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
     return () => document.removeEventListener('click', handleClickOutside);
   }, [openFormatDropdown]);
 
-  const changeReportFormat = async (
-    reportId: string,
-    newFormat: 'pdf' | 'excel' | 'csv' | 'json'
-  ) => {
-    const supabase = createClient();
-    const { error } = await supabase
-      .from('report_queue')
-      .update({ format: newFormat })
-      .eq('id', reportId);
-
-    if (error) {
-      toast.error('Failed to change format');
-      console.error('Format change error:', error);
-      return false;
-    }
-
-    queryClient.invalidateQueries({ queryKey: ['reports'] });
-    return true;
-  };
-
   const downloadReport = async (report: Report, format?: 'pdf' | 'excel' | 'csv' | 'json') => {
-    console.log('downloadReport called for report:', report.id, 'format:', format || report.format);
+    const selectedFormat = format || report.format;
+    console.log('downloadReport called for report:', report.id, 'format:', selectedFormat);
 
     if (report.status !== 'completed' && report.status !== 'processing') {
       console.log('Report not ready, status:', report.status);
@@ -259,28 +240,15 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
       return;
     }
 
-    // If format is specified and different from current, update it first
-    if (format && format !== report.format) {
-      console.log('Updating report format from', report.format, 'to', format);
-      const success = await changeReportFormat(report.id, format);
-      if (!success) {
-        console.error('Failed to update format');
-        return;
-      }
-      console.log('Format updated successfully to', format);
-
-      // Wait for database to propagate the change
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    }
-
     try {
-      console.log('Starting download for report:', report.id);
+      console.log('Starting download for report:', report.id, 'with format:', selectedFormat);
 
       // Show loading state
       toast.loading('Preparing download...', { id: `download-${report.id}` });
 
-      // Generate and download the report directly
-      const response = await fetch(`/api/reports/${report.id}/download`, {
+      // Pass format as query parameter to avoid database update race conditions
+      const formatParam = format ? `?format=${format}` : '';
+      const response = await fetch(`/api/reports/${report.id}/download${formatParam}`, {
         method: 'GET',
         credentials: 'include', // Ensure cookies are included
         headers: {
