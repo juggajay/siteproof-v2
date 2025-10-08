@@ -370,7 +370,9 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
       }
 
       toast.success('Report deleted successfully');
-      refetch(); // Refresh the list
+
+      // Invalidate all report queries to force refetch
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
     } catch (error) {
       console.error('Delete error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete report');
