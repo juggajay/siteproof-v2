@@ -18,9 +18,10 @@ export async function GET(
 
     const { itpId } = await params;
 
+    // Include projects join for RLS compliance
     const { data: itpInstance, error } = await supabase
       .from('itp_instances')
-      .select('*')
+      .select('*, projects!inner(id, organization_id)')
       .eq('id', itpId)
       .single();
 
@@ -29,7 +30,10 @@ export async function GET(
       return NextResponse.json({ error: 'ITP instance not found' }, { status: 404 });
     }
 
-    return NextResponse.json(itpInstance);
+    // Clean up nested projects object
+    const { projects, ...cleanedInstance } = itpInstance as any;
+
+    return NextResponse.json(cleanedInstance);
   } catch (error) {
     console.error('Get ITP instance error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -57,9 +61,10 @@ export async function PUT(
     console.log('[ITP Update] Updating ITP:', itpId, 'with data:', body);
 
     // First check if the ITP instance exists and belongs to this lot
+    // Include projects join for RLS compliance
     const { data: existingInstance, error: fetchError } = await supabase
       .from('itp_instances')
-      .select('*')
+      .select('*, projects!inner(id, organization_id)')
       .eq('id', itpId)
       .eq('lot_id', lotId)
       .single();

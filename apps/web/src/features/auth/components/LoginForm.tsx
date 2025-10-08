@@ -14,7 +14,7 @@ import { loginSchema, type LoginFormData } from '../schemas/auth.schema';
 export function LoginForm() {
   const searchParams = useSearchParams();
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const isRegistered = searchParams?.get('registered') === 'true';
   const redirectTo = searchParams?.get('redirectTo') || '/dashboard';
 
@@ -58,6 +58,8 @@ export function LoginForm() {
 
       // Force a full page reload to ensure cookies are properly set
       // This is especially important on mobile devices
+      // Add a small delay to ensure cookies are written before redirect
+      await new Promise((resolve) => setTimeout(resolve, 100));
       window.location.href = redirectTo;
     } catch (error) {
       console.error('Login error:', error);
@@ -115,11 +117,7 @@ export function LoginForm() {
               className="absolute right-3 top-[34px] text-gray-500 hover:text-gray-700"
               tabIndex={-1}
             >
-              {showPassword ? (
-                <EyeOff className="h-5 w-5" />
-              ) : (
-                <Eye className="h-5 w-5" />
-              )}
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
         </div>
@@ -143,21 +141,13 @@ export function LoginForm() {
           </Link>
         </div>
 
-        <Button
-          type="submit"
-          loading={isSubmitting}
-          fullWidth
-          size="lg"
-        >
+        <Button type="submit" loading={isSubmitting} fullWidth size="lg">
           Sign In
         </Button>
 
         <div className="text-center text-sm">
           <span className="text-gray-600">Don&apos;t have an account?</span>{' '}
-          <Link
-            href="/auth/signup"
-            className="font-medium text-blue-600 hover:text-blue-700"
-          >
+          <Link href="/auth/signup" className="font-medium text-blue-600 hover:text-blue-700">
             Create an account
           </Link>
         </div>

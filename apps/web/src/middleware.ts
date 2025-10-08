@@ -60,7 +60,7 @@ function getRateLimitScope(pathname: string): RateLimitScope {
 
 function getRateLimitKey(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for');
-  const ip = forwarded ? forwarded.split(',')[0] : request.ip ?? 'unknown';
+  const ip = forwarded ? forwarded.split(',')[0] : (request.ip ?? 'unknown');
   return `${ip}:${request.nextUrl.pathname}`;
 }
 
@@ -132,11 +132,7 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Apply security headers
-  Object.entries(securityHeaders).forEach(([headerKey, value]) => {
-    response.headers.set(headerKey, value);
-  });
-
+  // Set rate limit headers first (these are informational and safe to set early)
   if (typeof rateLimitResult.limit === 'number') {
     response.headers.set('X-RateLimit-Limit', rateLimitResult.limit.toString());
   }
@@ -152,6 +148,12 @@ export async function middleware(request: NextRequest) {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Missing Supabase environment variables in middleware');
+
+    // Apply security headers before returning
+    Object.entries(securityHeaders).forEach(([headerKey, value]) => {
+      response.headers.set(headerKey, value);
+    });
+
     return response;
   }
 
@@ -161,37 +163,43 @@ export async function middleware(request: NextRequest) {
         return request.cookies.get(name)?.value;
       },
       set(name: string, value: string, options: CookieOptions) {
+        // Ensure proper cookie attributes for mobile browsers
+        const cookieOptions = {
+          ...options,
+          sameSite: (options.sameSite as 'lax' | 'strict' | 'none' | undefined) || 'lax',
+          secure: process.env.NODE_ENV === 'production',
+        };
+
+        // Update both request and response cookies without recreating response
         request.cookies.set({
           name,
           value,
-          ...options,
-        });
-        response = NextResponse.next({
-          request: {
-            headers: request.headers,
-          },
+          ...cookieOptions,
         });
         response.cookies.set({
           name,
           value,
-          ...options,
+          ...cookieOptions,
         });
       },
       remove(name: string, options: CookieOptions) {
+        // Ensure proper cookie attributes for mobile browsers
+        const cookieOptions = {
+          ...options,
+          sameSite: (options.sameSite as 'lax' | 'strict' | 'none' | undefined) || 'lax',
+          secure: process.env.NODE_ENV === 'production',
+        };
+
+        // Update both request and response cookies without recreating response
         request.cookies.set({
           name,
           value: '',
-          ...options,
-        });
-        response = NextResponse.next({
-          request: {
-            headers: request.headers,
-          },
+          ...cookieOptions,
         });
         response.cookies.set({
           name,
           value: '',
-          ...options,
+          ...cookieOptions,
         });
       },
     },
@@ -212,30 +220,60 @@ export async function middleware(request: NextRequest) {
       // Redirect to login with return URL
       const redirectUrl = new URL('/auth/login', request.url);
       redirectUrl.searchParams.set('redirectTo', request.nextUrl.pathname);
-      return NextResponse.redirect(redirectUrl);
+      const redirectResponse = NextResponse.redirect(redirectUrl);
+
+      // Apply security headers to redirect response
+      Object.entries(securityHeaders).forEach(([headerKey, value]) => {
+        redirectResponse.headers.set(headerKey, value);
+      });
+
+      return redirectResponse;
     }
   }
 
   // Allow design-system page without authentication
   if (request.nextUrl.pathname === '/design-system') {
+    // Apply security headers before returning
+    Object.entries(securityHeaders).forEach(([headerKey, value]) => {
+      response.headers.set(headerKey, value);
+    });
+
     return response;
   }
 
   // Auth routes (login, signup) - redirect to dashboard if already authenticated
   if (request.nextUrl.pathname.startsWith('/auth/')) {
     if (user && !request.nextUrl.pathname.includes('/logout')) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      const redirectResponse = NextResponse.redirect(new URL('/dashboard', request.url));
+
+      // Apply security headers to redirect response
+      Object.entries(securityHeaders).forEach(([headerKey, value]) => {
+        redirectResponse.headers.set(headerKey, value);
+      });
+
+      return redirectResponse;
     }
   }
 
   // Root redirect - show landing page to non-authenticated users
   if (request.nextUrl.pathname === '/') {
     if (user) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      const redirectResponse = NextResponse.redirect(new URL('/dashboard', request.url));
+
+      // Apply security headers to redirect response
+      Object.entries(securityHeaders).forEach(([headerKey, value]) => {
+        redirectResponse.headers.set(headerKey, value);
+      });
+
+      return redirectResponse;
     }
     // Allow landing page to render for non-authenticated users
-    return response;
   }
+
+  // Apply security headers to the final response after all auth operations
+  Object.entries(securityHeaders).forEach(([headerKey, value]) => {
+    response.headers.set(headerKey, value);
+  });
 
   return response;
 }
