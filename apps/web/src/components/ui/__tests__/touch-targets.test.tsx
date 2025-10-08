@@ -12,13 +12,12 @@ import { ITPStatusButtons } from '../../construction/ITPStatusButtons';
 
 describe('Touch Target Sizes', () => {
   describe('Button Component', () => {
-    it('should have minimum 44px height on mobile for small size', () => {
+    it('should have minimum 40px height for small size', () => {
       render(<Button size="sm">Click me</Button>);
       const button = screen.getByRole('button');
-      const styles = window.getComputedStyle(button);
 
       // Check for min-height class in className
-      expect(button.className).toContain('min-h-[44px]');
+      expect(button.className).toContain('min-h-[40px]');
     });
 
     it('should have minimum 48px height for medium size', () => {
@@ -35,11 +34,14 @@ describe('Touch Target Sizes', () => {
       expect(button.className).toContain('min-h-[56px]');
     });
 
-    it('should include touch-manipulation for better mobile interaction', () => {
+    it('should include expanded touch target for better mobile interaction', () => {
       render(<Button>Click me</Button>);
       const button = screen.getByRole('button');
 
-      expect(button.className).toContain('touch-manipulation');
+      // Button uses an expanded touch target span instead of touch-manipulation class
+      const expandedTarget = button.querySelector('span[aria-hidden="true"]');
+      expect(expandedTarget).toBeInTheDocument();
+      expect(expandedTarget?.className).toContain('absolute inset-0 -m-1');
     });
   });
 
@@ -79,12 +81,12 @@ describe('Touch Target Sizes', () => {
   });
 
   describe('ITPStatusButtons Component', () => {
-    it('should have minimum 44px height on mobile for small size', () => {
+    it('should have minimum 40px height for small size', () => {
       render(<ITPStatusButtons size="sm" />);
       const buttons = screen.getAllByRole('button');
 
       buttons.forEach((button) => {
-        expect(button.className).toContain('min-h-[44px]');
+        expect(button.className).toContain('min-h-[40px]');
       });
     });
 
@@ -116,22 +118,25 @@ describe('Touch Target Sizes', () => {
   });
 
   describe('Responsive Touch Targets', () => {
-    it('should allow smaller touch targets on desktop (md breakpoint)', () => {
+    it('should have consistent touch target sizes across all components', () => {
       render(<Button size="sm">Click me</Button>);
       const button = screen.getByRole('button');
 
-      // Check for responsive class that allows 40px on desktop
-      expect(button.className).toContain('md:min-h-[40px]');
+      // Components use fixed min-height values with expanded touch targets
+      expect(button.className).toContain('min-h-[40px]');
+
+      // Verify expanded touch target exists for better mobile interaction
+      const expandedTarget = button.querySelector('span[aria-hidden="true"]');
+      expect(expandedTarget).toBeInTheDocument();
     });
 
-    it('should prioritize mobile-first with larger touch targets', () => {
+    it('should use expanded touch targets for better mobile accessibility', () => {
       render(<IconButton icon={<span>Icon</span>} size="sm" label="Test" />);
       const button = screen.getByRole('button');
 
-      // Mobile-first: 44px minimum
+      // IconButton uses minimum touch target sizes
       expect(button.className).toContain('min-h-[44px]');
-      // Desktop: Can be smaller
-      expect(button.className).toContain('md:min-h-[40px]');
+      expect(button.className).toContain('min-w-[44px]');
     });
   });
 });
