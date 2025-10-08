@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { haptics } from '@/lib/haptics';
 
 export interface SwipeCallbacks {

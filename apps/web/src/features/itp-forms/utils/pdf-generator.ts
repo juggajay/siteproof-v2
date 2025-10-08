@@ -251,7 +251,7 @@ export class PDFGenerator {
   
   async downloadPDF(form: ITPFormType, filename?: string) {
     const pdfBytes = await this.generateFormPDF(form);
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     
     const a = document.createElement('a');

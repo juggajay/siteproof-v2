@@ -50,7 +50,7 @@ export const BulkOperations = dynamic(
 
 // Diary Components
 export const ProjectDiaryForm: any = dynamic(
-  () => import('@/components/diary/ProjectDiaryFormClient'),
+  () => import('@/components/diary/ProjectDiaryFormClient').then(mod => ({ default: mod.ProjectDiaryFormClient })),
   {
     loading: () => <div className="animate-pulse bg-gray-200 h-96 rounded-lg" />,
     ssr: false,

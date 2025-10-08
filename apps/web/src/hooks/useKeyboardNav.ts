@@ -62,5 +62,6 @@ export function useKeyboardNav(options: KeyboardNavOptions) {
       document.addEventListener('keydown', handleKeyDown);
       return () => document.removeEventListener('keydown', handleKeyDown);
     }
+    return undefined;
   }, [enabled, handleKeyDown]);
 }

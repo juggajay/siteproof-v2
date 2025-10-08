@@ -11,7 +11,6 @@ export function ClientWrapper() {
   const [orgDescription, setOrgDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
-  // @ts-expect-error - Toast API mismatch
   const { showSuccess, showError } = useToast();
 
   const handleCreateOrganization = async () => {

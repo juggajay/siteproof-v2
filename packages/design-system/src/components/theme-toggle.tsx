@@ -1,6 +1,5 @@
 'use client'
 
-import * as React from 'react'
 import { Moon, Sun, Monitor } from 'lucide-react'
 import { Button } from './ui/Button'
 import { useTheme } from '../hooks/use-theme'
@@ -10,7 +9,7 @@ export interface ThemeToggleProps {
   variant?: 'icon' | 'dropdown'
 }
 
-export function ThemeToggle({ showLabel = false, variant = 'icon' }: ThemeToggleProps) {
+export function ThemeToggle({ showLabel = false }: ThemeToggleProps) {
   const { theme, setTheme, resolvedTheme } = useTheme()
 
   const cycleTheme = () => {

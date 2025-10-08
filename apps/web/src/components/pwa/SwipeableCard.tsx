@@ -132,7 +132,7 @@ export function SwipeableCard({
           setSwiping(true);
           swipeHandlers.onTouchStart(e);
         }}
-        onTouchEnd={(e) => {
+        onTouchEnd={() => {
           setSwiping(false);
           swipeHandlers.onTouchEnd();
         }}
