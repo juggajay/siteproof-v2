@@ -3,23 +3,26 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { projectId: string; lotId: string } }
+  { params }: { params: Promise<{ projectId: string; lotId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    
+
     // Check authentication
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { projectId, lotId } = params;
+    const { projectId, lotId } = await params;
 
     // Get lot details with ITPs
     const { data: lot, error: lotError } = await supabase
       .from('lots')
-      .select(`
+      .select(
+        `
         *,
         itp_instances (
           id,
@@ -28,7 +31,8 @@ export async function GET(
           completion_percentage,
           data
         )
-      `)
+      `
+      )
       .eq('id', lotId)
       .eq('project_id', projectId)
       .single();
@@ -43,9 +47,8 @@ export async function GET(
     }
 
     // Count completed ITPs
-    const completedItps = lot.itp_instances?.filter(
-      (itp: any) => itp.status === 'completed'
-    ).length || 0;
+    const completedItps =
+      lot.itp_instances?.filter((itp: any) => itp.status === 'completed').length || 0;
 
     // For now, return a success message - actual report generation would happen here
     return NextResponse.json({
@@ -55,14 +58,10 @@ export async function GET(
       lotNumber: lot.lot_number,
       completedItps,
       totalItps: lot.itp_instances?.length || 0,
-      estimatedTime: '2-3 minutes'
+      estimatedTime: '2-3 minutes',
     });
-
   } catch (error) {
     console.error('Export endpoint error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
