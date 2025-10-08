@@ -1,0 +1,23 @@
+# SiteProof Code Owners
+# These owners will be automatically requested for review when files are modified
+
+# Default owners for everything in the repo
+* @jayso
+
+# Database migrations require special review
+packages/database/migrations/** @jayso
+apps/web/supabase/migrations/** @jayso
+**/*.sql @jayso
+
+# Security-critical files
+apps/web/src/lib/auth/** @jayso
+apps/web/src/middleware.ts @jayso
+apps/web/tests/security/** @jayso
+
+# API routes
+apps/web/src/app/api/** @jayso
+
+# Configuration files
+.github/workflows/** @jayso
+*.config.js @jayso
+*.config.ts @jayso
