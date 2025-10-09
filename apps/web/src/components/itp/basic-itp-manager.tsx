@@ -264,6 +264,28 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
         const sections = structure?.sections || structure?.inspection_items || [];
         const hasContent = sections && sections.length > 0;
 
+        // Calculate status counts for this instance
+        const statusCounts = (() => {
+          const counts = { pass: 0, fail: 0, na: 0, pending: 0 };
+          const inspectionResults = instance.data || {};
+
+          Object.values(inspectionResults).forEach((section: any) => {
+            if (section && typeof section === 'object') {
+              Object.values(section).forEach((item: any) => {
+                if (item && typeof item === 'object' && item.result) {
+                  if (item.result === 'pass') counts.pass++;
+                  else if (item.result === 'fail') counts.fail++;
+                  else if (item.result === 'na') counts.na++;
+                } else {
+                  counts.pending++;
+                }
+              });
+            }
+          });
+
+          return counts;
+        })();
+
         return (
           <div
             key={instance.id}
@@ -302,6 +324,21 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
                         {instance.description}
                       </p>
                     )}
+                    {/* Status Summary */}
+                    <div className="flex items-center gap-3 mt-2 text-sm">
+                      <span className="flex items-center gap-1 text-green-600">
+                        <CheckCircle className="h-4 w-4" />
+                        {statusCounts.pass}
+                      </span>
+                      <span className="flex items-center gap-1 text-red-600">
+                        <XCircle className="h-4 w-4" />
+                        {statusCounts.fail}
+                      </span>
+                      <span className="flex items-center gap-1 text-gray-600">
+                        <MinusCircle className="h-4 w-4" />
+                        {statusCounts.na}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2 mr-4">
