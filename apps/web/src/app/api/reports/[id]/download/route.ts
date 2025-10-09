@@ -1,10 +1,14 @@
-// @ts-nocheck - Financial summary report needs TypeScript fixes
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { log } from '@/lib/logger';
+import type {
+  ReportQueueEntry,
+  ReportGenerationData,
+} from '@/types/database';
 
 // GET /api/reports/[id]/download - Generate and download report directly
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
@@ -24,7 +28,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get the report details
+    // Get the report details with organization
     const { data: report, error: reportError } = await supabase
       .from('report_queue')
       .select('*, organization:organizations(name)')
@@ -35,11 +39,21 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
+    // SECURITY: Verify user belongs to the same organization as the report
+    const userOrgId = user.user_metadata?.organization_id;
+    if (!userOrgId || report.organization_id !== userOrgId) {
+      return NextResponse.json({ error: 'Forbidden: Access denied to this report' }, { status: 403 });
+    }
+
     // Use format override from query parameter if provided
     const finalFormat = formatOverride || report.format;
-    console.log(
-      `[Download] Report ${reportId} - Type: ${report.report_type}, DB Format: ${report.format}, Override: ${formatOverride}, Final: ${finalFormat}`
-    );
+    log.debug('Report download started', {
+      reportId,
+      reportType: report.report_type,
+      dbFormat: report.format,
+      formatOverride,
+      finalFormat
+    });
 
     // Temporarily override the format for this request
     if (formatOverride) {
@@ -52,7 +66,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
       // If report is stuck (more than 30 seconds old), fix it
       if (timeSinceRequest > 30 * 1000) {
-        console.log(`Report ${reportId} is stuck in ${report.status}, auto-fixing...`);
+        log.warn('Report stuck in processing state, auto-fixing', {
+          reportId,
+          status: report.status,
+          timeSinceRequest: `${timeSinceRequest}ms`
+        });
 
         // Update the report to completed
         const { error: updateError } = await supabase
@@ -71,9 +89,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           report.status = 'completed';
           report.progress = 100;
           report.file_url = 'on-demand';
-          console.log(`Report ${reportId} auto-fixed and ready for download`);
+          log.info('Report auto-fixed and ready for download', { reportId });
         } else {
-          console.error('Failed to auto-fix report:', updateError);
+          log.error('Failed to auto-fix report', updateError, { reportId });
         }
       } else {
         return NextResponse.json(
@@ -104,15 +122,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return generateITPReport(report, supabase);
     }
 
-    // TODO: Implement financial summary report download
-    // if (report.report_type === 'financial_summary') {
-    //   return downloadFinancialSummaryReport({
-    //     report,
-    //     supabase,
-    //     format: finalFormat,
-    //   });
-    // }
-
+    if (report.report_type === 'financial_summary') {
+      return downloadFinancialSummaryReport({
+        report,
+        supabase,
+        format: finalFormat,
+      });
+    }
     // Get project data for the report
     const { project_id, date_range } = report.parameters;
 
@@ -233,7 +249,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-async function generateSimplePDF(data: any): Promise<Buffer> {
+async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
   const pdfDoc = await PDFDocument.create();
   const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
   const { width, height } = page.getSize();
@@ -361,7 +377,7 @@ async function generateSimplePDF(data: any): Promise<Buffer> {
   return Buffer.from(pdfBytes);
 }
 
-function generateExcel(data: any): Buffer {
+function generateExcel(data: ReportGenerationData): Buffer {
   const workbook = XLSX.utils.book_new();
 
   // Summary sheet
@@ -422,7 +438,7 @@ function generateExcel(data: any): Buffer {
   return Buffer.from(output as ArrayBuffer);
 }
 
-function generateCSV(data: any): Buffer {
+function generateCSV(data: Omit<ReportGenerationData, 'organization' | 'dateRange'>): Buffer {
   const rows: string[] = [];
 
   rows.push('Project Summary Report');
@@ -448,7 +464,7 @@ function generateCSV(data: any): Buffer {
   return Buffer.from(rows.join('\n'));
 }
 
-async function generateITPReport(report: any, _supabase: SupabaseClient): Promise<NextResponse> {
+async function generateITPReport(report: ReportQueueEntry, _supabase: SupabaseClient): Promise<NextResponse> {
   try {
     // For ITP reports, generate a simple PDF summary
     const { lot_number, project_name, organization_name, itp_instances } = report.parameters;
@@ -610,11 +626,11 @@ async function generateITPReport(report: any, _supabase: SupabaseClient): Promis
       },
     });
   } catch (error) {
-    console.error('Error generating ITP report:', error);
+    log.error('Error generating ITP report', error, { reportId: report.id });
     return NextResponse.json({ error: 'Failed to generate ITP report' }, { status: 500 });
   }
 }
-async function downloadDailyDiaryEntry(report: any, supabase: SupabaseClient) {
+async function downloadDailyDiaryEntry(report: ReportQueueEntry, supabase: SupabaseClient) {
   try {
     const diaryId = report.parameters?.diary_id;
     const projectId = report.parameters?.project_id;
@@ -1172,7 +1188,7 @@ async function downloadDailyDiaryEntry(report: any, supabase: SupabaseClient) {
       },
     });
   } catch (error) {
-    console.error('Error generating daily diary PDF:', error);
+    log.error('Error generating daily diary PDF', error);
     return NextResponse.json({ error: 'Failed to generate daily diary PDF' }, { status: 500 });
   }
 }
@@ -1279,7 +1295,7 @@ async function downloadFinancialSummaryReport({
       .single();
 
     if (projectError || !project) {
-      console.error('Financial report project lookup failed:', projectError);
+      log.error('Financial report project lookup failed', projectError, { projectId });
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
@@ -1292,7 +1308,7 @@ async function downloadFinancialSummaryReport({
       .order('diary_date', { ascending: true });
 
     if (diariesError) {
-      console.error('Financial report diary lookup failed:', diariesError);
+      log.error('Financial report diary lookup failed', diariesError, { projectId, startDate, endDate });
       return NextResponse.json(
         { error: 'Failed to load diary entries for financial report' },
         { status: 500 }
@@ -1378,7 +1394,7 @@ async function downloadFinancialSummaryReport({
       ]);
 
       if (laborResult.error) {
-        console.error('Financial report labour lookup failed:', laborResult.error);
+        log.error('Financial report labour lookup failed', laborResult.error);
         return NextResponse.json(
           { error: 'Failed to load labour data for financial report' },
           { status: 500 }
@@ -1386,7 +1402,7 @@ async function downloadFinancialSummaryReport({
       }
 
       if (plantResult.error) {
-        console.error('Financial report plant lookup failed:', plantResult.error);
+        log.error('Financial report plant lookup failed', plantResult.error);
         return NextResponse.json(
           { error: 'Failed to load plant data for financial report' },
           { status: 500 }
@@ -1394,7 +1410,7 @@ async function downloadFinancialSummaryReport({
       }
 
       if (materialResult.error) {
-        console.error('Financial report materials lookup failed:', materialResult.error);
+        log.error('Financial report materials lookup failed', materialResult.error);
         return NextResponse.json(
           { error: 'Failed to load materials data for financial report' },
           { status: 500 }
@@ -1453,7 +1469,7 @@ async function downloadFinancialSummaryReport({
       },
     });
   } catch (error) {
-    console.error('Financial summary report generation failed:', error);
+    log.error('Financial summary report generation failed', error);
     return NextResponse.json(
       { error: 'Failed to generate financial summary report' },
       { status: 500 }
@@ -1873,9 +1889,10 @@ function generateFinancialSummaryExcel(data: FinancialSummaryData): Buffer {
     'Total Cost': Number(diary.totals.totalCost.toFixed(2)),
   }));
 
-  const diarySummarySheet = XLSX.utils.json_to_sheet(
-    diarySummaryRows.length > 0 ? diarySummaryRows : [{ Message: 'No diaries in selected range' }]
-  );
+  const diarySummarySheet =
+    diarySummaryRows.length > 0
+      ? XLSX.utils.json_to_sheet(diarySummaryRows)
+      : XLSX.utils.aoa_to_sheet([['No diaries in selected range']]);
   XLSX.utils.book_append_sheet(workbook, diarySummarySheet, 'Diary Summary');
 
   const labourRows = data.diaries.flatMap((diary) =>
@@ -1892,9 +1909,10 @@ function generateFinancialSummaryExcel(data: FinancialSummaryData): Buffer {
     }))
   );
 
-  const labourSheet = XLSX.utils.json_to_sheet(
-    labourRows.length > 0 ? labourRows : [{ Message: 'No labour entries' }]
-  );
+  const labourSheet =
+    labourRows.length > 0
+      ? XLSX.utils.json_to_sheet(labourRows)
+      : XLSX.utils.aoa_to_sheet([['No labour entries']]);
   XLSX.utils.book_append_sheet(workbook, labourSheet, 'Labour');
 
   const plantRows = data.diaries.flatMap((diary) =>
@@ -1910,9 +1928,10 @@ function generateFinancialSummaryExcel(data: FinancialSummaryData): Buffer {
     }))
   );
 
-  const plantSheet = XLSX.utils.json_to_sheet(
-    plantRows.length > 0 ? plantRows : [{ Message: 'No plant entries' }]
-  );
+  const plantSheet =
+    plantRows.length > 0
+      ? XLSX.utils.json_to_sheet(plantRows)
+      : XLSX.utils.aoa_to_sheet([['No plant entries']]);
   XLSX.utils.book_append_sheet(workbook, plantSheet, 'Plant');
 
   const materialRows = data.diaries.flatMap((diary) =>
@@ -1929,9 +1948,10 @@ function generateFinancialSummaryExcel(data: FinancialSummaryData): Buffer {
     }))
   );
 
-  const materialsSheet = XLSX.utils.json_to_sheet(
-    materialRows.length > 0 ? materialRows : [{ Message: 'No material entries' }]
-  );
+  const materialsSheet =
+    materialRows.length > 0
+      ? XLSX.utils.json_to_sheet(materialRows)
+      : XLSX.utils.aoa_to_sheet([['No material entries']]);
   XLSX.utils.book_append_sheet(workbook, materialsSheet, 'Materials');
 
   const output = XLSX.write(workbook, {
@@ -2084,3 +2104,4 @@ async function generateFinancialSummaryPDF(data: FinancialSummaryData): Promise<
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
 }
+
