@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { initializeInspectionData } from '@/lib/itp/initialize-data';
 import {
   type LotWithProject,
   type OrganizationMember,
@@ -51,23 +52,50 @@ export async function POST(request: NextRequest) {
 
     const { templateIds, lotId, projectId }: AssignITPRequest = validationResult.data;
 
-    // Verify lot exists and user has access
-    const { data: lot, error: lotError } = await supabase
-      .from('lots')
-      .select(
-        `
-        id,
-        project_id,
-        name,
-        projects!inner(
+    // OPTIMIZATION: Execute all validation queries in parallel
+    const startTime = Date.now();
+
+    const [
+      { data: lot, error: lotError },
+      { data: templates, error: templatesError },
+      { data: existingInstances },
+    ] = await Promise.all([
+      // Query 1: Verify lot exists and get organization_id
+      supabase
+        .from('lots')
+        .select(
+          `
           id,
-          organization_id
+          project_id,
+          name,
+          projects!inner(
+            id,
+            organization_id
+          )
+        `
         )
-      `
-      )
-      .eq('id', lotId)
-      .eq('project_id', projectId)
-      .single();
+        .eq('id', lotId)
+        .eq('project_id', projectId)
+        .single(),
+
+      // Query 2: Pre-fetch templates (we'll validate org later)
+      supabase
+        .from('itp_templates')
+        .select('id, name, organization_id, structure')
+        .in('id', templateIds)
+        .eq('is_active', true)
+        .is('deleted_at', null),
+
+      // Query 3: Check for existing assignments
+      supabase
+        .from('itp_instances')
+        .select('template_id')
+        .eq('lot_id', lotId)
+        .in('template_id', templateIds),
+    ]);
+
+    const parallelQueriesTime = Date.now() - startTime;
+    console.log(`⚡ Parallel queries completed in ${parallelQueriesTime}ms`);
 
     if (lotError || !lot) {
       return NextResponse.json({ error: 'Lot not found' }, { status: 404 });
@@ -77,7 +105,7 @@ export async function POST(request: NextRequest) {
     const typedLot = lot as unknown as LotWithProject;
     const organizationId = typedLot.projects.organization_id;
 
-    // Check user membership
+    // Now check membership with organization_id we just got
     const { data: membership, error: membershipError } = await supabase
       .from('organization_members')
       .select('role')
@@ -95,31 +123,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
 
-    // Validate templates exist and are accessible
-    const { data: templates, error: templatesError } = await supabase
-      .from('itp_templates')
-      .select('id, name, organization_id, structure')
-      .in('id', templateIds)
-      .eq('organization_id', organizationId)
-      .eq('is_active', true)
-      .is('deleted_at', null);
-
+    // Validate templates
     if (templatesError) {
       return NextResponse.json({ error: 'Failed to validate templates' }, { status: 400 });
     }
 
     const typedTemplates = (templates || []) as ITPTemplateRow[];
 
+    // Verify templates belong to same organization
+    const invalidTemplates = typedTemplates.filter((t) => t.organization_id !== organizationId);
+    if (invalidTemplates.length > 0) {
+      return NextResponse.json({ error: 'Some templates are not accessible' }, { status: 403 });
+    }
+
     if (typedTemplates.length !== templateIds.length) {
       return NextResponse.json({ error: 'Some templates are not available' }, { status: 400 });
     }
-
-    // Check for existing assignments
-    const { data: existingInstances } = await supabase
-      .from('itp_instances')
-      .select('template_id')
-      .eq('lot_id', lotId)
-      .in('template_id', templateIds);
 
     if (existingInstances && existingInstances.length > 0) {
       const alreadyAssigned = existingInstances.map((instance) => instance.template_id);
@@ -137,41 +156,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create ITP instances with initialized data
+    // OPTIMIZATION: Create ITP instances with initialized data (no RPC calls)
     console.log(
       'Creating instances for templates:',
       typedTemplates.map((t) => t.name)
     );
 
+    const initStartTime = Date.now();
     const itpInstances: Omit<ITPInstanceRow, 'id' | 'created_at' | 'updated_at'>[] = [];
 
     for (const template of typedTemplates) {
       try {
-        console.log('Processing template:', template.name, 'with structure:', template.structure);
+        console.log('Processing template:', template.name);
 
-        // Initialize inspection data using the RPC function
-        const { data: initialData, error: initError } = await supabase.rpc(
-          'initialize_inspection_data',
-          {
-            p_template_structure: template.structure,
-          }
-        );
-
-        let finalData: ITPInstanceData;
-
-        if (initError) {
-          console.error('RPC Error initializing data for template', template.name, ':', initError);
-          console.error('Template structure was:', template.structure);
-          console.log('Falling back to empty data object for', template.name);
-          finalData = {};
-        } else {
-          console.log('Successfully initialized data for', template.name, ':', initialData);
-          finalData = (initialData as ITPInstanceData) || {};
-        }
+        // Initialize inspection data using TypeScript function (no RPC overhead!)
+        const initializedData = initializeInspectionData(template.structure);
 
         // Create proper data structure
         const properData: InitializedITPData = {
-          inspection_results: finalData,
+          inspection_results: initializedData,
           overall_status: 'pending',
           completion_percentage: 0,
         };
@@ -200,8 +203,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const initTime = Date.now() - initStartTime;
+    console.log(`⚡ Data initialization completed in ${initTime}ms`);
     console.log('Final instances to create:', itpInstances.length);
 
+    const insertStartTime = Date.now();
     const { data: createdInstances, error: createError } = await supabase
       .from('itp_instances')
       .insert(itpInstances)
@@ -213,7 +219,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to assign ITP templates' }, { status: 500 });
     }
 
+    const insertTime = Date.now() - insertStartTime;
+    const totalTime = Date.now() - startTime;
+
     console.log('Successfully created', createdInstances?.length || 0, 'instances');
+    console.log(`⚡ Database insert completed in ${insertTime}ms`);
+    console.log(`🚀 TOTAL API TIME: ${totalTime}ms`);
     console.log('=================================');
 
     const response: AssignITPResponse = {
