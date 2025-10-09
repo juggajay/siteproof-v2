@@ -328,23 +328,25 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
                     )}
                     {/* Status Summary - Only show if there are items in the template */}
                     {hasContent && (
-                      <div className="flex items-center gap-3 mt-2 text-sm">
-                        <span className="flex items-center gap-1 text-green-600 font-medium">
-                          <CheckCircle className="h-4 w-4" />
-                          {statusCounts.pass}
+                      <div className="flex flex-wrap items-center gap-2 mt-3">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200 transition-colors hover:bg-green-100">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          <span>{statusCounts.pass}</span>
                         </span>
-                        <span className="flex items-center gap-1 text-red-600 font-medium">
-                          <XCircle className="h-4 w-4" />
-                          {statusCounts.fail}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200 transition-colors hover:bg-red-100">
+                          <XCircle className="h-3.5 w-3.5" />
+                          <span>{statusCounts.fail}</span>
                         </span>
-                        <span className="flex items-center gap-1 text-gray-600 font-medium">
-                          <MinusCircle className="h-4 w-4" />
-                          {statusCounts.na}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200 transition-colors hover:bg-gray-100">
+                          <MinusCircle className="h-3.5 w-3.5" />
+                          <span>{statusCounts.na}</span>
                         </span>
                         {statusCounts.pending > 0 && (
-                          <span className="flex items-center gap-1 text-blue-600 font-medium">
-                            <span className="h-4 w-4 flex items-center justify-center">•</span>
-                            {statusCounts.pending} pending
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 transition-colors hover:bg-blue-100">
+                            <span className="h-3.5 w-3.5 flex items-center justify-center">
+                              <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                            </span>
+                            <span>{statusCounts.pending} pending</span>
                           </span>
                         )}
                       </div>
