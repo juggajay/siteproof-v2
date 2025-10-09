@@ -336,7 +336,7 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
 
             {/* Confirmation Dialog */}
             {showDeleteConfirm === instance.id && (
-              <div className="absolute inset-0 bg-white bg-opacity-95 rounded-lg flex items-center justify-center z-10">
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div className="bg-white p-6 rounded-lg shadow-xl border-2 border-gray-200 max-w-sm w-full mx-4">
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Confirm Delete</h3>
                   <p className="text-gray-600 mb-4">
