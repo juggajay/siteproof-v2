@@ -330,15 +330,15 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
                     {hasContent && (
                       <div className="flex flex-wrap items-center gap-2 mt-3">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200 transition-colors hover:bg-green-100">
-                          <CheckCircle className="h-3.5 w-3.5" />
+                          <span>Pass</span>
                           <span>{statusCounts.pass}</span>
                         </span>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-200 transition-colors hover:bg-red-100">
-                          <XCircle className="h-3.5 w-3.5" />
+                          <span>Fail</span>
                           <span>{statusCounts.fail}</span>
                         </span>
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200 transition-colors hover:bg-gray-100">
-                          <MinusCircle className="h-3.5 w-3.5" />
+                          <span>N/A</span>
                           <span>{statusCounts.na}</span>
                         </span>
                         {statusCounts.pending > 0 && (
@@ -346,7 +346,7 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
                             <span className="h-3.5 w-3.5 flex items-center justify-center">
                               <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
                             </span>
-                            <span>{statusCounts.pending} pending</span>
+                            <span>Pending {statusCounts.pending}</span>
                           </span>
                         )}
                       </div>
@@ -371,7 +371,7 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
                   e.stopPropagation();
                   setShowDeleteConfirm(instance.id);
                 }}
-                className="ml-2 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors group"
+                className="ml-2 p-2 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-all group disabled:opacity-50 disabled:cursor-not-allowed min-h-[40px] min-w-[40px] flex items-center justify-center"
                 aria-label={`Delete ${templateName}`}
                 disabled={deletingId === instance.id}
               >
@@ -395,15 +395,23 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
                   <div className="flex gap-3 justify-end">
                     <button
                       onClick={() => setShowDeleteConfirm(null)}
-                      className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                      className="min-h-[40px] px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => deleteItp(instance.id)}
-                      className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                      disabled={deletingId === instance.id}
+                      className="min-h-[40px] px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                     >
-                      Delete ITP
+                      {deletingId === instance.id ? (
+                        <span className="flex items-center gap-2">
+                          <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Deleting...
+                        </span>
+                      ) : (
+                        'Delete ITP'
+                      )}
                     </button>
                   </div>
                 </div>
