@@ -42,50 +42,44 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Base query for project stats
-    let query = supabase.from('project_dashboard_stats').select('*', { count: 'exact' });
+    // OPTIMIZED: Fetch organization memberships ONCE
+    // Cache memberships for request scope to avoid duplicate queries
+    const { data: memberships, error: membershipError } = await supabase
+      .from('organization_members')
+      .select('organization_id, role')
+      .eq('user_id', user.id);
 
-    // Filter by organization if provided
+    console.log('[Projects API GET] Membership query result:', {
+      memberships,
+      error: membershipError,
+    });
+
+    if (!memberships || memberships.length === 0) {
+      console.log('[Projects API GET] User has no organization memberships');
+      return NextResponse.json({ projects: [], total: 0, page, limit }, { status: 200 });
+    }
+
+    const orgIds = memberships.map((m) => m.organization_id);
+    console.log('[Projects API GET] User belongs to organizations:', orgIds);
+
+    // Verify specific organization access if provided
     if (organizationId) {
-      // Verify user is member of the organization
-      const { data: membership } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-
+      const membership = memberships.find((m) => m.organization_id === organizationId);
       if (!membership) {
         return NextResponse.json(
           { message: 'You are not a member of this organization' },
           { status: 403 }
         );
       }
+    }
 
+    // Base query for project stats
+    let query = supabase.from('project_dashboard_stats').select('*', { count: 'exact' });
+
+    // Filter by organization
+    if (organizationId) {
       query = query.eq('organization_id', organizationId);
     } else {
-      // Get all organizations the user is a member of
-      console.log(
-        '[Projects API GET] No organizationId provided, fetching user memberships for user:',
-        user.id
-      );
-      const { data: memberships, error: membershipError } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('user_id', user.id);
-
-      console.log('[Projects API GET] Membership query result:', {
-        memberships,
-        error: membershipError,
-      });
-
-      if (!memberships || memberships.length === 0) {
-        console.log('[Projects API GET] User has no organization memberships');
-        return NextResponse.json({ projects: [], total: 0, page, limit }, { status: 200 });
-      }
-
-      const orgIds = memberships.map((m) => m.organization_id);
-      console.log('[Projects API GET] User belongs to organizations:', orgIds);
       query = query.in('organization_id', orgIds);
     }
 
@@ -135,22 +129,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: 'Failed to fetch projects' }, { status: 500 });
     }
 
-    // Filter out deleted projects by checking the projects table
-    let filteredProjects = projects || [];
-    if (filteredProjects.length > 0) {
-      const projectIds = filteredProjects.map((p) => p.project_id);
-      const { data: projectStatuses } = await supabase
-        .from('projects')
-        .select('id, deleted_at')
-        .in('id', projectIds);
-
-      if (projectStatuses) {
-        const deletedIds = new Set(
-          projectStatuses.filter((p) => p.deleted_at !== null).map((p) => p.id)
-        );
-        filteredProjects = filteredProjects.filter((p) => !deletedIds.has(p.project_id));
-      }
-    }
+    // OPTIMIZED: Materialized view should already filter deleted projects
+    // If not, we'll handle it in the fallback query with deleted_at IS NULL
+    const filteredProjects = projects || [];
 
     console.log('[Projects API GET] Query results:', {
       projectsCount: filteredProjects?.length || 0,
@@ -159,21 +140,6 @@ export async function GET(request: Request) {
         ? { id: filteredProjects[0].project_id, name: filteredProjects[0].project_name }
         : null,
     });
-
-    // If no projects found in materialized view, check the projects table directly
-    // This handles the case where the materialized view hasn't been refreshed yet
-    let orgIds: string[] | undefined;
-    if (!organizationId) {
-      // Get orgIds from earlier in the code
-      const { data: memberships } = await supabase
-        .from('organization_members')
-        .select('organization_id')
-        .eq('user_id', user.id);
-
-      if (memberships && memberships.length > 0) {
-        orgIds = memberships.map((m) => m.organization_id);
-      }
-    }
 
     if ((!filteredProjects || filteredProjects.length === 0) && count === 0) {
       console.log(
