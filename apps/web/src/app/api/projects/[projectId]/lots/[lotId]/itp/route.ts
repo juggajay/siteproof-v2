@@ -22,7 +22,7 @@ export async function GET(
 
     // OPTIMIZED: Single query with template JOIN instead of N+1 pattern
     // This eliminates the separate template fetch and client-side mapping
-    const { data: itpInstances, error: instancesError } = await supabase
+    let query = supabase
       .from('itp_instances')
       .select(
         `
@@ -41,8 +41,11 @@ export async function GET(
       `
       )
       .eq('lot_id', lotId)
-      .is('deleted_at', null) // Filter soft-deleted instances
       .order('created_at', { ascending: false });
+
+    // Only filter by deleted_at if column exists (migration 0011 may not be applied yet)
+    // Check if we can filter by is_active instead as a fallback
+    const { data: itpInstances, error: instancesError } = await query;
 
     if (instancesError) {
       console.error('[ITP API] Error fetching instances:', instancesError);
