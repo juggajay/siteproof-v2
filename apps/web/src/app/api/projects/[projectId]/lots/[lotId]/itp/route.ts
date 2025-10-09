@@ -22,6 +22,8 @@ export async function GET(
 
     // OPTIMIZED: Single query with template JOIN instead of N+1 pattern
     // This eliminates the separate template fetch and client-side mapping
+    // REMOVED: projects!inner join - it causes RLS issues and is unnecessary
+    // The RLS policy on itp_instances already verifies project access
     let query = supabase
       .from('itp_instances')
       .select(
@@ -34,9 +36,6 @@ export async function GET(
           structure,
           is_active,
           version
-        ),
-        projects!inner (
-          id
         )
       `
       )
@@ -60,12 +59,9 @@ export async function GET(
 
     console.log('[ITP API] Found instances:', itpInstances?.length || 0);
 
-    // Clean up instances - remove nested projects object (only used for RLS)
-    // Template data is now properly nested, no mapping needed
-    const cleanedInstances = (itpInstances || []).map((itp: any) => {
-      const { projects, ...cleanedItp } = itp;
-      return cleanedItp;
-    });
+    // No cleanup needed - template data is already properly nested
+    // and we don't have the projects join anymore
+    const cleanedInstances = itpInstances || [];
 
     console.log('[ITP API] Returning instances:', cleanedInstances.length);
 
