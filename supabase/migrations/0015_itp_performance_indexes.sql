@@ -37,10 +37,11 @@ CREATE INDEX IF NOT EXISTS idx_itp_templates_org_active
 ON itp_templates(organization_id, is_active)
 WHERE deleted_at IS NULL;
 
--- Index for template category filtering
-CREATE INDEX IF NOT EXISTS idx_itp_templates_category
-ON itp_templates(category)
-WHERE is_active = true AND deleted_at IS NULL;
+-- Note: category column does not exist yet in itp_templates table
+-- Uncomment when category column is added:
+-- CREATE INDEX IF NOT EXISTS idx_itp_templates_category
+-- ON itp_templates(category)
+-- WHERE is_active = true AND deleted_at IS NULL;
 
 -- ============================================================================
 -- Lots and Projects Indexes

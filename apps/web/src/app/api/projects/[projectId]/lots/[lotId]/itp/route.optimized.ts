@@ -31,6 +31,7 @@ export async function GET(
           id,
           name,
           description,
+          category,
           structure,
           is_active,
           version

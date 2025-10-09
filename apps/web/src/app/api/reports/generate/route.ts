@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     }
 
     // Determine if report can be generated synchronously
-    const isSimpleReport = ['project_summary', 'daily_diary_export', 'inspection_summary'].includes(
+    const isSimpleReport = ['project_summary', 'daily_diary_export', 'inspection_summary', 'financial_summary'].includes(
       validatedData.report_type
     );
 
