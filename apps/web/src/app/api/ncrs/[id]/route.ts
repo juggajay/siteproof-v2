@@ -49,6 +49,12 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: 'NCR not found' }, { status: 404 });
     }
 
+    // SECURITY: Verify user belongs to the same organization as the NCR
+    const userOrgId = user.user_metadata?.organization_id;
+    if (!userOrgId || ncr.organization_id !== userOrgId) {
+      return NextResponse.json({ error: 'Forbidden: Access denied to this NCR' }, { status: 403 });
+    }
+
     return NextResponse.json({ ncr });
   } catch (error) {
     console.error('Error fetching NCR:', error);

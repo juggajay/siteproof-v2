@@ -50,10 +50,17 @@ export async function GET(request: NextRequest) {
     // Build base query for counting
     let countQuery = supabase.from('ncrs').select('id', { count: 'exact', head: true });
 
-    // Build data query - simplified without joins for now
+    // Build data query with nested selects to eliminate N+1 pattern
     let dataQuery = supabase
       .from('ncrs')
-      .select('*')
+      .select(
+        `
+        *,
+        project:projects(id, name, code),
+        raisedBy:users!raised_by(id, email, full_name),
+        assignedTo:users!assigned_to(id, email, full_name)
+      `
+      )
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -98,38 +105,8 @@ export async function GET(request: NextRequest) {
     const totalCount = countResult.count || 0;
     const totalPages = Math.ceil(totalCount / limit);
 
-    // Fetch related data for NCRs if any exist
+    // NCRs already have related data from nested select query
     const ncrs = dataResult.data || [];
-    if (ncrs.length > 0) {
-      // Get unique IDs
-      const projectIds = [...new Set(ncrs.map((n) => n.project_id).filter(Boolean))];
-      const userIds = [
-        ...new Set([
-          ...ncrs.map((n) => n.raised_by).filter(Boolean),
-          ...ncrs.map((n) => n.assigned_to).filter(Boolean),
-        ]),
-      ];
-
-      // Fetch related data in parallel
-      const [projectsResult, usersResult] = await Promise.all([
-        projectIds.length > 0
-          ? supabase.from('projects').select('id, name').in('id', projectIds)
-          : { data: [] },
-        userIds.length > 0
-          ? supabase.from('users').select('id, email, full_name').in('id', userIds)
-          : { data: [] },
-      ]);
-
-      const projectsMap = new Map((projectsResult.data || []).map((p) => [p.id, p]));
-      const usersMap = new Map((usersResult.data || []).map((u) => [u.id, u]));
-
-      // Attach related data to NCRs
-      ncrs.forEach((ncr) => {
-        ncr.project = projectsMap.get(ncr.project_id) || null;
-        ncr.raisedBy = usersMap.get(ncr.raised_by) || null;
-        ncr.assignedTo = usersMap.get(ncr.assigned_to) || null;
-      });
-    }
 
     return NextResponse.json({
       ncrs,
@@ -143,7 +120,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching NCRs:', error);
-    
+
     // Provide more detailed error information in development
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorDetails = {
@@ -152,10 +129,10 @@ export async function GET(request: NextRequest) {
       // Include more details in development
       ...(process.env.NODE_ENV === 'development' && {
         stack: error instanceof Error ? error.stack : undefined,
-        details: error
-      })
+        details: error,
+      }),
     };
-    
+
     return NextResponse.json(errorDetails, { status: 500 });
   }
 }
@@ -172,7 +149,7 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const data: any = {};
+    const data: Record<string, string | string[]> = {};
     const files: File[] = [];
 
     // Extract form fields and files
@@ -183,15 +160,20 @@ export async function POST(request: NextRequest) {
         data[key] = JSON.parse(value as string);
       } else {
         const strValue = value as string;
-        
+
         // Skip ALL empty strings - don't add them to data object at all
         if (strValue === '' || strValue === 'undefined' || strValue === 'null') {
           console.log(`Skipping empty/invalid field: ${key} = "${strValue}"`);
           continue;
         }
-        
+
         // Additional check for UUID fields - must be valid UUID format
-        if ((key === 'lot_id' || key === 'assigned_to' || key === 'contractor_id' || key === 'inspection_id')) {
+        if (
+          key === 'lot_id' ||
+          key === 'assigned_to' ||
+          key === 'contractor_id' ||
+          key === 'inspection_id'
+        ) {
           // Basic UUID validation
           const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
           if (!uuidRegex.test(strValue)) {
@@ -199,7 +181,7 @@ export async function POST(request: NextRequest) {
             continue;
           }
         }
-        
+
         data[key] = strValue;
       }
     }
@@ -210,8 +192,9 @@ export async function POST(request: NextRequest) {
     // Remove any empty string values that might have passed validation
     // This ensures we don't try to insert empty strings as UUID references
     Object.keys(validatedData).forEach((key) => {
-      if ((validatedData as any)[key] === '') {
-        delete (validatedData as any)[key];
+      const typedKey = key as keyof typeof validatedData;
+      if (validatedData[typedKey] === '') {
+        delete validatedData[typedKey];
       }
     });
 
@@ -255,7 +238,7 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const fileName = `ncr-evidence/${Date.now()}-${file.name}`;
-      
+
       try {
         const { error: uploadError } = await supabase.storage
           .from('ncr-attachments')
@@ -265,8 +248,13 @@ export async function POST(request: NextRequest) {
           console.error(`Failed to upload file ${file.name}:`, uploadError);
           // Skip this file but continue with NCR creation
           // You might want to create the bucket if it doesn't exist
-          if (uploadError.message?.includes('bucket') || uploadError.message?.includes('not found')) {
-            console.error('Storage bucket "ncr-attachments" may not exist. Please create it in Supabase.');
+          if (
+            uploadError.message?.includes('bucket') ||
+            uploadError.message?.includes('not found')
+          ) {
+            console.error(
+              'Storage bucket "ncr-attachments" may not exist. Please create it in Supabase.'
+            );
           }
         } else {
           const {
@@ -339,10 +327,10 @@ export async function POST(request: NextRequest) {
       // Include more details in development
       ...(process.env.NODE_ENV === 'development' && {
         stack: error instanceof Error ? error.stack : undefined,
-        details: error
-      })
+        details: error,
+      }),
     };
-    
+
     return NextResponse.json(errorDetails, { status: 500 });
   }
 }

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { apiRateLimiter } from '@/lib/rate-limiter';
 import type { ProjectDashboardStats } from '@siteproof/database';
+import { log } from '@/lib/logger';
 
 // Schema for creating a project
 const createProjectSchema = z.object({
@@ -49,18 +50,22 @@ export async function GET(request: Request) {
       .select('organization_id, role')
       .eq('user_id', user.id);
 
-    console.log('[Projects API GET] Membership query result:', {
-      memberships,
-      error: membershipError,
+    log.debug('[Projects API GET] Membership query result', {
+      membershipsCount: memberships?.length || 0,
+      hasError: !!membershipError,
+      userId: user.id,
     });
 
     if (!memberships || memberships.length === 0) {
-      console.log('[Projects API GET] User has no organization memberships');
+      log.info('[Projects API GET] User has no organization memberships', { userId: user.id });
       return NextResponse.json({ projects: [], total: 0, page, limit }, { status: 200 });
     }
 
     const orgIds = memberships.map((m) => m.organization_id);
-    console.log('[Projects API GET] User belongs to organizations:', orgIds);
+    log.debug('[Projects API GET] User belongs to organizations', {
+      userId: user.id,
+      organizationIds: orgIds,
+    });
 
     // Verify specific organization access if provided
     if (organizationId) {
@@ -112,7 +117,7 @@ export async function GET(request: Request) {
     // Pagination
     query = query.range(offset, offset + limit - 1);
 
-    console.log('[Projects API GET] Executing query with filters:', {
+    log.debug('[Projects API GET] Executing query with filters', {
       organizationIds: organizationId ? [organizationId] : 'from user memberships',
       status,
       search,
@@ -125,7 +130,7 @@ export async function GET(request: Request) {
     const { data: projects, error, count } = await query;
 
     if (error) {
-      console.error('[Projects API GET] Failed to fetch projects:', error);
+      log.error('[Projects API GET] Failed to fetch projects', error, { userId: user.id });
       return NextResponse.json({ message: 'Failed to fetch projects' }, { status: 500 });
     }
 
@@ -133,7 +138,7 @@ export async function GET(request: Request) {
     // If not, we'll handle it in the fallback query with deleted_at IS NULL
     const filteredProjects = projects || [];
 
-    console.log('[Projects API GET] Query results:', {
+    log.debug('[Projects API GET] Query results', {
       projectsCount: filteredProjects?.length || 0,
       totalCount: count,
       firstProject: filteredProjects?.[0]
@@ -141,88 +146,25 @@ export async function GET(request: Request) {
         : null,
     });
 
+    // If no projects found in materialized view, return empty result
     if ((!filteredProjects || filteredProjects.length === 0) && count === 0) {
-      console.log(
-        '[Projects API GET] No projects in materialized view, checking projects table directly...'
+      log.info('[Projects API GET] No projects found in materialized view', { userId: user.id });
+      return NextResponse.json(
+        {
+          projects: [],
+          total: 0,
+          page,
+          limit,
+        },
+        {
+          status: 200,
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+            Expires: '0',
+          },
+        }
       );
-
-      // Build a query for the projects table - exclude soft-deleted projects
-      let directQuery = supabase
-        .from('projects')
-        .select('*', { count: 'exact' })
-        .is('deleted_at', null);
-
-      // Apply the same filters
-      if (organizationId) {
-        directQuery = directQuery.eq('organization_id', organizationId);
-      } else if (orgIds && orgIds.length > 0) {
-        directQuery = directQuery.in('organization_id', orgIds);
-      }
-
-      if (status) {
-        directQuery = directQuery.eq('status', status);
-      }
-
-      if (search) {
-        directQuery = directQuery.or(
-          `name.ilike.%${search}%,client_name.ilike.%${search}%,client_company.ilike.%${search}%`
-        );
-      }
-
-      // Apply sorting and pagination
-      directQuery = directQuery.order('created_at', { ascending: false });
-      directQuery = directQuery.range(offset, offset + limit - 1);
-
-      const { data: directProjects, error: directError, count: directCount } = await directQuery;
-
-      if (!directError && directProjects && directProjects.length > 0) {
-        console.log(
-          '[Projects API GET] Found projects in direct table query:',
-          directProjects.length,
-          'total count:',
-          directCount
-        );
-
-        // Transform direct project data to match the expected format
-        const transformedDirectProjects = directProjects.map((project: any) => ({
-          id: project.id,
-          name: project.name,
-          status: project.status,
-          organizationId: project.organization_id,
-          clientName: project.client_name,
-          clientCompany: project.client_company,
-          dueDate: project.due_date,
-          createdAt: project.created_at,
-          lastActivityAt: project.updated_at || project.created_at,
-          progressPercentage: 0,
-          stats: {
-            totalLots: 0,
-            pendingLots: 0,
-            inReviewLots: 0,
-            approvedLots: 0,
-            rejectedLots: 0,
-            totalComments: 0,
-            unresolvedComments: 0,
-          },
-        }));
-
-        return NextResponse.json(
-          {
-            projects: transformedDirectProjects,
-            total: directCount || directProjects.length,
-            page,
-            limit,
-          },
-          {
-            status: 200,
-            headers: {
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              Pragma: 'no-cache',
-              Expires: '0',
-            },
-          }
-        );
-      }
     }
 
     // Transform the data to match frontend expectations
@@ -265,7 +207,7 @@ export async function GET(request: Request) {
       }
     );
   } catch (error) {
-    console.error('Projects list error:', error);
+    log.error('Projects list error', error);
     return NextResponse.json({ message: 'An unexpected error occurred' }, { status: 500 });
   }
 }
@@ -355,9 +297,9 @@ export async function POST(request: Request) {
     }
 
     // Create the project
-    console.log('[Projects API] Creating project:', {
+    log.info('[Projects API] Creating project', {
       organizationId: data.organizationId,
-      name: data.name.trim(),
+      projectName: data.name.trim(),
       userId: user.id,
     });
 
@@ -382,8 +324,11 @@ export async function POST(request: Request) {
       .single();
 
     if (error) {
-      console.error('[Projects API] Failed to create project:', error);
-      console.error('[Projects API] Error details:', { code: error.code, message: error.message });
+      log.error('[Projects API] Failed to create project', error, {
+        code: error.code,
+        userId: user.id,
+        organizationId: data.organizationId,
+      });
       return NextResponse.json(
         {
           message: 'Failed to create project',
@@ -394,11 +339,14 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('[Projects API] Project created successfully:', { projectId: project.id });
+    log.info('[Projects API] Project created successfully', {
+      projectId: project.id,
+      userId: user.id,
+    });
 
     // Skip materialized view refresh due to missing unique index
     // The view will be refreshed on the next scheduled refresh
-    console.log(
+    log.debug(
       '[Projects API] Skipping materialized view refresh (will update on next scheduled refresh)'
     );
 
@@ -407,7 +355,9 @@ export async function POST(request: Request) {
 
     // Fetch the complete project data from the materialized view
     // This ensures we have all the stats immediately available
-    console.log('[Projects API] Fetching project stats from materialized view...');
+    log.debug('[Projects API] Fetching project stats from materialized view', {
+      projectId: project.id,
+    });
     let projectStats = null;
     let fetchAttempts = 0;
     const maxFetchAttempts = 3;
@@ -421,63 +371,57 @@ export async function POST(request: Request) {
 
       if (error || !data) {
         fetchAttempts++;
-        console.warn(
+        log.warn(
           `[Projects API] Project not found in materialized view (attempt ${fetchAttempts}/${maxFetchAttempts})`,
-          error?.message || 'No data returned'
+          { errorMessage: error?.message, projectId: project.id }
         );
         if (fetchAttempts < maxFetchAttempts) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
         }
       } else {
         projectStats = data;
-        console.log('[Projects API] Project stats fetched successfully');
+        log.debug('[Projects API] Project stats fetched successfully', { projectId: project.id });
       }
     }
 
-    const transformedProject = projectStats
-      ? {
-          id: projectStats.project_id,
-          name: projectStats.project_name,
-          status: projectStats.project_status,
-          organizationId: projectStats.organization_id,
-          clientName: projectStats.client_name,
-          clientCompany: projectStats.client_company,
-          dueDate: projectStats.due_date,
-          createdAt: projectStats.project_created_at,
-          lastActivityAt: projectStats.last_activity_at,
-          progressPercentage: projectStats.progress_percentage,
-          stats: {
-            totalLots: projectStats.total_lots,
-            pendingLots: projectStats.pending_lots,
-            inReviewLots: projectStats.in_review_lots,
-            approvedLots: projectStats.approved_lots,
-            rejectedLots: projectStats.rejected_lots,
-            totalComments: projectStats.total_comments,
-            unresolvedComments: projectStats.unresolved_comments,
+    // If materialized view is not ready, return error
+    if (!projectStats) {
+      log.error('[Projects API] Failed to fetch project stats from materialized view', undefined, {
+        projectId: project.id,
+      });
+      return NextResponse.json(
+        {
+          message: 'Project created but stats temporarily unavailable. Please refresh the page.',
+          project: {
+            id: project.id,
+            name: project.name,
           },
-        }
-      : {
-          // Fallback data if materialized view is not ready
-          id: project.id,
-          name: project.name,
-          status: project.status,
-          organizationId: project.organization_id,
-          clientName: project.client_name,
-          clientCompany: project.client_company,
-          dueDate: project.due_date,
-          createdAt: project.created_at,
-          lastActivityAt: project.created_at,
-          progressPercentage: 0,
-          stats: {
-            totalLots: 0,
-            pendingLots: 0,
-            inReviewLots: 0,
-            approvedLots: 0,
-            rejectedLots: 0,
-            totalComments: 0,
-            unresolvedComments: 0,
-          },
-        };
+        },
+        { status: 201 }
+      );
+    }
+
+    const transformedProject = {
+      id: projectStats.project_id,
+      name: projectStats.project_name,
+      status: projectStats.project_status,
+      organizationId: projectStats.organization_id,
+      clientName: projectStats.client_name,
+      clientCompany: projectStats.client_company,
+      dueDate: projectStats.due_date,
+      createdAt: projectStats.project_created_at,
+      lastActivityAt: projectStats.last_activity_at,
+      progressPercentage: projectStats.progress_percentage,
+      stats: {
+        totalLots: projectStats.total_lots,
+        pendingLots: projectStats.pending_lots,
+        inReviewLots: projectStats.in_review_lots,
+        approvedLots: projectStats.approved_lots,
+        rejectedLots: projectStats.rejected_lots,
+        totalComments: projectStats.total_comments,
+        unresolvedComments: projectStats.unresolved_comments,
+      },
+    };
 
     return NextResponse.json(
       {
@@ -487,7 +431,7 @@ export async function POST(request: Request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Create project error:', error);
+    log.error('Create project error', error);
     return NextResponse.json({ message: 'An unexpected error occurred' }, { status: 500 });
   }
 }

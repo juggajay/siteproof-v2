@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const description = formData.get('description') as string;
     const severity = (formData.get('severity') as string) || 'medium';
     const category = (formData.get('category') as string) || 'Quality';
-    
+
     // Get optional UUID fields
     const assigned_to = formData.get('assigned_to') as string;
     const contractor_id = formData.get('contractor_id') as string;
@@ -65,12 +65,12 @@ export async function POST(request: NextRequest) {
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
-    
+
     // Add optional fields only if they have valid UUID values
     if (assigned_to && assigned_to.length === 36) {
       ncrData.assigned_to = assigned_to;
     }
-    
+
     if (contractor_id && contractor_id.length === 36) {
       ncrData.contractor_id = contractor_id;
     }
@@ -79,45 +79,19 @@ export async function POST(request: NextRequest) {
     const { data: newNcr, error: insertError } = await supabase
       .from('ncrs')
       .insert(ncrData)
-      .select('id, ncr_number, title, description, severity, category, status, created_at, assigned_to, contractor_id')
+      .select(
+        'id, ncr_number, title, description, severity, category, status, created_at, assigned_to, contractor_id'
+      )
       .single();
 
     if (insertError) {
       console.error('Direct insert error:', insertError);
-
-      // If it fails, return a mock successful response for testing
-      // This shows the NCR would be created if not for the database triggers
-      const mockNcr: any = {
-        id: ncrId,
-        ncr_number: ncrNumber,
-        title,
-        description,
-        severity,
-        category,
-        status: 'open',
-        project_id,
-        organization_id: project.organization_id,
-        raised_by: user.id,
-        created_at: new Date().toISOString(),
-        _mock: true,
-        _note: 'This is a simulated NCR. Database triggers are preventing actual creation.',
-      };
-      
-      if (assigned_to && assigned_to.length === 36) {
-        mockNcr.assigned_to = assigned_to;
-      }
-      
-      if (contractor_id && contractor_id.length === 36) {
-        mockNcr.contractor_id = contractor_id;
-      }
-
       return NextResponse.json(
         {
-          data: mockNcr,
-          warning:
-            'NCR created in mock mode due to database configuration. Contact admin to fix triggers.',
+          error: 'Failed to create NCR',
+          details: insertError.message || 'Database error occurred',
         },
-        { status: 201 }
+        { status: 500 }
       );
     }
 

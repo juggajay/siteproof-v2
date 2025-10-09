@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { initializeInspectionData } from '@/lib/itp/initialize-data';
+import { log } from '@/lib/logger';
 import {
   type LotWithProject,
   type OrganizationMember,
@@ -31,15 +32,18 @@ export async function POST(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    console.log('=== ITP Assignment API Debug ===');
-    console.log('User:', user?.id);
+    log.debug('ITP Assignment API started', { userId: user?.id });
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    console.log('Request body:', body);
+    log.debug('ITP Assignment request body', {
+      templateIdsCount: body.templateIds?.length,
+      lotId: body.lotId,
+      projectId: body.projectId,
+    });
 
     // Validate input
     const validationResult = assignITPSchema.safeParse(body);
@@ -95,7 +99,10 @@ export async function POST(request: NextRequest) {
     ]);
 
     const parallelQueriesTime = Date.now() - startTime;
-    console.log(`⚡ Parallel queries completed in ${parallelQueriesTime}ms`);
+    log.info('ITP Assignment: Parallel queries completed', {
+      duration: `${parallelQueriesTime}ms`,
+      lotId,
+    });
 
     if (lotError || !lot) {
       return NextResponse.json({ error: 'Lot not found' }, { status: 404 });
@@ -157,17 +164,20 @@ export async function POST(request: NextRequest) {
     }
 
     // OPTIMIZATION: Create ITP instances with initialized data (no RPC calls)
-    console.log(
-      'Creating instances for templates:',
-      typedTemplates.map((t) => t.name)
-    );
+    log.info('Creating ITP instances for templates', {
+      templateNames: typedTemplates.map((t) => t.name),
+      count: typedTemplates.length,
+    });
 
     const initStartTime = Date.now();
     const itpInstances: Omit<ITPInstanceRow, 'id' | 'created_at' | 'updated_at'>[] = [];
 
     for (const template of typedTemplates) {
       try {
-        console.log('Processing template:', template.name);
+        log.debug('Processing ITP template', {
+          templateName: template.name,
+          templateId: template.id,
+        });
 
         // Initialize inspection data using TypeScript function (no RPC overhead!)
         const initializedData = initializeInspectionData(template.structure);
@@ -193,7 +203,10 @@ export async function POST(request: NextRequest) {
           evidence_files: null,
         });
       } catch (templateError) {
-        console.error('Error processing template', template.name, ':', templateError);
+        log.error('Error processing ITP template', templateError, {
+          templateName: template.name,
+          templateId: template.id,
+        });
         return NextResponse.json(
           {
             error: `Failed to initialize template: ${template.name}`,
@@ -204,8 +217,10 @@ export async function POST(request: NextRequest) {
     }
 
     const initTime = Date.now() - initStartTime;
-    console.log(`⚡ Data initialization completed in ${initTime}ms`);
-    console.log('Final instances to create:', itpInstances.length);
+    log.info('ITP data initialization completed', {
+      duration: `${initTime}ms`,
+      instanceCount: itpInstances.length,
+    });
 
     const insertStartTime = Date.now();
     const { data: createdInstances, error: createError } = await supabase
@@ -214,18 +229,24 @@ export async function POST(request: NextRequest) {
       .select();
 
     if (createError) {
-      console.error('Error creating ITP instances:', createError);
-      console.error('Full create error details:', JSON.stringify(createError, null, 2));
+      log.error('Error creating ITP instances', createError, {
+        lotId,
+        projectId,
+        templateCount: itpInstances.length,
+      });
       return NextResponse.json({ error: 'Failed to assign ITP templates' }, { status: 500 });
     }
 
     const insertTime = Date.now() - insertStartTime;
     const totalTime = Date.now() - startTime;
 
-    console.log('Successfully created', createdInstances?.length || 0, 'instances');
-    console.log(`⚡ Database insert completed in ${insertTime}ms`);
-    console.log(`🚀 TOTAL API TIME: ${totalTime}ms`);
-    console.log('=================================');
+    log.info('ITP instances created successfully', {
+      instanceCount: createdInstances?.length || 0,
+      insertDuration: `${insertTime}ms`,
+      totalDuration: `${totalTime}ms`,
+      lotId,
+      projectId,
+    });
 
     const response: AssignITPResponse = {
       message: 'ITP templates assigned successfully',
@@ -234,8 +255,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response);
   } catch (error) {
-    console.error('Error assigning ITP templates:', error);
-    console.error('Full error stack:', error);
+    log.error('Error assigning ITP templates', error);
     return NextResponse.json({ error: 'Failed to assign ITP templates' }, { status: 500 });
   }
 }

@@ -97,7 +97,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const newStatus = is_satisfactory ? 'closed' : 'in_progress';
 
     // Update NCR with verification details
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       status: newStatus,
       verified_by: user.id,
       verified_at: new Date().toISOString(),
