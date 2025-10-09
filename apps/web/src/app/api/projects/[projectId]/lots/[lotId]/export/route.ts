@@ -41,16 +41,16 @@ export async function GET(
     console.log('[Export] Querying ITP instances...');
     console.log('[Export] Query params:', { lotId, projectId, userId: user.id });
 
-    // The RLS policy for itp_instances uses a subquery that joins projects and organization_members
-    // We don't need to explicitly join - just filter by project_id and lot_id
-    // The RLS policy will handle authorization automatically
+    // The RLS policy for itp_instances REQUIRES an explicit join with projects table
+    // This is because the policy uses: EXISTS (SELECT 1 FROM projects p JOIN organization_members...)
+    // Without the explicit join, the RLS policy fails to execute properly
     const itpPromise = supabase
       .from('itp_instances')
-      .select('id, name, status, completion_percentage, data, project_id')
+      .select('id, name, status, completion_percentage, data, project_id, projects!inner(id, organization_id)')
       .eq('lot_id', lotId)
       .eq('project_id', projectId);
 
-    console.log('[Export] ITP query built');
+    console.log('[Export] ITP query built with projects join for RLS');
 
     // Execute queries in parallel
     console.log('[Export] Executing queries...');
@@ -86,8 +86,14 @@ export async function GET(
       return NextResponse.json({ error: 'Lot not found' }, { status: 404 });
     }
 
+    // Clean up ITP instances - remove nested projects object added for RLS
+    const cleanedInstances = (itpInstances || []).map((itp: any) => {
+      const { projects, ...cleanedItp } = itp;
+      return cleanedItp;
+    });
+
     // Attach ITP instances to lot
-    lot.itp_instances = itpInstances || [];
+    lot.itp_instances = cleanedInstances;
 
     // Count completed ITPs
     const completedItps =
