@@ -39,23 +39,18 @@ export async function GET(
       .single();
 
     console.log('[Export] Querying ITP instances...');
-    // RLS policy requires explicit join with projects table to verify organization membership
-    // We must join with projects table for RLS to allow the query
+    console.log('[Export] Query params:', { lotId, projectId, userId: user.id });
+
+    // The RLS policy for itp_instances uses a subquery that joins projects and organization_members
+    // We don't need to explicitly join - just filter by project_id and lot_id
+    // The RLS policy will handle authorization automatically
     const itpPromise = supabase
       .from('itp_instances')
-      .select(
-        `
-        id,
-        name,
-        status,
-        completion_percentage,
-        data,
-        project_id,
-        projects!inner(id, organization_id)
-      `
-      )
+      .select('id, name, status, completion_percentage, data, project_id')
       .eq('lot_id', lotId)
       .eq('project_id', projectId);
+
+    console.log('[Export] ITP query built');
 
     // Execute queries in parallel
     console.log('[Export] Executing queries...');
@@ -69,22 +64,30 @@ export async function GET(
     }
 
     if (itpError) {
-      console.error('Error fetching ITP instances:', itpError);
-      return NextResponse.json({ error: 'Failed to fetch ITP instances' }, { status: 500 });
+      console.error('Error fetching ITP instances - FULL ERROR:', JSON.stringify(itpError, null, 2));
+      console.error('Error details:', {
+        message: itpError.message,
+        details: itpError.details,
+        hint: itpError.hint,
+        code: itpError.code,
+      });
+      return NextResponse.json({
+        error: 'Failed to fetch ITP instances',
+        debug: {
+          message: itpError.message,
+          details: itpError.details,
+          hint: itpError.hint,
+          code: itpError.code,
+        }
+      }, { status: 500 });
     }
 
     if (!lot) {
       return NextResponse.json({ error: 'Lot not found' }, { status: 404 });
     }
 
-    // Clean up ITP instances data - remove the nested projects object added for RLS
-    const cleanedItpInstances = (itpInstances || []).map((itp: any) => {
-      const { projects, ...cleanedItp } = itp;
-      return cleanedItp;
-    });
-
     // Attach ITP instances to lot
-    lot.itp_instances = cleanedItpInstances;
+    lot.itp_instances = itpInstances || [];
 
     // Count completed ITPs
     const completedItps =
