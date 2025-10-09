@@ -46,7 +46,9 @@ export async function GET(
     // Without the explicit join, the RLS policy fails to execute properly
     const itpPromise = supabase
       .from('itp_instances')
-      .select('id, name, status, completion_percentage, data, project_id, projects!inner(id, organization_id)')
+      .select(
+        'id, name, inspection_status, completion_percentage, data, project_id, projects!inner(id, organization_id)'
+      )
       .eq('lot_id', lotId)
       .eq('project_id', projectId);
 
@@ -64,22 +66,28 @@ export async function GET(
     }
 
     if (itpError) {
-      console.error('Error fetching ITP instances - FULL ERROR:', JSON.stringify(itpError, null, 2));
+      console.error(
+        'Error fetching ITP instances - FULL ERROR:',
+        JSON.stringify(itpError, null, 2)
+      );
       console.error('Error details:', {
         message: itpError.message,
         details: itpError.details,
         hint: itpError.hint,
         code: itpError.code,
       });
-      return NextResponse.json({
-        error: 'Failed to fetch ITP instances',
-        debug: {
-          message: itpError.message,
-          details: itpError.details,
-          hint: itpError.hint,
-          code: itpError.code,
-        }
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: 'Failed to fetch ITP instances',
+          debug: {
+            message: itpError.message,
+            details: itpError.details,
+            hint: itpError.hint,
+            code: itpError.code,
+          },
+        },
+        { status: 500 }
+      );
     }
 
     if (!lot) {
@@ -97,7 +105,7 @@ export async function GET(
 
     // Count completed ITPs
     const completedItps =
-      lot.itp_instances?.filter((itp: any) => itp.status === 'completed').length || 0;
+      lot.itp_instances?.filter((itp: any) => itp.inspection_status === 'completed').length || 0;
 
     // For now, return a success message - actual report generation would happen here
     return NextResponse.json({
