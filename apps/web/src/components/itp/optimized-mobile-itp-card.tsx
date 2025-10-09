@@ -313,18 +313,21 @@ export const OptimizedMobileItpCard = memo(function OptimizedMobileItpCard({
         onClose={() => setShowDeleteConfirm(false)}
         title="Delete ITP"
         size="small"
+        mobileFullScreen={false}
       >
-        <p className="text-gray-700">
-          Are you sure you want to delete this ITP? This action cannot be undone.
-        </p>
-        <ModalFooter>
-          <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Delete
-          </Button>
-        </ModalFooter>
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Are you sure you want to delete this ITP? This action cannot be undone.
+          </p>
+          <ModalFooter className="!p-0 !border-t-0 !bg-transparent">
+            <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDelete}>
+              Delete
+            </Button>
+          </ModalFooter>
+        </div>
       </Modal>
     </div>
   );
