@@ -8,7 +8,7 @@ import { log } from '@/lib/logger';
  * Manually trigger refresh of materialized views
  * Useful for debugging and immediate updates
  */
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
  *
  * Check if materialized view refresh is needed
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await createClient();
 
