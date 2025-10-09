@@ -223,6 +223,18 @@ export function MobileItpCard({
 
   const itpItems = getItpItems();
 
+  // Calculate status counts
+  const statusCounts = itpItems.reduce(
+    (acc, item) => {
+      if (item.status === 'pass') acc.pass++;
+      else if (item.status === 'fail') acc.fail++;
+      else if (item.status === 'na') acc.na++;
+      else acc.pending++;
+      return acc;
+    },
+    { pass: 0, fail: 0, na: 0, pending: 0 }
+  );
+
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4">
       {/* Header - Always visible */}
@@ -240,6 +252,21 @@ export function MobileItpCard({
               {itp.completion_percentage !== undefined && (
                 <span className="text-sm text-gray-500">{itp.completion_percentage}% complete</span>
               )}
+            </div>
+            {/* Status Summary */}
+            <div className="flex items-center gap-3 mt-2 text-sm">
+              <span className="flex items-center gap-1 text-green-600">
+                <CheckCircle2 className="h-4 w-4" />
+                {statusCounts.pass}
+              </span>
+              <span className="flex items-center gap-1 text-red-600">
+                <XCircle className="h-4 w-4" />
+                {statusCounts.fail}
+              </span>
+              <span className="flex items-center gap-1 text-gray-600">
+                <MinusCircle className="h-4 w-4" />
+                {statusCounts.na}
+              </span>
             </div>
           </div>
           <div className="ml-4 flex items-center gap-2">
