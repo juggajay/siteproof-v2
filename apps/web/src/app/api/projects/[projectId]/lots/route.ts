@@ -25,6 +25,7 @@ export async function GET(
     // Eliminates N+1 pattern (was 1 query for lots + N queries for ITP instances)
     // Expected improvement: 10 lots = 91% reduction (11 queries → 1 query)
     //                      50 lots = 98% reduction (51 queries → 1 query)
+    // Note: lots table does not have deleted_at column
     const { data: lots, error } = await supabase
       .from('lots')
       .select(`
@@ -36,7 +37,6 @@ export async function GET(
         )
       `)
       .eq('project_id', projectId)
-      .is('deleted_at', null)
       .order('lot_number', { ascending: true });
 
     if (error) {

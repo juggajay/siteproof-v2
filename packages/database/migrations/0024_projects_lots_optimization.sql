@@ -24,11 +24,11 @@ CREATE INDEX IF NOT EXISTS idx_projects_org_deleted
 -- Lots Table Optimizations
 -- ============================================================================
 
--- Composite index for project_id + lot_number with deleted filter
+-- Composite index for project_id + lot_number
 -- Used in: /api/projects/[projectId]/lots (lots list query)
-CREATE INDEX IF NOT EXISTS idx_lots_project_deleted
-  ON lots(project_id, lot_number)
-  WHERE deleted_at IS NULL;
+-- Note: lots table does not have deleted_at column
+CREATE INDEX IF NOT EXISTS idx_lots_project_number
+  ON lots(project_id, lot_number);
 
 -- ============================================================================
 -- ITP Instances for Lots Join
@@ -68,7 +68,7 @@ COMMENT ON INDEX idx_projects_org_status_created IS 'Optimizes projects list que
 
 COMMENT ON INDEX idx_projects_org_deleted IS 'Optimizes deleted project filtering. Partial index only includes non-deleted projects.';
 
-COMMENT ON INDEX idx_lots_project_deleted IS 'Optimizes lots list queries by project. Expected to reduce query time from ~300ms to <30ms for 50+ lots.';
+COMMENT ON INDEX idx_lots_project_number IS 'Optimizes lots list queries by project. Expected to reduce query time from ~300ms to <30ms for 50+ lots.';
 
 COMMENT ON INDEX idx_itp_instances_lot_status IS 'Covering index for lots JOIN queries. Includes completion_percentage for index-only scans. Expected to reduce N+1 query overhead by 95%.';
 

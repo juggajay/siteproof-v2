@@ -64,10 +64,10 @@ const lotsTests = [
     description: 'Should NOT have Promise.all loop (N+1 pattern eliminated)'
   },
   {
-    name: 'Soft-delete filtering',
+    name: 'No deleted_at filter (lots table has no deleted_at)',
     pattern: /\.is\(['"]deleted_at['"],\s*null\)/,
-    expected: true,
-    description: 'Should filter deleted_at IS NULL'
+    expected: false,
+    description: 'Should NOT filter deleted_at (lots table does not have this column)'
   },
   {
     name: 'Optimization comment',
