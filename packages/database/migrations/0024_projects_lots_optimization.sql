@@ -34,12 +34,11 @@ CREATE INDEX IF NOT EXISTS idx_lots_project_number
 -- ITP Instances for Lots Join
 -- ============================================================================
 
--- Covering index for lot_id + inspection_status with commonly queried fields
+-- Index for lot_id + inspection_status
 -- Used in: /api/projects/[projectId]/lots (JOIN to fetch ITP instances)
--- INCLUDE clause allows index-only scans
+-- Optimizes the lots->itp_instances JOIN query
 CREATE INDEX IF NOT EXISTS idx_itp_instances_lot_status
   ON itp_instances(lot_id, inspection_status)
-  INCLUDE (completion_percentage)
   WHERE deleted_at IS NULL;
 
 -- ============================================================================
@@ -70,6 +69,6 @@ COMMENT ON INDEX idx_projects_org_deleted IS 'Optimizes deleted project filterin
 
 COMMENT ON INDEX idx_lots_project_number IS 'Optimizes lots list queries by project. Expected to reduce query time from ~300ms to <30ms for 50+ lots.';
 
-COMMENT ON INDEX idx_itp_instances_lot_status IS 'Covering index for lots JOIN queries. Includes completion_percentage for index-only scans. Expected to reduce N+1 query overhead by 95%.';
+COMMENT ON INDEX idx_itp_instances_lot_status IS 'Optimizes lots JOIN queries on lot_id and inspection_status. Expected to reduce N+1 query overhead by 95%.';
 
 COMMENT ON INDEX idx_org_members_user IS 'Optimizes organization membership lookups. Expected to reduce query time from ~100ms to <10ms.';

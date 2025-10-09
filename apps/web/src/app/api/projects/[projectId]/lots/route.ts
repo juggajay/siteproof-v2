@@ -26,14 +26,14 @@ export async function GET(
     // Expected improvement: 10 lots = 91% reduction (11 queries → 1 query)
     //                      50 lots = 98% reduction (51 queries → 1 query)
     // Note: lots table does not have deleted_at column
+    // Note: itp_instances table schema may vary - using basic columns
     const { data: lots, error } = await supabase
       .from('lots')
       .select(`
         *,
         itp_instances (
           id,
-          inspection_status,
-          completion_percentage
+          inspection_status
         )
       `)
       .eq('project_id', projectId)
