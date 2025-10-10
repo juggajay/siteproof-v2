@@ -143,7 +143,16 @@ export async function GET(request: Request) {
       });
     }
 
-    return NextResponse.json({ reports: filteredReports });
+    return NextResponse.json(
+      { reports: filteredReports },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error in reports GET:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
