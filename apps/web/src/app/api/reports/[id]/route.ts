@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 // DELETE /api/reports/[id] - Delete a report
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    console.log('[DELETE /api/reports/[id]] Request received');
+    console.log('[DELETE /api/reports/[id]] Request received - CODE VERSION: 2025-10-11-v2');
     console.log('[DELETE /api/reports/[id]] Params:', params);
 
     const { id: reportId } = params;
@@ -20,7 +20,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
 
     console.log('[DELETE /api/reports/[id]] User lookup result:', {
       userId: user?.id,
-      userError: userError?.message
+      userError: userError?.message,
     });
 
     if (userError || !user) {
@@ -28,7 +28,12 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    console.log('[DELETE /api/reports/[id]] Attempting to delete report:', reportId, 'for user:', user.id);
+    console.log(
+      '[DELETE /api/reports/[id]] Attempting to delete report:',
+      reportId,
+      'for user:',
+      user.id
+    );
 
     // Delete the report directly - RLS policies will enforce permissions
     // The DELETE policy allows users to delete their own reports or reports in organizations where they are admin/owner/project_manager
@@ -82,25 +87,53 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
           { status: 403 }
         );
       } else {
-        // Report doesn't exist or user can't see it
-        // Either the report was already deleted (success case) or never existed (also a success case for idempotency)
-        console.log('Report not found or already deleted:', reportId);
-        return NextResponse.json({
-          success: true,
-          message: 'Report deleted successfully (or already deleted)',
-          deletedCount: 0,
-        });
+        // Report doesn't exist or user can't see it after failed DELETE
+        // This is ambiguous: could be already deleted, never existed, or RLS policy inconsistency
+        console.error('DELETE returned 0 rows, and subsequent SELECT also returned 0 rows');
+        console.error(
+          'Possible causes: 1) Report already deleted, 2) User lost permissions, 3) RLS policy mismatch'
+        );
+        console.error('Returning 404 to avoid false success when report may still exist');
+
+        return NextResponse.json(
+          {
+            error: 'Report not found or you do not have permission to delete it',
+            details: {
+              reportId,
+              deletedCount: 0,
+              visible: false,
+              hint: 'The report may have been already deleted, or you may lack permission to delete it.',
+            },
+          },
+          {
+            status: 404,
+            headers: {
+              'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+              Pragma: 'no-cache',
+              Expires: '0',
+            },
+          }
+        );
       }
     }
 
     // Success - report was deleted
     console.log('Successfully deleted report:', reportId, 'Deleted rows:', deletedData.length);
 
-    return NextResponse.json({
-      success: true,
-      message: 'Report deleted successfully',
-      deletedCount: deletedData.length,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        message: 'Report deleted successfully',
+        deletedCount: deletedData.length,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (error) {
     console.error('Error in delete report endpoint:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

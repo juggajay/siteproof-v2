@@ -177,7 +177,8 @@ export function RecentReportsList({
   useEffect(() => {
     if (!user) return;
 
-    // Subscribe to report status changes
+    // Subscribe to ALL report changes (not just user's reports)
+    // This ensures we get notified of deletions for org reports too
     const channel = supabase
       .channel('report-status-changes')
       .on(
@@ -186,7 +187,8 @@ export function RecentReportsList({
           event: '*',
           schema: 'public',
           table: 'report_queue',
-          filter: user?.id ? `requested_by=eq.${user.id}` : undefined,
+          // Remove filter to listen to all reports in organizations the user belongs to
+          // RLS will still prevent seeing reports they shouldn't see
         },
         (payload) => {
           console.log('Report status change:', payload);
@@ -194,25 +196,28 @@ export function RecentReportsList({
           // Invalidate the query to refetch
           queryClient.invalidateQueries({ queryKey: ['reports'] });
 
-          // Show notification for status changes
+          // Show notification for status changes (only for user's own reports)
           if (payload.eventType === 'UPDATE') {
             const report = payload.new as Report;
 
-            if (report.status === 'completed') {
-              toast.success('Report ready!', {
-                description: `${report.report_name} has been generated successfully`,
-                action: {
-                  label: 'Download',
-                  onClick: () => {
-                    downloadReport(report).catch(console.error);
+            // Only show notifications for reports the user requested
+            if (report.requested_by?.id === user.id) {
+              if (report.status === 'completed') {
+                toast.success('Report ready!', {
+                  description: `${report.report_name} has been generated successfully`,
+                  action: {
+                    label: 'Download',
+                    onClick: () => {
+                      downloadReport(report).catch(console.error);
+                    },
                   },
-                },
-              });
-            } else if (report.status === 'failed') {
-              toast.error('Report generation failed', {
-                description:
-                  report.error_message || 'An error occurred while generating the report',
-              });
+                });
+              } else if (report.status === 'failed') {
+                toast.error('Report generation failed', {
+                  description:
+                    report.error_message || 'An error occurred while generating the report',
+                });
+              }
             }
           }
         }
@@ -502,7 +507,7 @@ export function RecentReportsList({
         method: 'DELETE',
         credentials: 'include',
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
       });
 
@@ -519,7 +524,9 @@ export function RecentReportsList({
           errorData = JSON.parse(responseText);
         } catch (e) {
           console.error('Could not parse error response as JSON:', responseText);
-          throw new Error(`HTTP ${response.status}: ${response.statusText} - ${responseText.substring(0, 100)}`);
+          throw new Error(
+            `HTTP ${response.status}: ${response.statusText} - ${responseText.substring(0, 100)}`
+          );
         }
         console.error('Delete failed with error data:', errorData);
         throw new Error(errorData.error || 'Failed to delete report');
@@ -534,6 +541,16 @@ export function RecentReportsList({
       }
 
       console.log('Delete result:', result);
+
+      // Validate that the report was actually deleted
+      if (result.success && result.deletedCount === 0) {
+        console.error(
+          'API returned success but deletedCount is 0 - report was not actually deleted'
+        );
+        throw new Error(
+          'Report was not deleted. You may not have permission to delete this report.'
+        );
+      }
 
       toast.success('Report deleted successfully', { id: `delete-${reportId}` });
 
