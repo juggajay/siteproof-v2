@@ -24,7 +24,7 @@ export async function GET(
     // This eliminates the separate template fetch and client-side mapping
     // REMOVED: projects!inner join - it causes RLS issues and is unnecessary
     // The RLS policy on itp_instances already verifies project access
-    let query = supabase
+    const { data: itpInstances, error: instancesError } = await supabase
       .from('itp_instances')
       .select(
         `
@@ -40,11 +40,8 @@ export async function GET(
       `
       )
       .eq('lot_id', lotId)
+      .is('deleted_at', null) // Filter out soft-deleted ITPs
       .order('created_at', { ascending: false });
-
-    // Only filter by deleted_at if column exists (migration 0011 may not be applied yet)
-    // Check if we can filter by is_active instead as a fallback
-    const { data: itpInstances, error: instancesError } = await query;
 
     if (instancesError) {
       console.error('[ITP API] Error fetching instances:', instancesError);
