@@ -16,33 +16,37 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's organization
-    const { data: member, error: memberError } = await supabase
-      .from('organization_members')
-      .select('organization_id, role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (memberError || !member) {
-      return NextResponse.json({ error: 'No organization found' }, { status: 404 });
-    }
-
-    // Get the report to check permissions
+    // Fetch the report with RLS enforcing access
     const { data: report, error: reportError } = await supabase
       .from('report_queue')
       .select('*')
       .eq('id', reportId)
-      .eq('organization_id', member.organization_id)
-      .single();
+      .maybeSingle();
 
-    if (reportError || !report) {
+    if (reportError) {
+      console.error('Error fetching report for delete:', reportError);
+      return NextResponse.json({ error: 'Failed to fetch report' }, { status: 500 });
+    }
+
+    if (!report) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
     // Check if user can delete this report
-    const canDelete =
-      report.requested_by === user.id || // User created it
-      ['owner', 'admin', 'project_manager'].includes(member.role); // Or has admin permissions
+    let canDelete = report.requested_by === user.id;
+
+    if (!canDelete) {
+      const { data: membership } = await supabase
+        .from('organization_members')
+        .select('role')
+        .eq('organization_id', report.organization_id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (membership?.role) {
+        canDelete = ['owner', 'admin', 'project_manager'].includes(membership.role);
+      }
+    }
 
     if (!canDelete) {
       return NextResponse.json(
@@ -57,6 +61,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       .from('report_queue')
       .delete()
       .eq('id', reportId)
+      .eq('organization_id', report.organization_id)
       .select();
 
     if (deleteError) {

@@ -107,6 +107,7 @@ export function RecentReportsList({
   const supabase = createClient();
   const [filter, setFilter] = useState<'all' | 'my' | 'processing'>('all');
   const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
+  const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
 
   // Fetch recent reports
   const {
@@ -349,6 +350,7 @@ export function RecentReportsList({
         }
 
         toast.info(message, { id: `download-${report.id}` });
+        setDownloadingReportId(null);
         return;
       }
 
@@ -464,6 +466,11 @@ export function RecentReportsList({
   };
 
   const deleteReport = async (reportId: string, reportName: string) => {
+    if (deletingReportId === reportId) {
+      toast.info('Delete already in progress...');
+      return;
+    }
+
     if (
       !window.confirm(
         `Are you sure you want to delete "${reportName}"? This action cannot be undone.`
@@ -471,6 +478,8 @@ export function RecentReportsList({
     ) {
       return;
     }
+
+    setDeletingReportId(reportId);
 
     try {
       console.log('Deleting report:', reportId);
@@ -492,6 +501,8 @@ export function RecentReportsList({
     } catch (error) {
       console.error('Delete error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to delete report');
+    } finally {
+      setDeletingReportId((current) => (current === reportId ? null : current));
     }
   };
 
@@ -772,6 +783,7 @@ export function RecentReportsList({
                     <Button
                       variant="ghost"
                       size="sm"
+                      disabled={deletingReportId === report.id}
                       onClick={(e) => {
                         e.stopPropagation();
                         deleteReport(report.id, report.report_name);
@@ -779,7 +791,11 @@ export function RecentReportsList({
                       title="Delete Report"
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      {deletingReportId === report.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
                 </div>
