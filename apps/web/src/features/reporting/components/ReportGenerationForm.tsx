@@ -309,6 +309,18 @@ export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFo
                       ? 'border-blue-500 bg-blue-50'
                       : 'border-gray-200 hover:border-gray-300'
                   } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                  onMouseDown={(event) => {
+                    if (event.target instanceof HTMLElement && event.target.tagName === 'INPUT') {
+                      return;
+                    }
+                    if (disabled) {
+                      event.preventDefault();
+                      return;
+                    }
+                    setValue('report_type', type.value as ReportFormData['report_type'], {
+                      shouldDirty: true,
+                    });
+                  }}
                 >
                   <input
                     type="radio"

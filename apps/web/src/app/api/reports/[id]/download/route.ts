@@ -68,14 +68,22 @@ export async function GET(
     // Fetch organization separately to avoid RLS JOIN issues
     let organizationName = 'Unknown';
     if (report.organization_id) {
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', report.organization_id)
-        .single();
+      try {
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('name')
+          .eq('id', report.organization_id)
+          .maybeSingle();
 
-      if (org) {
-        organizationName = org.name;
+        if (org?.name) {
+          organizationName = org.name;
+        }
+      } catch (orgError) {
+        log.warn('Unable to fetch organization name for report download', {
+          error: orgError,
+          reportId,
+          organizationId: report.organization_id,
+        });
       }
     }
 

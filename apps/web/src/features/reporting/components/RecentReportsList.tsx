@@ -481,6 +481,18 @@ export function RecentReportsList({
 
     setDeletingReportId(reportId);
 
+    // Store the current query key for this specific query
+    const currentQueryKey = ['reports', filter, limit];
+
+    // Optimistically update the cache to remove the report immediately
+    const previousReports = queryClient.getQueryData<Report[]>(currentQueryKey);
+
+    // Immediately remove the report from the UI (optimistic update)
+    queryClient.setQueryData<Report[]>(currentQueryKey, (oldData) => {
+      if (!oldData) return oldData;
+      return oldData.filter((report) => report.id !== reportId);
+    });
+
     try {
       console.log('Deleting report:', reportId);
       toast.loading('Deleting report...', { id: `delete-${reportId}` });
@@ -503,15 +515,21 @@ export function RecentReportsList({
 
       toast.success('Report deleted successfully', { id: `delete-${reportId}` });
 
-      // Invalidate all report queries to force refetch
-      await queryClient.invalidateQueries({ queryKey: ['reports'] });
-
-      // Also force an immediate refetch to update the UI
-      await refetch();
+      // Invalidate all report queries to ensure consistency across all filters
+      await queryClient.invalidateQueries({
+        queryKey: ['reports'],
+        exact: false, // This ensures all queries starting with 'reports' are invalidated
+        refetchType: 'active', // Only refetch active queries
+      });
     } catch (error) {
       console.error('Delete error:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to delete report';
       toast.error(errorMessage, { id: `delete-${reportId}` });
+
+      // Rollback the optimistic update on error
+      if (previousReports) {
+        queryClient.setQueryData<Report[]>(currentQueryKey, previousReports);
+      }
     } finally {
       setDeletingReportId((current) => (current === reportId ? null : current));
     }
