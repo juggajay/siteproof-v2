@@ -106,6 +106,7 @@ export function RecentReportsList({
   const queryClient = useQueryClient();
   const supabase = createClient();
   const [filter, setFilter] = useState<'all' | 'my' | 'processing'>('all');
+  const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
 
   // Fetch recent reports
   const {
@@ -276,6 +277,11 @@ export function RecentReportsList({
   }, [openFormatDropdown]);
 
   const handleCardClick = (report: Report) => {
+    if (downloadingReportId === report.id) {
+      toast.info('Download in progress...');
+      return;
+    }
+
     if (report.status === 'completed') {
       downloadReport(report).catch(console.error);
       return;
@@ -308,6 +314,8 @@ export function RecentReportsList({
       toast.error('You must be logged in to download reports');
       return;
     }
+
+    setDownloadingReportId(report.id);
 
     try {
       console.log('Starting download for report:', report.id, 'with format:', selectedFormat);
@@ -420,6 +428,8 @@ export function RecentReportsList({
         userAuthenticated: !!user,
         timestamp: new Date().toISOString(),
       });
+    } finally {
+      setDownloadingReportId((current) => (current === report.id ? null : current));
     }
   };
 
@@ -573,7 +583,9 @@ export function RecentReportsList({
                         <h4 className="font-medium text-gray-900">{report.report_name}</h4>
                         <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
                           {report.status === 'completed'
-                            ? `Ready • ${formatConfig[report.format].label}`
+                            ? downloadingReportId === report.id
+                              ? 'Downloading...'
+                              : `Ready • ${formatConfig[report.format].label}`
                             : `Status • ${status.label}`}
                         </span>
                       </div>
@@ -647,6 +659,7 @@ export function RecentReportsList({
                         <Button
                           variant="secondary"
                           size="sm"
+                          disabled={downloadingReportId === report.id}
                           onClick={(e) => {
                             e.stopPropagation();
                             setOpenFormatDropdown(
@@ -654,11 +667,20 @@ export function RecentReportsList({
                             );
                           }}
                           title="Download report"
-                          className="flex items-center gap-1"
+                          className="flex items-center gap-2"
                         >
-                          <Download className="w-4 h-4" />
-                          {formatConfig[report.format].label}
-                          <ChevronDown className="w-3 h-3 ml-1" />
+                          {downloadingReportId === report.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>Downloading...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Download className="w-4 h-4" />
+                              <span>{formatConfig[report.format].label}</span>
+                              <ChevronDown className="w-3 h-3 ml-1" />
+                            </>
+                          )}
                         </Button>
 
                         {openFormatDropdown === report.id && (
@@ -668,6 +690,7 @@ export function RecentReportsList({
                           >
                             <button
                               className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-t-lg"
+                              disabled={downloadingReportId === report.id}
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 setOpenFormatDropdown(null);
@@ -679,6 +702,7 @@ export function RecentReportsList({
                             </button>
                             <button
                               className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                              disabled={downloadingReportId === report.id}
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 setOpenFormatDropdown(null);
@@ -690,6 +714,7 @@ export function RecentReportsList({
                             </button>
                             <button
                               className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                              disabled={downloadingReportId === report.id}
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 setOpenFormatDropdown(null);
@@ -701,6 +726,7 @@ export function RecentReportsList({
                             </button>
                             <button
                               className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-b-lg"
+                              disabled={downloadingReportId === report.id}
                               onClick={async (e) => {
                                 e.stopPropagation();
                                 setOpenFormatDropdown(null);
