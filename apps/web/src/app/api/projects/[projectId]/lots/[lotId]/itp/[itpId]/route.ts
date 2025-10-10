@@ -182,24 +182,60 @@ export async function DELETE(
 
     const { itpId, lotId } = await params;
 
+    console.log('[ITP DELETE] 🗑️ Deleting ITP:', { itpId, lotId, userId: user.id });
+
+    // First check if the ITP exists
+    const { data: existingItp, error: fetchError } = await supabase
+      .from('itp_instances')
+      .select('id, deleted_at, is_active')
+      .eq('id', itpId)
+      .eq('lot_id', lotId)
+      .single();
+
+    console.log('[ITP DELETE] 📋 Existing ITP:', existingItp, 'Error:', fetchError);
+
+    if (fetchError || !existingItp) {
+      console.error('[ITP DELETE] ❌ ITP not found');
+      return NextResponse.json({ error: 'ITP instance not found' }, { status: 404 });
+    }
+
     // Soft delete by setting deleted_at timestamp
-    const { error } = await supabase
+    const deletedAt = new Date().toISOString();
+    console.log('[ITP DELETE] 📅 Setting deleted_at to:', deletedAt);
+
+    const { data: updatedData, error } = await supabase
       .from('itp_instances')
       .update({
-        deleted_at: new Date().toISOString(),
+        deleted_at: deletedAt,
         is_active: false,
       })
       .eq('id', itpId)
-      .eq('lot_id', lotId);
+      .eq('lot_id', lotId)
+      .select();
+
+    console.log('[ITP DELETE] 📤 Update result:', { updatedData, error });
 
     if (error) {
-      console.error('Error deleting ITP instance:', error);
+      console.error('[ITP DELETE] ❌ Error deleting ITP instance:', error);
       return NextResponse.json({ error: 'Failed to delete ITP instance' }, { status: 500 });
     }
 
-    return NextResponse.json({ message: 'ITP instance deleted successfully' });
+    // Verify the deletion
+    const { data: verifyData, error: verifyError } = await supabase
+      .from('itp_instances')
+      .select('id, deleted_at, is_active')
+      .eq('id', itpId)
+      .single();
+
+    console.log('[ITP DELETE] 🔍 Verification after delete:', { verifyData, verifyError });
+
+    return NextResponse.json({
+      message: 'ITP instance deleted successfully',
+      deletedAt,
+      verification: verifyData,
+    });
   } catch (error) {
-    console.error('Delete ITP instance error:', error);
+    console.error('[ITP DELETE] ❌ Delete ITP instance error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

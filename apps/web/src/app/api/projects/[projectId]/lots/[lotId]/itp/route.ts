@@ -18,7 +18,19 @@ export async function GET(
 
     const { lotId } = await params;
 
-    console.log('[ITP API] Fetching instances for lot:', lotId);
+    console.log('[ITP API] 🔍 Fetching instances for lot:', lotId);
+
+    // First, let's see ALL instances including deleted ones for debugging
+    const { data: allInstances } = await supabase
+      .from('itp_instances')
+      .select('id, deleted_at, is_active, created_at')
+      .eq('lot_id', lotId);
+
+    console.log('[ITP API] 📊 All instances (including deleted):', allInstances);
+    console.log(
+      '[ITP API] 📊 Deleted instances:',
+      allInstances?.filter((i) => i.deleted_at !== null)
+    );
 
     // OPTIMIZED: Single query with template JOIN instead of N+1 pattern
     // This eliminates the separate template fetch and client-side mapping
@@ -44,7 +56,7 @@ export async function GET(
       .order('created_at', { ascending: false });
 
     if (instancesError) {
-      console.error('[ITP API] Error fetching instances:', instancesError);
+      console.error('[ITP API] ❌ Error fetching instances:', instancesError);
       return NextResponse.json(
         {
           error: 'Failed to fetch ITP instances',
@@ -54,7 +66,11 @@ export async function GET(
       );
     }
 
-    console.log('[ITP API] Found instances:', itpInstances?.length || 0);
+    console.log('[ITP API] ✅ Found active instances:', itpInstances?.length || 0);
+    console.log(
+      '[ITP API] 📋 Active instance IDs:',
+      itpInstances?.map((i) => ({ id: i.id, deleted_at: i.deleted_at, is_active: i.is_active }))
+    );
 
     // No cleanup needed - template data is already properly nested
     // and we don't have the projects join anymore

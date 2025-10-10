@@ -285,23 +285,34 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
   };
 
   const handleDeleteItp = async (itpId: string) => {
-    console.log(`🗑️ Deleting ITP: ${itpId}`);
+    console.log(`🗑️ [Frontend] Deleting ITP: ${itpId}`);
 
     try {
       const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp/${itpId}`, {
         method: 'DELETE',
       });
 
+      console.log(`📡 [Frontend] Delete response status:`, response.status);
+
       if (response.ok) {
-        console.log(`✅ ITP ${itpId} deleted successfully`);
-        // Reload the instances to get updated list
+        const responseData = await response.json();
+        console.log(`✅ [Frontend] ITP ${itpId} deleted successfully:`, responseData);
+
+        // Immediately remove from state for instant UI feedback
+        setItpInstances((prev) => prev.filter((itp) => itp.id !== itpId));
+
+        // Then reload to sync with server
+        console.log(`🔄 [Frontend] Reloading instances...`);
         await loadItpInstances();
+
+        toast.success('ITP deleted successfully');
       } else {
-        console.error('Failed to delete ITP:', response.status);
+        const errorData = await response.json();
+        console.error('❌ [Frontend] Failed to delete ITP:', response.status, errorData);
         toast.error('Failed to delete ITP. Please try again.');
       }
     } catch (error) {
-      console.error('Error deleting ITP:', error);
+      console.error('❌ [Frontend] Error deleting ITP:', error);
       toast.error('Failed to delete ITP. Please try again.');
     }
   };
