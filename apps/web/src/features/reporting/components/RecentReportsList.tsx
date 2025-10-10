@@ -495,22 +495,44 @@ export function RecentReportsList({
 
     try {
       console.log('Deleting report:', reportId);
+      console.log('Delete URL:', `/api/reports/${reportId}`);
       toast.loading('Deleting report...', { id: `delete-${reportId}` });
 
       const response = await fetch(`/api/reports/${reportId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          'Accept': 'application/json',
+        },
       });
 
       console.log('Delete response status:', response.status);
+      console.log('Delete response headers:', Object.fromEntries(response.headers.entries()));
+
+      // Get the response text to see what was actually returned
+      const responseText = await response.text();
+      console.log('Delete response body:', responseText);
 
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch (e) {
+          console.error('Could not parse error response as JSON:', responseText);
+          throw new Error(`HTTP ${response.status}: ${response.statusText} - ${responseText.substring(0, 100)}`);
+        }
         console.error('Delete failed with error data:', errorData);
         throw new Error(errorData.error || 'Failed to delete report');
       }
 
-      const result = await response.json();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Could not parse success response as JSON:', responseText);
+        result = { success: true }; // Assume success if we got 200 but can't parse
+      }
+
       console.log('Delete result:', result);
 
       toast.success('Report deleted successfully', { id: `delete-${reportId}` });

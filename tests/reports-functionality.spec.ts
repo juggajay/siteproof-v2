@@ -51,7 +51,7 @@ test.describe('Reports Functionality', () => {
     await expect(page.locator('text=Report Type')).toBeVisible();
     await expect(page.locator('text=Report Name')).toBeVisible();
     await expect(page.locator('text=Project')).toBeVisible();
-    await expect(page.locator('text=Date Range')).toBeVisible();
+    await expect(page.locator('text=Report Date')).toBeVisible();
     await expect(page.locator('text=Export Format')).toBeVisible();
   });
 
@@ -124,24 +124,22 @@ test.describe('Reports Functionality', () => {
     await expect(page.locator('text=Description (optional)')).toBeVisible();
   });
 
-  test('should handle date range selection', async ({ page }) => {
+  test('should handle single date selection', async ({ page }) => {
     await page.goto(`${TEST_URL}/dashboard/reports`);
     await page.click('button:has-text("Generate Report")');
     
-    // Get date inputs
-    const startDateInput = page.locator('input[type="date"]').first();
-    const endDateInput = page.locator('input[type="date"]').last();
-    
-    // Set dates
-    const startDate = format(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
-    const endDate = format(new Date(), 'yyyy-MM-dd');
-    
-    await startDateInput.fill(startDate);
-    await endDateInput.fill(endDate);
-    
-    // Verify values are set
-    await expect(startDateInput).toHaveValue(startDate);
-    await expect(endDateInput).toHaveValue(endDate);
+    const dateInput = page.locator('input[type="date"]').first();
+    const mirroredDateInput = page.locator('input[type="date"]').nth(1);
+
+    const targetDate = format(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+
+    await dateInput.fill(targetDate);
+
+    await expect(dateInput).toHaveValue(targetDate);
+    await expect(mirroredDateInput).toHaveValue(targetDate);
+
+    const isReadOnly = await mirroredDateInput.evaluate((el) => el.hasAttribute('readonly'));
+    expect(isReadOnly).toBeTruthy();
   });
 
   test('should display recent reports list', async ({ page }) => {

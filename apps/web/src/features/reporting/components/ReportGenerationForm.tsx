@@ -144,7 +144,7 @@ export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFo
     defaultValues: {
       format: 'pdf',
       date_range: {
-        start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        start: new Date().toISOString().split('T')[0],
         end: new Date().toISOString().split('T')[0],
       },
       include_photos: false,
@@ -216,6 +216,15 @@ export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFo
   const dateRange = watch('date_range');
   const projectSelected = Boolean(projectId);
   const autoNameRef = useRef<string>('');
+
+  useEffect(() => {
+    if (!dateRange?.start) {
+      setValue('date_range.end', '', { shouldDirty: false });
+      return;
+    }
+
+    setValue('date_range.end', dateRange.start, { shouldDirty: false });
+  }, [dateRange?.start, setValue]);
 
   // Automatically generate report name based on type and date range
   useEffect(() => {
@@ -417,10 +426,13 @@ export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFo
         </div>
       </div>
 
-      {/* Date Range */}
+      {/* Date Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <label className="block text-sm font-medium text-gray-700 mb-1">Report Date</label>
+        <p className="text-sm text-gray-500 mb-2">
+          Choose the date you want this report to cover. You can only pick one day for now.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
           <div>
             <input
               type="date"
@@ -432,14 +444,13 @@ export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFo
             )}
           </div>
           <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">End date (auto)</label>
             <input
               type="date"
-              {...register('date_range.end')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={dateRange?.start || ''}
+              readOnly
+              className="w-full px-3 py-2 border border-dashed border-gray-300 rounded-lg bg-gray-50 text-gray-500"
             />
-            {errors.date_range?.end && (
-              <p className="mt-1 text-sm text-red-600">{errors.date_range.end.message}</p>
-            )}
           </div>
         </div>
       </div>

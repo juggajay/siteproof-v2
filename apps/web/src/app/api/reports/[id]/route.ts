@@ -4,7 +4,12 @@ import { createClient } from '@/lib/supabase/server';
 // DELETE /api/reports/[id] - Delete a report
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
+    console.log('[DELETE /api/reports/[id]] Request received');
+    console.log('[DELETE /api/reports/[id]] Params:', params);
+
     const { id: reportId } = params;
+    console.log('[DELETE /api/reports/[id]] Report ID:', reportId);
+
     const supabase = await createClient();
 
     // Get current user
@@ -12,55 +17,21 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       data: { user },
       error: userError,
     } = await supabase.auth.getUser();
+
+    console.log('[DELETE /api/reports/[id]] User lookup result:', {
+      userId: user?.id,
+      userError: userError?.message
+    });
+
     if (userError || !user) {
+      console.log('[DELETE /api/reports/[id]] Unauthorized - returning 401');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch the report with RLS enforcing access
-    const { data: report, error: reportError } = await supabase
-      .from('report_queue')
-      .select('*')
-      .eq('id', reportId)
-      .maybeSingle();
+    console.log('[DELETE /api/reports/[id]] Attempting to delete report:', reportId, 'for user:', user.id);
 
-    if (reportError) {
-      console.error('Error fetching report for delete:', reportError);
-      return NextResponse.json({ error: 'Failed to fetch report' }, { status: 500 });
-    }
-
-    if (!report) {
-      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
-    }
-
-    // Check if user can delete this report
-    let canDelete = report.requested_by === user.id;
-
-    if (!canDelete) {
-      const { data: membership } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', report.organization_id)
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (membership?.role) {
-        canDelete = ['owner', 'admin', 'project_manager'].includes(membership.role);
-      }
-    }
-
-    if (!canDelete) {
-      return NextResponse.json(
-        { error: 'You do not have permission to delete this report' },
-        { status: 403 }
-      );
-    }
-
-    // Delete the report
-    // Note: We only need to filter by ID - RLS policies will enforce permissions
-    console.log('Attempting to delete report:', reportId, 'for user:', user.id);
-    console.log('Report organization_id:', report.organization_id);
-    console.log('User can delete:', canDelete);
-
+    // Delete the report directly - RLS policies will enforce permissions
+    // The DELETE policy allows users to delete their own reports or reports in organizations where they are admin/owner/project_manager
     const { data: deletedData, error: deleteError } = await supabase
       .from('report_queue')
       .delete()
@@ -83,10 +54,10 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
 
     // Check if any rows were actually deleted
     if (!deletedData || deletedData.length === 0) {
-      console.error('No rows deleted for report:', reportId);
-      console.error('This usually means RLS policy denied the deletion');
+      // No rows deleted - either report doesn't exist or user doesn't have permission
+      console.log('No rows deleted for report:', reportId);
 
-      // Verify the report still exists
+      // Try to check if the report exists (this SELECT might also be blocked by RLS if user doesn't have access)
       const { data: checkReport, error: checkError } = await supabase
         .from('report_queue')
         .select('id, requested_by, organization_id')
@@ -96,11 +67,11 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
       console.log('Post-delete check:', { checkReport, checkError });
 
       if (checkReport) {
-        // Report exists but wasn't deleted - RLS policy issue
+        // Report exists but wasn't deleted - permission issue
+        console.error('Report exists but RLS policy denied the deletion');
         return NextResponse.json(
           {
-            error:
-              'Failed to delete report. You may not have permission or there may be a database policy issue.',
+            error: 'You do not have permission to delete this report',
             debug: {
               reportExists: true,
               userId: user.id,
@@ -110,18 +81,25 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
           },
           { status: 403 }
         );
+      } else {
+        // Report doesn't exist or user can't see it
+        // Either the report was already deleted (success case) or never existed (also a success case for idempotency)
+        console.log('Report not found or already deleted:', reportId);
+        return NextResponse.json({
+          success: true,
+          message: 'Report deleted successfully (or already deleted)',
+          deletedCount: 0,
+        });
       }
-
-      // Report doesn't exist anymore (maybe was already deleted)
-      console.log('Report was already deleted or did not exist:', reportId);
-    } else {
-      console.log('Successfully deleted report:', reportId, 'Deleted rows:', deletedData.length);
     }
+
+    // Success - report was deleted
+    console.log('Successfully deleted report:', reportId, 'Deleted rows:', deletedData.length);
 
     return NextResponse.json({
       success: true,
       message: 'Report deleted successfully',
-      deletedCount: deletedData?.length || 0,
+      deletedCount: deletedData.length,
     });
   } catch (error) {
     console.error('Error in delete report endpoint:', error);
