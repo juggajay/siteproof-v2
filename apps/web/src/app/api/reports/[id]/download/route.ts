@@ -5,10 +5,7 @@ import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { log } from '@/lib/logger';
-import type {
-  ReportQueueEntry,
-  ReportGenerationData,
-} from '@/types/database';
+import type { ReportQueueEntry, ReportGenerationData } from '@/types/database';
 
 // GET /api/reports/[id]/download - Generate and download report directly
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
@@ -42,7 +39,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     // SECURITY: Verify user belongs to the same organization as the report
     const userOrgId = user.user_metadata?.organization_id;
     if (!userOrgId || report.organization_id !== userOrgId) {
-      return NextResponse.json({ error: 'Forbidden: Access denied to this report' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Forbidden: Access denied to this report' },
+        { status: 403 }
+      );
     }
 
     // Use format override from query parameter if provided
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       reportType: report.report_type,
       dbFormat: report.format,
       formatOverride,
-      finalFormat
+      finalFormat,
     });
 
     // Temporarily override the format for this request
@@ -60,47 +60,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       report.format = formatOverride;
     }
 
-    // Auto-fix stuck reports (queued or processing)
+    // If the report is still being processed, inform the caller
     if (report.status === 'queued' || report.status === 'processing') {
-      const timeSinceRequest = new Date().getTime() - new Date(report.requested_at).getTime();
-
-      // If report is stuck (more than 30 seconds old), fix it
-      if (timeSinceRequest > 30 * 1000) {
-        log.warn('Report stuck in processing state, auto-fixing', {
-          reportId,
+      return NextResponse.json(
+        {
+          error: 'Report is still being generated. Please try again shortly.',
           status: report.status,
-          timeSinceRequest: `${timeSinceRequest}ms`
-        });
-
-        // Update the report to completed
-        const { error: updateError } = await supabase
-          .from('report_queue')
-          .update({
-            status: 'completed',
-            progress: 100,
-            file_url: 'on-demand',
-            completed_at: new Date().toISOString(),
-            error_message: null,
-          })
-          .eq('id', reportId);
-
-        if (!updateError) {
-          // Update local report object
-          report.status = 'completed';
-          report.progress = 100;
-          report.file_url = 'on-demand';
-          log.info('Report auto-fixed and ready for download', { reportId });
-        } else {
-          log.error('Failed to auto-fix report', updateError, { reportId });
-        }
-      } else {
-        return NextResponse.json(
-          {
-            error: 'Report is being generated, please try again in a moment',
-          },
-          { status: 202 }
-        );
-      }
+          progress: report.progress,
+        },
+        { status: 202 }
+      );
     }
 
     // Check if report can be generated
@@ -464,7 +433,10 @@ function generateCSV(data: Omit<ReportGenerationData, 'organization' | 'dateRang
   return Buffer.from(rows.join('\n'));
 }
 
-async function generateITPReport(report: ReportQueueEntry, _supabase: SupabaseClient): Promise<NextResponse> {
+async function generateITPReport(
+  report: ReportQueueEntry,
+  _supabase: SupabaseClient
+): Promise<NextResponse> {
   try {
     // For ITP reports, generate a simple PDF summary
     const { lot_number, project_name, organization_name, itp_instances } = report.parameters;
@@ -1308,7 +1280,11 @@ async function downloadFinancialSummaryReport({
       .order('diary_date', { ascending: true });
 
     if (diariesError) {
-      log.error('Financial report diary lookup failed', diariesError, { projectId, startDate, endDate });
+      log.error('Financial report diary lookup failed', diariesError, {
+        projectId,
+        startDate,
+        endDate,
+      });
       return NextResponse.json(
         { error: 'Failed to load diary entries for financial report' },
         { status: 500 }
@@ -2104,4 +2080,3 @@ async function generateFinancialSummaryPDF(data: FinancialSummaryData): Promise<
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
 }
-

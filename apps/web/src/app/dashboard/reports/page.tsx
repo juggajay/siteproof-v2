@@ -12,6 +12,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function ReportsPage() {
   const [showGenerateForm, setShowGenerateForm] = useState(false);
   const [activeTab, setActiveTab] = useState<'recent' | 'scheduled'>('recent');
+  const [reportSummary, setReportSummary] = useState({
+    today: 0,
+    thisWeek: 0,
+    processing: 0,
+    failed: 0,
+  });
 
   return (
     <div className="p-8">
@@ -36,7 +42,7 @@ export default function ReportsPage() {
                 <FileText className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-2xl font-bold text-gray-900">{reportSummary.today}</p>
                 <p className="text-sm text-gray-600">Reports Today</p>
               </div>
             </div>
@@ -48,7 +54,7 @@ export default function ReportsPage() {
                 <Calendar className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">0</p>
+                <p className="text-2xl font-bold text-gray-900">{reportSummary.thisWeek}</p>
                 <p className="text-sm text-gray-600">This Week</p>
               </div>
             </div>
@@ -60,8 +66,8 @@ export default function ReportsPage() {
                 <History className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-                <p className="text-sm text-gray-600">Processing</p>
+                <p className="text-2xl font-bold text-gray-900">{reportSummary.processing}</p>
+                <p className="text-sm text-gray-600">In Progress</p>
               </div>
             </div>
           </div>
@@ -72,8 +78,8 @@ export default function ReportsPage() {
                 <TrendingUp className="w-5 h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">0</p>
-                <p className="text-sm text-gray-600">Scheduled</p>
+                <p className="text-2xl font-bold text-gray-900">{reportSummary.failed}</p>
+                <p className="text-sm text-gray-600">Failed Reports</p>
               </div>
             </div>
           </div>
@@ -148,7 +154,7 @@ export default function ReportsPage() {
       {/* Tab Content */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         {activeTab === 'recent' ? (
-          <RecentReportsList limit={50} showFilters={true} />
+          <RecentReportsList limit={50} showFilters={true} onSummaryChange={setReportSummary} />
         ) : (
           <div className="text-center py-12">
             <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />

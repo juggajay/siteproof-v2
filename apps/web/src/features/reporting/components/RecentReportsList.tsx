@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { Button, StateDisplay } from '@siteproof/design-system';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, isToday, startOfWeek, endOfWeek, isWithinInterval } from 'date-fns';
 import { createClient } from '@/lib/supabase/client';
 import { useSession } from '@/features/auth/hooks/useSession';
 import { toast } from 'sonner';
@@ -89,9 +89,19 @@ const formatConfig = {
 interface RecentReportsListProps {
   limit?: number;
   showFilters?: boolean;
+  onSummaryChange?: (summary: {
+    today: number;
+    thisWeek: number;
+    processing: number;
+    failed: number;
+  }) => void;
 }
 
-export function RecentReportsList({ limit = 10, showFilters = true }: RecentReportsListProps) {
+export function RecentReportsList({
+  limit = 10,
+  showFilters = true,
+  onSummaryChange,
+}: RecentReportsListProps) {
   const { user } = useSession();
   const queryClient = useQueryClient();
   const supabase = createClient();
@@ -214,6 +224,48 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
 
   const [openFormatDropdown, setOpenFormatDropdown] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!onSummaryChange) {
+      return;
+    }
+
+    if (!reports) {
+      onSummaryChange({ today: 0, thisWeek: 0, processing: 0, failed: 0 });
+      return;
+    }
+
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+
+    const summary = reports.reduce(
+      (acc, report) => {
+        const requestedAt = new Date(report.requested_at);
+
+        if (isToday(requestedAt)) {
+          acc.today += 1;
+        }
+
+        if (isWithinInterval(requestedAt, { start: weekStart, end: weekEnd })) {
+          acc.thisWeek += 1;
+        }
+
+        if (report.status === 'queued' || report.status === 'processing') {
+          acc.processing += 1;
+        }
+
+        if (report.status === 'failed') {
+          acc.failed += 1;
+        }
+
+        return acc;
+      },
+      { today: 0, thisWeek: 0, processing: 0, failed: 0 }
+    );
+
+    onSummaryChange(summary);
+  }, [reports, onSummaryChange]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     if (!openFormatDropdown) return;
@@ -227,9 +279,13 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
     const selectedFormat = format || report.format;
     console.log('downloadReport called for report:', report.id, 'format:', selectedFormat);
 
-    if (report.status !== 'completed' && report.status !== 'processing') {
+    if (report.status !== 'completed') {
       console.log('Report not ready, status:', report.status);
-      toast.error('Report is not ready for download');
+      toast.info(
+        report.status === 'processing' || report.status === 'queued'
+          ? 'Report is still being generated. Please try again once it is complete.'
+          : 'Report is not available for download.'
+      );
       return;
     }
 
@@ -259,6 +315,21 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
 
       console.log('Download response status:', response.status);
       console.log('Download response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (response.status === 202) {
+        let message = 'Report is still being generated. Please try again shortly.';
+        try {
+          const data = await response.json();
+          if (data?.error) {
+            message = data.error;
+          }
+        } catch (jsonError) {
+          console.log('Could not parse 202 response as JSON');
+        }
+
+        toast.info(message, { id: `download-${report.id}` });
+        return;
+      }
 
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -478,13 +549,18 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
                     return;
                   }
 
-                  if (report.status === 'completed' || report.status === 'processing') {
+                  if (report.status === 'completed') {
                     console.log('Triggering download for report:', report.id);
                     downloadReport(report);
-                  } else {
-                    console.log('Report not ready for download, status:', report.status);
-                    toast.info(`Report status: ${report.status}. Cannot download yet.`);
+                    return;
                   }
+
+                  console.log('Report not ready for download, status:', report.status);
+                  toast.info(
+                    report.status === 'processing' || report.status === 'queued'
+                      ? 'Report is still being generated. Please wait for it to finish.'
+                      : `Report status: ${report.status}. Cannot download yet.`
+                  );
                 }}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -493,7 +569,7 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="font-medium text-gray-900">{report.report_name}</h4>
-                        {(report.status === 'completed' || report.status === 'processing') && (
+                        {report.status === 'completed' && (
                           <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
                             Click to download
                           </span>
@@ -569,8 +645,13 @@ export function RecentReportsList({ limit = 10, showFilters = true }: RecentRepo
                         <Button
                           variant="secondary"
                           size="sm"
+                          disabled={report.status !== 'completed'}
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (report.status !== 'completed') {
+                              toast.info('Report is still being generated. Please wait.');
+                              return;
+                            }
                             setOpenFormatDropdown(
                               openFormatDropdown === report.id ? null : report.id
                             );

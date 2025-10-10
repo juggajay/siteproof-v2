@@ -93,46 +93,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Failed to fetch reports' }, { status: 500 });
     }
 
-    // Auto-fix ALL queued/processing reports immediately (since Trigger.dev isn't working)
-    const stuckReports =
-      reports?.filter((r) => r.status === 'queued' || r.status === 'processing') || [];
-
-    if (stuckReports.length > 0) {
-      console.log(`Found ${stuckReports.length} stuck reports, auto-fixing...`);
-
-      // Update stuck reports to completed status
-      const { error: updateError } = await supabase
-        .from('report_queue')
-        .update({
-          status: 'completed',
-          progress: 100,
-          file_url: 'on-demand',
-          completed_at: new Date().toISOString(),
-          error_message: null,
-        })
-        .in(
-          'id',
-          stuckReports.map((r) => r.id)
-        );
-
-      if (updateError) {
-        console.error('Error auto-fixing stuck reports:', updateError);
-      } else {
-        // Update the local reports array to reflect the changes
-        stuckReports.forEach((stuckReport) => {
-          const report = reports?.find((r) => r.id === stuckReport.id);
-          if (report) {
-            report.status = 'completed';
-            report.progress = 100;
-            report.file_url = 'on-demand';
-            report.completed_at = new Date().toISOString();
-            report.error_message = null;
-          }
-        });
-        console.log(`Auto-fixed ${stuckReports.length} stuck reports`);
-      }
-    }
-
     const startDateMs = parseFilterDate(start_date);
     const endDateMs = parseFilterDate(end_date);
 

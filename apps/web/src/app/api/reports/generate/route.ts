@@ -68,23 +68,26 @@ export async function POST(request: Request) {
     }
 
     // Determine if report can be generated synchronously
-    const isSimpleReport = ['project_summary', 'daily_diary_export', 'inspection_summary', 'financial_summary'].includes(
-      validatedData.report_type
-    );
+    const isSimpleReport = [
+      'project_summary',
+      'daily_diary_export',
+      'inspection_summary',
+      'financial_summary',
+    ].includes(validatedData.report_type);
 
     // Check if Trigger.dev is properly configured for complex reports
     const hasTriggerConfig =
-      process.env.TRIGGER_API_KEY &&
-      process.env.TRIGGER_API_KEY !== 'test-trigger-key' &&
-      process.env.TRIGGER_API_URL;
+      process.env.TRIGGER_API_KEY && process.env.TRIGGER_API_KEY !== 'test-trigger-key';
 
-    // For simple reports, mark as completed immediately (will generate on download)
-    // For complex reports, only queue if Trigger is available
-    const initialStatus = isSimpleReport ? 'completed' : hasTriggerConfig ? 'queued' : 'failed';
-    const initialError =
-      !isSimpleReport && !hasTriggerConfig
-        ? 'Complex report processing not available - please contact support'
-        : null;
+    if (!isSimpleReport && !hasTriggerConfig) {
+      return NextResponse.json(
+        {
+          error: 'Background report processing is not configured',
+          message: 'Background report processing is not configured',
+        },
+        { status: 503 }
+      );
+    }
 
     const { data: report, error: insertError } = await supabase
       .from('report_queue')
@@ -102,11 +105,11 @@ export async function POST(request: Request) {
           group_by: validatedData.group_by,
         },
         requested_by: user.id,
-        status: initialStatus,
-        progress: initialStatus === 'completed' ? 100 : 0,
-        error_message: initialError,
+        status: isSimpleReport ? 'completed' : 'queued',
+        progress: isSimpleReport ? 100 : 0,
+        error_message: null,
         requested_at: new Date().toISOString(),
-        completed_at: initialStatus === 'completed' ? new Date().toISOString() : null,
+        completed_at: isSimpleReport ? new Date().toISOString() : null,
         // Mark simple reports as ready for on-demand generation
         file_url: isSimpleReport ? 'on-demand' : null,
       })
@@ -119,7 +122,7 @@ export async function POST(request: Request) {
     }
 
     // Only try to trigger background job for complex reports that need it
-    if (!isSimpleReport && hasTriggerConfig) {
+    if (!isSimpleReport) {
       try {
         await client.sendEvent({
           name: 'report.generate',
@@ -149,12 +152,20 @@ export async function POST(request: Request) {
             completed_at: new Date().toISOString(),
           })
           .eq('id', report.id);
+
+        return NextResponse.json(
+          {
+            error: 'Failed to queue report for background processing',
+            message: 'Failed to queue report for background processing',
+          },
+          { status: 500 }
+        );
       }
     }
 
     // Log report creation type
     console.log(
-      `Report created: ${report.id} - Type: ${validatedData.report_type} - Status: ${initialStatus} - Generation: ${isSimpleReport ? 'on-demand' : 'background'}`
+      `Report created: ${report.id} - Type: ${validatedData.report_type} - Status: ${report.status} - Generation: ${isSimpleReport ? 'on-demand' : 'background'}`
     );
 
     return NextResponse.json({
