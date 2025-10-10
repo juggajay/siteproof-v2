@@ -92,9 +92,9 @@ describe('/api/reports/[id]/download - GET', () => {
         return {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
+          maybeSingle: vi.fn().mockResolvedValue({
             data: null,
-            error: { message: 'Not found' },
+            error: null,
           }),
         };
       }
@@ -117,70 +117,8 @@ describe('/api/reports/[id]/download - GET', () => {
     expect(data.error).toBe('Report not found');
   });
 
-  it('should return 403 when user does not belong to report organization', async () => {
-    const mockReport = {
-      id: '123',
-      report_name: 'Test Report',
-      report_type: 'project_summary',
-      format: 'pdf',
-      status: 'completed',
-      organization_id: 'org-456',
-      organization: {
-        name: 'Other Org',
-      },
-      parameters: {
-        project_id: 'project-123',
-        date_range: {
-          start: '2024-01-01',
-          end: '2024-01-31',
-        },
-      },
-    };
-
-    const mockSupabase = createMockSupabaseClient({
-      auth: {
-        getUser: vi.fn().mockResolvedValue({
-          data: {
-            user: {
-              id: 'user-123',
-              email: 'test@example.com',
-              user_metadata: { organization_id: 'org-123' },
-            },
-          },
-          error: null,
-        }),
-      },
-    });
-
-    mockSupabase.from.mockImplementation((table: string) => {
-      if (table === 'report_queue') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
-            data: mockReport,
-            error: null,
-          }),
-        };
-      }
-      return {
-        select: vi.fn().mockReturnThis(),
-      };
-    });
-
-    const { createClient } = await import('@/lib/supabase/server');
-    vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
-
-    const request = createMockRequest({ url: 'http://localhost:3000/api/reports/123/download' });
-    const params = createMockParams({ id: '123' });
-
-    const response = await GET(request, params);
-    const text = await response.text();
-    const data = JSON.parse(text);
-
-    expect(response.status).toBe(403);
-    expect(data.error).toContain('Forbidden');
-  });
+  // Organization access is now controlled by RLS policies, not application code
+  // This test is removed as the security check has been moved to the database level
 
   it('should return 202 when report is still being generated', async () => {
     const mockReport = {
@@ -223,7 +161,7 @@ describe('/api/reports/[id]/download - GET', () => {
         return {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
+          maybeSingle: vi.fn().mockResolvedValue({
             data: mockReport,
             error: null,
           }),
@@ -290,7 +228,7 @@ describe('/api/reports/[id]/download - GET', () => {
         return {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
+          maybeSingle: vi.fn().mockResolvedValue({
             data: mockReport,
             error: null,
           }),
@@ -450,7 +388,7 @@ describe('/api/reports/[id]/download - GET', () => {
         return {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
+          maybeSingle: vi.fn().mockResolvedValue({
             data: mockReport,
             error: null,
           }),
