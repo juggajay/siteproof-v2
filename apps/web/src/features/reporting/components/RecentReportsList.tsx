@@ -642,93 +642,78 @@ export function RecentReportsList({
                     </span>
 
                     {/* Actions */}
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={report.status !== 'completed'}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          downloadReport(report);
-                        }}
-                        title="Download"
-                        className="flex items-center gap-1 whitespace-nowrap"
-                      >
-                        <Download className="w-4 h-4" />
-                        Download {formatConfig[report.format].label}
-                      </Button>
+                    {report.status === 'completed' && (
+                      <div className="relative">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenFormatDropdown(
+                              openFormatDropdown === report.id ? null : report.id
+                            );
+                          }}
+                          title="Download report"
+                          className="flex items-center gap-1"
+                        >
+                          <Download className="w-4 h-4" />
+                          {formatConfig[report.format].label}
+                          <ChevronDown className="w-3 h-3 ml-1" />
+                        </Button>
 
-                      {report.status === 'completed' && (
-                        <div className="relative">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenFormatDropdown(
-                                openFormatDropdown === report.id ? null : report.id
-                              );
-                            }}
-                            title="Download in another format"
-                            className="px-2"
+                        {openFormatDropdown === report.id && (
+                          <div
+                            className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                            onClick={(e) => e.stopPropagation()}
                           >
-                            <ChevronDown className="w-4 h-4" />
-                          </Button>
-
-                          {openFormatDropdown === report.id && (
-                            <div
-                              className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-                              onClick={(e) => e.stopPropagation()}
+                            <button
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-t-lg"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                setOpenFormatDropdown(null);
+                                await downloadReport(report, 'pdf');
+                              }}
                             >
-                              <button
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-t-lg"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  setOpenFormatDropdown(null);
-                                  await downloadReport(report, 'pdf');
-                                }}
-                              >
-                                <FileText className="w-4 h-4" />
-                                PDF
-                              </button>
-                              <button
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  setOpenFormatDropdown(null);
-                                  await downloadReport(report, 'excel');
-                                }}
-                              >
-                                <FileSpreadsheet className="w-4 h-4" />
-                                Excel
-                              </button>
-                              <button
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  setOpenFormatDropdown(null);
-                                  await downloadReport(report, 'csv');
-                                }}
-                              >
-                                <FileType className="w-4 h-4" />
-                                CSV
-                              </button>
-                              <button
-                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-b-lg"
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  setOpenFormatDropdown(null);
-                                  await downloadReport(report, 'json');
-                                }}
-                              >
-                                <FileJson className="w-4 h-4" />
-                                JSON
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                              <FileText className="w-4 h-4" />
+                              PDF
+                            </button>
+                            <button
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                setOpenFormatDropdown(null);
+                                await downloadReport(report, 'excel');
+                              }}
+                            >
+                              <FileSpreadsheet className="w-4 h-4" />
+                              Excel
+                            </button>
+                            <button
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                setOpenFormatDropdown(null);
+                                await downloadReport(report, 'csv');
+                              }}
+                            >
+                              <FileType className="w-4 h-4" />
+                              CSV
+                            </button>
+                            <button
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-b-lg"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                setOpenFormatDropdown(null);
+                                await downloadReport(report, 'json');
+                              }}
+                            >
+                              <FileJson className="w-4 h-4" />
+                              JSON
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {report.status === 'processing' && (
                       <Button
