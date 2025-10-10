@@ -90,12 +90,13 @@ export async function POST(request: NextRequest) {
         .eq('is_active', true)
         .is('deleted_at', null),
 
-      // Query 3: Check for existing assignments
+      // Query 3: Check for existing assignments (exclude soft-deleted)
       supabase
         .from('itp_instances')
         .select('template_id')
         .eq('lot_id', lotId)
-        .in('template_id', templateIds),
+        .in('template_id', templateIds)
+        .is('deleted_at', null),
     ]);
 
     const parallelQueriesTime = Date.now() - startTime;
