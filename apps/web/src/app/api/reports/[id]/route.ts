@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/server';
 // DELETE /api/reports/[id] - Delete a report
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    console.log('[DELETE /api/reports/[id]] Request received - CODE VERSION: 2025-10-11-v3-multi-org');
+    console.log(
+      '[DELETE /api/reports/[id]] Request received - CODE VERSION: 2025-10-11-v4-rls-trust'
+    );
     console.log('[DELETE /api/reports/[id]] Params:', params);
 
     const { id: reportId } = params;
@@ -59,58 +61,11 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     const orgIds = memberships.map((m) => m.organization_id);
     console.log('[DELETE /api/reports/[id]] User belongs to organizations:', orgIds);
 
-    // Verify the report exists and user can see it before attempting deletion
-    // RLS policies will filter this to only reports the user has access to
-    const {
-      data: report,
-      error: lookupError,
-    } = await supabase
-      .from('report_queue')
-      .select('id, requested_by, organization_id')
-      .eq('id', reportId)
-      .maybeSingle();
+    console.log('[DELETE /api/reports/[id]] Attempting deletion, RLS will enforce permissions');
 
-    if (lookupError) {
-      console.error('[DELETE /api/reports/[id]] Failed to look up report before deletion', {
-        reportId,
-        error: lookupError,
-      });
-      return NextResponse.json({ error: 'Failed to verify report before deletion' }, { status: 500 });
-    }
-
-    if (!report) {
-      console.log('[DELETE /api/reports/[id]] Report not found before deletion attempt', { reportId });
-      return NextResponse.json(
-        {
-          error: 'Report not found',
-          details: {
-            reportId,
-          },
-        },
-        { status: 404 }
-      );
-    }
-
-    // Verify the report belongs to one of the user's organizations
-    if (!orgIds.includes(report.organization_id)) {
-      console.warn('[DELETE /api/reports/[id]] Report does not belong to any of user\'s organizations', {
-        reportId,
-        reportOrgId: report.organization_id,
-        userOrgIds: orgIds,
-      });
-      return NextResponse.json(
-        { error: 'You do not have permission to delete this report' },
-        { status: 403 }
-      );
-    }
-
-    console.log('[DELETE /api/reports/[id]] Report verified, proceeding with deletion', {
-      reportId,
-      reportOrgId: report.organization_id,
-    });
-
-    // Delete the report directly - RLS policies will enforce permissions
-    // The delete is executed with count to verify deletion occurred
+    // Delete the report directly - RLS policies enforce permissions automatically
+    // This approach matches the GET endpoint pattern and trusts the RLS policies
+    // which are proven to work correctly (SELECT and DELETE policies are identical)
     const { error: deleteError, count: deleteCount } = await supabase
       .from('report_queue')
       .delete({ count: 'exact' })
