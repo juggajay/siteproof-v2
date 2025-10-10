@@ -275,6 +275,19 @@ export function RecentReportsList({
     return () => document.removeEventListener('click', handleClickOutside);
   }, [openFormatDropdown]);
 
+  const handleCardClick = (report: Report) => {
+    if (report.status === 'completed') {
+      downloadReport(report).catch(console.error);
+      return;
+    }
+
+    toast.info(
+      report.status === 'processing' || report.status === 'queued'
+        ? 'Report is still being generated. Please wait for it to finish.'
+        : `Report status: ${report.status}. Cannot download yet.`
+    );
+  };
+
   const downloadReport = async (report: Report, format?: 'pdf' | 'excel' | 'csv' | 'json') => {
     const selectedFormat = format || report.format;
     console.log('downloadReport called for report:', report.id, 'format:', selectedFormat);
@@ -549,18 +562,7 @@ export function RecentReportsList({
                     return;
                   }
 
-                  if (report.status === 'completed') {
-                    console.log('Triggering download for report:', report.id);
-                    downloadReport(report);
-                    return;
-                  }
-
-                  console.log('Report not ready for download, status:', report.status);
-                  toast.info(
-                    report.status === 'processing' || report.status === 'queued'
-                      ? 'Report is still being generated. Please wait for it to finish.'
-                      : `Report status: ${report.status}. Cannot download yet.`
-                  );
+                  handleCardClick(report);
                 }}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -569,11 +571,11 @@ export function RecentReportsList({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <h4 className="font-medium text-gray-900">{report.report_name}</h4>
-                        {report.status === 'completed' && (
-                          <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                            Click to download
-                          </span>
-                        )}
+                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                          {report.status === 'completed'
+                            ? `Ready • ${formatConfig[report.format].label}`
+                            : `Status • ${status.label}`}
+                        </span>
                       </div>
                       {report.description && (
                         <p className="text-sm text-gray-600 mt-1">{report.description}</p>
@@ -640,83 +642,93 @@ export function RecentReportsList({
                     </span>
 
                     {/* Actions */}
-                    {(report.status === 'completed' || report.status === 'processing') && (
-                      <div className="relative">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          disabled={report.status !== 'completed'}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (report.status !== 'completed') {
-                              toast.info('Report is still being generated. Please wait.');
-                              return;
-                            }
-                            setOpenFormatDropdown(
-                              openFormatDropdown === report.id ? null : report.id
-                            );
-                          }}
-                          title="Download Report"
-                          className="flex items-center gap-1"
-                        >
-                          <Download className="w-4 h-4" />
-                          <ChevronDown className="w-3 h-3" />
-                        </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={report.status !== 'completed'}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          downloadReport(report);
+                        }}
+                        title="Download"
+                        className="flex items-center gap-1 whitespace-nowrap"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download {formatConfig[report.format].label}
+                      </Button>
 
-                        {/* Format Dropdown */}
-                        {openFormatDropdown === report.id && (
-                          <div
-                            className="absolute right-0 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
-                            onClick={(e) => e.stopPropagation()}
+                      {report.status === 'completed' && (
+                        <div className="relative">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenFormatDropdown(
+                                openFormatDropdown === report.id ? null : report.id
+                              );
+                            }}
+                            title="Download in another format"
+                            className="px-2"
                           >
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-t-lg"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                setOpenFormatDropdown(null);
-                                await downloadReport(report, 'pdf');
-                              }}
+                            <ChevronDown className="w-4 h-4" />
+                          </Button>
+
+                          {openFormatDropdown === report.id && (
+                            <div
+                              className="absolute right-0 mt-1 w-36 bg-white border border-gray-200 rounded-lg shadow-lg z-50"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <FileText className="w-4 h-4" />
-                              PDF
-                            </button>
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                setOpenFormatDropdown(null);
-                                await downloadReport(report, 'excel');
-                              }}
-                            >
-                              <FileSpreadsheet className="w-4 h-4" />
-                              Excel
-                            </button>
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                setOpenFormatDropdown(null);
-                                await downloadReport(report, 'csv');
-                              }}
-                            >
-                              <FileType className="w-4 h-4" />
-                              CSV
-                            </button>
-                            <button
-                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-b-lg"
-                              onClick={async (e) => {
-                                e.stopPropagation();
-                                setOpenFormatDropdown(null);
-                                await downloadReport(report, 'json');
-                              }}
-                            >
-                              <FileJson className="w-4 h-4" />
-                              JSON
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
+                              <button
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-t-lg"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setOpenFormatDropdown(null);
+                                  await downloadReport(report, 'pdf');
+                                }}
+                              >
+                                <FileText className="w-4 h-4" />
+                                PDF
+                              </button>
+                              <button
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setOpenFormatDropdown(null);
+                                  await downloadReport(report, 'excel');
+                                }}
+                              >
+                                <FileSpreadsheet className="w-4 h-4" />
+                                Excel
+                              </button>
+                              <button
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setOpenFormatDropdown(null);
+                                  await downloadReport(report, 'csv');
+                                }}
+                              >
+                                <FileType className="w-4 h-4" />
+                                CSV
+                              </button>
+                              <button
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2 rounded-b-lg"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  setOpenFormatDropdown(null);
+                                  await downloadReport(report, 'json');
+                                }}
+                              >
+                                <FileJson className="w-4 h-4" />
+                                JSON
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
 
                     {report.status === 'processing' && (
                       <Button
