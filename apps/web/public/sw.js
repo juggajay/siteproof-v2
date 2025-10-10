@@ -1,5 +1,5 @@
 // Service Worker for SiteProof v2
-const CACHE_VERSION = 'v2.2.0'; // Bumped for report deletion cache fix
+const CACHE_VERSION = 'v2.2.1'; // Bumped for report deletion cache fix
 const CACHE_NAME = `siteproof-v2-cache-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `siteproof-v2-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `siteproof-v2-images-${CACHE_VERSION}`;
@@ -141,6 +141,33 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET requests
   if (request.method !== 'GET') {
+    return;
+  }
+
+  // Reports API - always prefer fresh network response to avoid stale deletions
+  if (url.pathname.startsWith('/api/reports')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Do not cache report responses to prevent stale data after deletions
+          return response;
+        })
+        .catch(async () => {
+          // As a fallback, try returning any cached response (may be undefined)
+          const cached = await caches.match(request);
+          if (cached) {
+            console.warn('[SW] Using cached /api/reports response as fallback');
+            return cached;
+          }
+          return new Response(
+            JSON.stringify({ error: 'Offline and no cached reports available' }),
+            {
+              status: 503,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          );
+        })
+    );
     return;
   }
 

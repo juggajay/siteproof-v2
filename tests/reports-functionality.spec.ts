@@ -210,26 +210,89 @@ test.describe('Reports Functionality', () => {
 
   test('should handle report actions (download, cancel, retry)', async ({ page }) => {
     await page.goto(`${TEST_URL}/dashboard/reports`);
-    
+
     // Check if any report cards exist
     const reportCards = page.locator('[data-testid="report-card"]');
     const count = await reportCards.count();
-    
+
     if (count > 0) {
       // Check for action buttons on first report
       const firstCard = reportCards.first();
-      
+
       // Look for possible action buttons
       const downloadButton = firstCard.locator('button[title="Download Report"]');
       const cancelButton = firstCard.locator('button:has-text("Cancel")');
       const retryButton = firstCard.locator('button[title="Retry"]');
-      
+
       // At least one action should be available based on report status
       const hasDownload = await downloadButton.isVisible().catch(() => false);
       const hasCancel = await cancelButton.isVisible().catch(() => false);
       const hasRetry = await retryButton.isVisible().catch(() => false);
-      
+
       expect(hasDownload || hasCancel || hasRetry).toBeTruthy();
+    }
+  });
+
+  test('should delete report successfully for multi-org users', async ({ page }) => {
+    await page.goto(`${TEST_URL}/dashboard/reports`);
+
+    // Check if any completed report cards exist
+    const reportCards = page.locator('[data-testid="report-card"]');
+    const count = await reportCards.count();
+
+    if (count > 0) {
+      const firstCard = reportCards.first();
+
+      // Get report name before deletion for verification
+      const reportName = await firstCard.locator('[data-testid="report-name"]').textContent().catch(() => null);
+
+      // Look for delete button (might be in a dropdown menu)
+      const deleteButton = firstCard.locator('button[title="Delete Report"]');
+      const moreButton = firstCard.locator('button[aria-label="More actions"]');
+
+      // Try to find and click delete button
+      let deleteClicked = false;
+
+      if (await deleteButton.isVisible().catch(() => false)) {
+        await deleteButton.click();
+        deleteClicked = true;
+      } else if (await moreButton.isVisible().catch(() => false)) {
+        // Open dropdown menu first
+        await moreButton.click();
+        await page.waitForTimeout(300);
+
+        // Find delete option in menu
+        const deleteMenuItem = page.locator('button:has-text("Delete"), [role="menuitem"]:has-text("Delete")');
+        if (await deleteMenuItem.isVisible().catch(() => false)) {
+          await deleteMenuItem.click();
+          deleteClicked = true;
+        }
+      }
+
+      if (deleteClicked) {
+        // Confirm deletion if confirmation dialog appears
+        const confirmButton = page.locator('button:has-text("Delete"), button:has-text("Confirm")');
+        if (await confirmButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await confirmButton.click();
+        }
+
+        // Wait for deletion to complete
+        await page.waitForTimeout(1000);
+
+        // Verify report is removed from list
+        if (reportName) {
+          const deletedReport = page.locator(`[data-testid="report-name"]:has-text("${reportName}")`);
+          await expect(deletedReport).not.toBeVisible({ timeout: 5000 });
+        } else {
+          // Verify count decreased
+          const newCount = await reportCards.count();
+          expect(newCount).toBeLessThan(count);
+        }
+
+        // Verify success message
+        const successMessage = page.locator('text=/deleted successfully|removed/i');
+        await expect(successMessage).toBeVisible({ timeout: 5000 });
+      }
     }
   });
 
