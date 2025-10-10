@@ -1,0 +1,351 @@
+{
+    "root_group": {
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "User Authentication": {
+                "groups": {},
+                "checks": {
+                        "login status is 200": {
+                            "id": "a22c1300fc374a8b41173a2c1a838a52",
+                            "passes": 409,
+                            "fails": 148,
+                            "name": "login status is 200",
+                            "path": "::User Authentication::login status is 200"
+                        },
+                        "login has token": {
+                            "passes": 409,
+                            "fails": 148,
+                            "name": "login has token",
+                            "path": "::User Authentication::login has token",
+                            "id": "de3f5baf35c66b3a7570d2e8c79a6c1b"
+                        }
+                    },
+                "name": "User Authentication",
+                "path": "::User Authentication",
+                "id": "694b90cda3960197291443c0d1418402"
+            },
+            "Dashboard - Load User Data": {
+                "name": "Dashboard - Load User Data",
+                "path": "::Dashboard - Load User Data",
+                "id": "99c755d8c6b1ec18a127d3a251c637f3",
+                "groups": {},
+                "checks": {
+                        "dashboard loads": {
+                            "name": "dashboard loads",
+                            "path": "::Dashboard - Load User Data::dashboard loads",
+                            "id": "241552368612b5b82b8f57fdb289ef9c",
+                            "passes": 554,
+                            "fails": 0
+                        },
+                        "dashboard response time < 2s": {
+                            "name": "dashboard response time < 2s",
+                            "path": "::Dashboard - Load User Data::dashboard response time < 2s",
+                            "id": "9ec2fcb40ed7c983b63cfaa0e9a4e4aa",
+                            "passes": 554,
+                            "fails": 0
+                        },
+                        "dashboard has data structure": {
+                            "fails": 554,
+                            "name": "dashboard has data structure",
+                            "path": "::Dashboard - Load User Data::dashboard has data structure",
+                            "id": "e90c2c31531c6a99bcfa6eb87cbb5c8b",
+                            "passes": 0
+                        }
+                    }
+            },
+            "Project Management - Create Project": {
+                "groups": {},
+                "checks": {
+                        "project creation status ok": {
+                            "passes": 554,
+                            "fails": 0,
+                            "name": "project creation status ok",
+                            "path": "::Project Management - Create Project::project creation status ok",
+                            "id": "dffbf12f68a189c55881a168ec3d71c6"
+                        },
+                        "project creation response time < 3s": {
+                            "name": "project creation response time < 3s",
+                            "path": "::Project Management - Create Project::project creation response time < 3s",
+                            "id": "f171a3f22997b961cd363e25b6c0dbf8",
+                            "passes": 554,
+                            "fails": 0
+                        }
+                    },
+                "name": "Project Management - Create Project",
+                "path": "::Project Management - Create Project",
+                "id": "0fd4caa0ffa7554ea9622049caa9796a"
+            },
+            "Dashboard - Widgets": {
+                "name": "Dashboard - Widgets",
+                "path": "::Dashboard - Widgets",
+                "id": "4314810ad6ccb42acf8a7b6cfd5a1bb5",
+                "groups": {},
+                "checks": {
+                        "project summary loads": {
+                            "path": "::Dashboard - Widgets::project summary loads",
+                            "id": "b07c3cd27b671205b6e87f43b2e29944",
+                            "passes": 554,
+                            "fails": 0,
+                            "name": "project summary loads"
+                        },
+                        "project summary response < 1s": {
+                            "fails": 0,
+                            "name": "project summary response < 1s",
+                            "path": "::Dashboard - Widgets::project summary response < 1s",
+                            "id": "e81aa145e3c8dde3cd6ef746e4b3a784",
+                            "passes": 554
+                        },
+                        "ncr overview loads": {
+                            "fails": 0,
+                            "name": "ncr overview loads",
+                            "path": "::Dashboard - Widgets::ncr overview loads",
+                            "id": "4cc9ffd13b77d6e089e398ae2fc58d71",
+                            "passes": 554
+                        },
+                        "ncr overview response < 1s": {
+                            "name": "ncr overview response < 1s",
+                            "path": "::Dashboard - Widgets::ncr overview response < 1s",
+                            "id": "ab5e172b63cc32d385fc3a8cbc1dae63",
+                            "passes": 554,
+                            "fails": 0
+                        },
+                        "active itps loads": {
+                            "name": "active itps loads",
+                            "path": "::Dashboard - Widgets::active itps loads",
+                            "id": "94806003ee6d848743fcefa303942a30",
+                            "passes": 554,
+                            "fails": 0
+                        },
+                        "active itps response < 1s": {
+                            "passes": 554,
+                            "fails": 0,
+                            "name": "active itps response < 1s",
+                            "path": "::Dashboard - Widgets::active itps response < 1s",
+                            "id": "c6dfaca7bc41ef98297249efa6b82226"
+                        }
+                    }
+            },
+            "Project Management - List Projects": {
+                "id": "bf604b1a081e6890db627d912593ee37",
+                "groups": {},
+                "checks": {
+                        "projects list loads": {
+                            "fails": 0,
+                            "name": "projects list loads",
+                            "path": "::Project Management - List Projects::projects list loads",
+                            "id": "910be627cab738312efe6ff7a176946b",
+                            "passes": 554
+                        },
+                        "projects list response < 1s": {
+                            "fails": 0,
+                            "name": "projects list response < 1s",
+                            "path": "::Project Management - List Projects::projects list response < 1s",
+                            "id": "343e32a56d5f9efe2faf27cdc7ff0b44",
+                            "passes": 554
+                        },
+                        "projects list has pagination": {
+                            "name": "projects list has pagination",
+                            "path": "::Project Management - List Projects::projects list has pagination",
+                            "id": "92c3be8aed033b82d345a47f26c4793a",
+                            "passes": 0,
+                            "fails": 554
+                        }
+                    },
+                "name": "Project Management - List Projects",
+                "path": "::Project Management - List Projects"
+            },
+            "User Management - Profile": {
+                "groups": {},
+                "checks": {
+                        "profile loads": {
+                            "name": "profile loads",
+                            "path": "::User Management - Profile::profile loads",
+                            "id": "c4b214980fc6393d2012488980704de0",
+                            "passes": 554,
+                            "fails": 0
+                        },
+                        "profile response < 500ms": {
+                            "path": "::User Management - Profile::profile response < 500ms",
+                            "id": "a4b0f4b9b9f2db989e7205517ba30c4e",
+                            "passes": 552,
+                            "fails": 2,
+                            "name": "profile response < 500ms"
+                        }
+                    },
+                "name": "User Management - Profile",
+                "path": "::User Management - Profile",
+                "id": "c92acbea6e7ffeff7125fb185e7156a3"
+            }
+        },
+        "checks": {},
+        "name": ""
+    },
+    "metrics": {
+        "http_reqs": {
+            "rate": 5.219823570894965,
+            "count": 4436
+        },
+        "authentication_errors": {
+            "count": 148,
+            "rate": 0.17415101183328557
+        },
+        "project_creation_success": {
+            "fails": 554,
+            "passes": 0,
+            "thresholds": {
+                "rate>0.7": true
+            },
+            "value": 0
+        },
+        "http_req_duration{expected_response:true}": {
+            "med": 139.2542975,
+            "max": 990.792621,
+            "p(90)": 157.41571520000002,
+            "p(95)": 179.65177604999982,
+            "avg": 151.7571372756099,
+            "min": 115.367957
+        },
+        "iteration_duration": {
+            "avg": 14456.593520824046,
+            "min": 6084.153057,
+            "med": 13245.93073,
+            "max": 18895.758548,
+            "p(90)": 18232.236943800002,
+            "p(95)": 18389.3274312
+        },
+        "login_success": {
+            "passes": 409,
+            "fails": 148,
+            "thresholds": {
+                "rate>0.8": true
+            },
+            "value": 0.7342908438061041
+        },
+        "authenticated_api_response_time": {
+            "min": 84.741813,
+            "med": 122.37361100000001,
+            "max": 1670.968525,
+            "p(90)": 236.8079168000001,
+            "p(95)": 283.11133224999986,
+            "avg": 151.2711182761738
+        },
+        "http_req_failed": {
+            "passes": 4026,
+            "fails": 410,
+            "thresholds": {
+                "rate<0.1": true
+            },
+            "value": 0.9075743913435528
+        },
+        "http_req_waiting": {
+            "p(95)": 279.46740450000004,
+            "avg": 147.63142501330023,
+            "min": 31.90825,
+            "med": 127.723179,
+            "max": 1670.421582,
+            "p(90)": 229.5390185
+        },
+        "vus": {
+            "max": 20,
+            "value": 1,
+            "min": 1
+        },
+        "http_req_receiving": {
+            "p(90)": 0.29800950000000004,
+            "p(95)": 0.367093,
+            "avg": 0.19825664765554543,
+            "min": 0.065217,
+            "med": 0.1457385,
+            "max": 8.22467
+        },
+        "data_received": {
+            "count": 5657234,
+            "rate": 6656.844765389631
+        },
+        "http_req_sending": {
+            "avg": 0.06814547227231733,
+            "min": 0.014991,
+            "med": 0.0544765,
+            "max": 1.523012,
+            "p(90)": 0.1125965,
+            "p(95)": 0.1363025
+        },
+        "checks": {
+            "passes": 8572,
+            "fails": 1406,
+            "value": 0.8590899979955903
+        },
+        "http_req_duration": {
+            "p(90)": 230.18095799999998,
+            "p(95)": 279.86536725,
+            "avg": 147.8978271332281,
+            "min": 32.107827,
+            "med": 128.11401,
+            "max": 1670.968525,
+            "thresholds": {
+                "p(95)<1000": false,
+                "p(99)<2000": false
+            }
+        },
+        "iterations": {
+            "count": 557,
+            "rate": 0.6554196864266221
+        },
+        "http_req_connecting": {
+            "min": 0,
+            "med": 0,
+            "max": 21.676001,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.0716049916591524
+        },
+        "http_req_tls_handshaking": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.11363281650135257,
+            "min": 0,
+            "med": 0,
+            "max": 34.957514
+        },
+        "data_sent": {
+            "count": 7027357,
+            "rate": 8269.06305448461
+        },
+        "http_req_blocked": {
+            "min": 0.000202,
+            "med": 0.0074035,
+            "max": 65.612235,
+            "p(90)": 0.0121365,
+            "p(95)": 0.040438749999999996,
+            "avg": 0.21119093913435474
+        },
+        "dashboard_load_time": {
+            "max": 1672,
+            "p(90)": 254.49999999999994,
+            "p(95)": 299.35,
+            "avg": 155.76173285198556,
+            "min": 89,
+            "med": 120,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "vus_max": {
+            "min": 20,
+            "max": 20,
+            "value": 20
+        },
+        "group_duration": {
+            "avg": 586.9396599978955,
+            "min": 87.42579,
+            "med": 148.516294,
+            "max": 5106.158244,
+            "p(90)": 1470.9019466,
+            "p(95)": 1735.5289487999992
+        }
+    },
+    "setup_data": {
+        "serverReachable": true
+    }
+}

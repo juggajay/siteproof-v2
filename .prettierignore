@@ -34,3 +34,8 @@ public/
 # Supabase
 supabase/.branches/
 supabase/.temp/
+
+# Test results (NDJSON format)
+tests/comprehensive-test-results/
+tests/load-test-results/
+tests/e2e/

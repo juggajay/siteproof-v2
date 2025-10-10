@@ -1,0 +1,319 @@
+{
+    "metrics": {
+        "data_received": {
+            "count": 8827530,
+            "rate": 19450.44711571123
+        },
+        "http_reqs": {
+            "rate": 9.694893963444974,
+            "count": 4400
+        },
+        "http_req_duration": {
+            "avg": 663.120031734773,
+            "min": 97.63887,
+            "med": 591.683801,
+            "max": 4384.366566,
+            "p(90)": 1179.9060882,
+            "p(95)": 1337.4088365000005,
+            "thresholds": {
+                "p(99)<5000": false,
+                "p(95)<3000": false
+            }
+        },
+        "http_req_blocked": {
+            "avg": 0.041332481363636424,
+            "min": 0.002106,
+            "med": 0.008079,
+            "max": 19.879222,
+            "p(90)": 0.012106499999999997,
+            "p(95)": 0.014927300000000001
+        },
+        "http_req_tls_handshaking": {
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 147.336853,
+            "min": 147.336853,
+            "med": 147.336853,
+            "max": 147.336853,
+            "p(90)": 147.336853,
+            "p(95)": 147.336853
+        },
+        "http_req_sending": {
+            "p(95)": 0.10346625000000001,
+            "avg": 0.07467624749999989,
+            "min": 0.00754,
+            "med": 0.056723499999999996,
+            "max": 15.744375,
+            "p(90)": 0.08252169999999999
+        },
+        "http_req_failed": {
+            "passes": 4399,
+            "fails": 1,
+            "thresholds": {
+                "rate<0.2": true
+            },
+            "value": 0.9997727272727273
+        },
+        "data_sent": {
+            "count": 1657203,
+            "rate": 3651.4562183870235
+        },
+        "group_duration": {
+            "avg": 663.8491135928625,
+            "min": 97.917931,
+            "med": 592.593103,
+            "max": 4384.627975,
+            "p(90)": 1180.5124824000004,
+            "p(95)": 1341.4888807
+        },
+        "write_conflicts": {
+            "rate": 0,
+            "count": 0,
+            "thresholds": {
+                "count<50": false
+            }
+        },
+        "transaction_errors": {
+            "count": 731,
+            "rate": 1.610674428926881
+        },
+        "http_req_receiving": {
+            "min": 0.048486,
+            "med": 0.2915575,
+            "max": 22.511995,
+            "p(90)": 0.7063882999999997,
+            "p(95)": 1.0105206500000001,
+            "avg": 0.4472388340909086
+        },
+        "vus": {
+            "value": 13,
+            "min": 1,
+            "max": 30
+        },
+        "iterations": {
+            "count": 731,
+            "rate": 1.610674428926881
+        },
+        "database_update_success": {
+            "passes": 0,
+            "fails": 731,
+            "thresholds": {
+                "rate>0.7": true
+            },
+            "value": 0
+        },
+        "http_req_waiting": {
+            "min": 97.328452,
+            "med": 591.415146,
+            "max": 4384.156891,
+            "p(90)": 1178.9819441,
+            "p(95)": 1337.1960868500003,
+            "avg": 662.5981166531833
+        },
+        "checks": {
+            "passes": 8051,
+            "fails": 1482,
+            "value": 0.8445400188817791
+        },
+        "iteration_duration": {
+            "avg": 9001.86778089877,
+            "min": 5995.710389,
+            "med": 8487.310598,
+            "max": 13816.174104,
+            "p(90)": 11668.806221,
+            "p(95)": 12640.965938
+        },
+        "concurrent_write_operations": {
+            "rate": 9.692690578453282,
+            "count": 4399
+        },
+        "database_write_success": {
+            "passes": 0,
+            "fails": 2937,
+            "thresholds": {
+                "rate>0.7": true
+            },
+            "value": 0
+        },
+        "write_operation_latency": {
+            "p(95)": 1339.0999999999995,
+            "avg": 663.6035462605138,
+            "min": 98,
+            "med": 593,
+            "max": 4385,
+            "p(90)": 1180.2000000000003,
+            "thresholds": {
+                "p(95)<2000": false
+            }
+        },
+        "http_req_connecting": {
+            "med": 0,
+            "max": 2.916417,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.006341808863636363,
+            "min": 0
+        },
+        "vus_max": {
+            "min": 30,
+            "max": 30,
+            "value": 30
+        }
+    },
+    "setup_data": {
+        "serverReachable": true
+    },
+    "root_group": {
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "Database Write - Create Project": {
+                "name": "Database Write - Create Project",
+                "path": "::Database Write - Create Project",
+                "id": "a97d5b131d5cf4f0fd0f0ba6d55a40ba",
+                "groups": {},
+                "checks": {
+                        "project creation status": {
+                            "name": "project creation status",
+                            "path": "::Database Write - Create Project::project creation status",
+                            "id": "2b1deeaf624ea0cee6378c714051fbd0",
+                            "passes": 0,
+                            "fails": 735
+                        },
+                        "project creation latency < 3s": {
+                            "path": "::Database Write - Create Project::project creation latency < 3s",
+                            "id": "6d6ecced6fd59bb9c0f47a4aa160a069",
+                            "passes": 734,
+                            "fails": 1,
+                            "name": "project creation latency < 3s"
+                        },
+                        "project has id": {
+                            "name": "project has id",
+                            "path": "::Database Write - Create Project::project has id",
+                            "id": "e00f6353567aab308a61446c16ae4f97",
+                            "passes": 735,
+                            "fails": 0
+                        }
+                    }
+            },
+            "Database Write - Create Contractor": {
+                "name": "Database Write - Create Contractor",
+                "path": "::Database Write - Create Contractor",
+                "id": "04dad7726de0d82d512c8bf07c0c161a",
+                "groups": {},
+                "checks": {
+                        "contractor creation status": {
+                            "name": "contractor creation status",
+                            "path": "::Database Write - Create Contractor::contractor creation status",
+                            "id": "7796c18049a4cf4da740b305e76ff5cf",
+                            "passes": 735,
+                            "fails": 0
+                        },
+                        "contractor creation latency < 2s": {
+                            "name": "contractor creation latency < 2s",
+                            "path": "::Database Write - Create Contractor::contractor creation latency < 2s",
+                            "id": "1cd382b891fc2062d64bff86cb2120b2",
+                            "passes": 735,
+                            "fails": 0
+                        }
+                    }
+            },
+            "Database Write - Create Material": {
+                "name": "Database Write - Create Material",
+                "path": "::Database Write - Create Material",
+                "id": "1d9ecad74ece6b45b6d559211c5a2e78",
+                "groups": {},
+                "checks": {
+                        "material creation status": {
+                            "name": "material creation status",
+                            "path": "::Database Write - Create Material::material creation status",
+                            "id": "c8d33b8cb8a29fe740c471c169c2de28",
+                            "passes": 734,
+                            "fails": 0
+                        },
+                        "material creation latency < 2s": {
+                            "name": "material creation latency < 2s",
+                            "path": "::Database Write - Create Material::material creation latency < 2s",
+                            "id": "01d55d875b8c584a37c176a7db74f20f",
+                            "passes": 734,
+                            "fails": 0
+                        }
+                    }
+            },
+            "Database Write - Create NCR": {
+                "name": "Database Write - Create NCR",
+                "path": "::Database Write - Create NCR",
+                "id": "40df5cfbc80ab9062a89c99f767564f3",
+                "groups": {},
+                "checks": {
+                        "ncr creation status": {
+                            "name": "ncr creation status",
+                            "path": "::Database Write - Create NCR::ncr creation status",
+                            "id": "2e610f058aae21e3835fc850593698d3",
+                            "passes": 733,
+                            "fails": 0
+                        },
+                        "ncr creation latency < 2s": {
+                            "path": "::Database Write - Create NCR::ncr creation latency < 2s",
+                            "id": "9f7a11e68b93ba60716268e6767ecb0c",
+                            "passes": 732,
+                            "fails": 1,
+                            "name": "ncr creation latency < 2s"
+                        }
+                    }
+            },
+            "Database Update - Update NCR Status": {
+                "name": "Database Update - Update NCR Status",
+                "path": "::Database Update - Update NCR Status",
+                "id": "2a04dd4cb9315a1de00cbbe610cc1dfe",
+                "groups": {},
+                "checks": {
+                        "update status acceptable": {
+                            "name": "update status acceptable",
+                            "path": "::Database Update - Update NCR Status::update status acceptable",
+                            "id": "a3c8892da4e479b1a06a3490967ee60b",
+                            "passes": 0,
+                            "fails": 731
+                        },
+                        "update latency < 2s": {
+                            "name": "update latency < 2s",
+                            "path": "::Database Update - Update NCR Status::update latency < 2s",
+                            "id": "24fa5c3650d11ebfd0c3d7a589955d02",
+                            "passes": 717,
+                            "fails": 14
+                        }
+                    }
+            },
+            "Database Write - Batch Photo Upload Simulation": {
+                "name": "Database Write - Batch Photo Upload Simulation",
+                "path": "::Database Write - Batch Photo Upload Simulation",
+                "id": "edb0be22f26276d8ad9a6e5136ee57fb",
+                "groups": {},
+                "checks": {
+                        "bulk upload status": {
+                            "passes": 731,
+                            "fails": 0,
+                            "name": "bulk upload status",
+                            "path": "::Database Write - Batch Photo Upload Simulation::bulk upload status",
+                            "id": "2dd3e5a39ce6f8753003738147aa5bee"
+                        },
+                        "bulk upload latency < 5s": {
+                            "name": "bulk upload latency < 5s",
+                            "path": "::Database Write - Batch Photo Upload Simulation::bulk upload latency < 5s",
+                            "id": "08b1e076e3c4f21b7d7a116fa7ed6c12",
+                            "passes": 731,
+                            "fails": 0
+                        }
+                    }
+            }
+        },
+        "checks": {},
+        "name": "",
+        "path": ""
+    }
+}
