@@ -75,13 +75,8 @@ export function AssignITPModal({
     setIsLoading(true);
     setError(null);
 
-    // OPTIMIZATION: Optimistic UI update - show success immediately
     const selectedCount = selectedTemplateIds.length;
-    const optimisticToastId = toast.loading(`Assigning ${selectedCount} ITP template(s)...`);
-
-    // Close modal and trigger refresh optimistically (before server confirms)
-    onClose();
-    onITPAssigned();
+    const loadingToastId = toast.loading(`Assigning ${selectedCount} ITP template(s)...`);
 
     try {
       const startTime = performance.now();
@@ -102,33 +97,36 @@ export function AssignITPModal({
       const responseTime = Math.round(endTime - startTime);
 
       if (response.ok) {
-        await response.json(); // consume response
+        const result = await response.json();
+        console.log('ITP Assignment Response:', result); // Debug log
         toast.success(
           `Successfully assigned ${selectedCount} ITP template(s) (${responseTime}ms)`,
           {
-            id: optimisticToastId,
+            id: loadingToastId,
           }
         );
+
+        // Close modal and trigger refresh AFTER successful API response
+        onClose();
+
+        // Add small delay to ensure database consistency before refetch
+        setTimeout(() => {
+          onITPAssigned();
+        }, 150);
       } else {
         const errorData = await response.json();
         const errorMessage =
           errorData.error || errorData.message || 'Failed to assign ITP templates';
 
-        // Rollback optimistic update on error
-        toast.error(errorMessage, { id: optimisticToastId });
-
-        // Optionally reopen modal or trigger refresh to show actual state
-        onITPAssigned(); // Refresh to show actual state
+        toast.error(errorMessage, { id: loadingToastId });
+        setError(errorMessage);
       }
     } catch (error) {
       console.error('Error assigning ITPs:', error);
       const errorMessage = 'An unexpected error occurred while assigning ITPs';
 
-      // Rollback optimistic update on error
-      toast.error(errorMessage, { id: optimisticToastId });
-
-      // Trigger refresh to show actual state
-      onITPAssigned();
+      toast.error(errorMessage, { id: loadingToastId });
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
