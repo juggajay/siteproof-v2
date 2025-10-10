@@ -149,12 +149,25 @@ export async function GET(request: Request) {
     // If no projects found in materialized view, return empty result
     if ((!filteredProjects || filteredProjects.length === 0) && count === 0) {
       log.info('[Projects API GET] No projects found in materialized view', { userId: user.id });
+      const totalCount = 0;
+      const totalPages = 0;
+      const hasMore = false;
+
       return NextResponse.json(
         {
           projects: [],
-          total: 0,
+          // Legacy format (for backward compatibility)
+          total: totalCount,
           page,
           limit,
+          // New pagination format
+          pagination: {
+            total: totalCount,
+            page,
+            limit,
+            totalPages,
+            hasMore,
+          },
         },
         {
           status: 200,
@@ -190,12 +203,26 @@ export async function GET(request: Request) {
       },
     }));
 
+    // Calculate pagination metadata
+    const totalCount = count || 0;
+    const totalPages = Math.ceil(totalCount / limit);
+    const hasMore = page < totalPages;
+
     return NextResponse.json(
       {
         projects: transformedProjects,
-        total: filteredProjects.length,
+        // Legacy format (for backward compatibility)
+        total: totalCount,
         page,
         limit,
+        // New pagination format (standardized across all endpoints)
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages,
+          hasMore,
+        },
       },
       {
         status: 200,

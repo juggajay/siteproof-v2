@@ -1,0 +1,56 @@
+{
+  "testConfigs": {
+    "smoke": {
+      "description": "Quick test with minimal load",
+      "stages": [
+        { "duration": "30s", "target": 1 },
+        { "duration": "30s", "target": 0 }
+      ]
+    },
+    "load": {
+      "description": "Standard load test",
+      "stages": [
+        { "duration": "1m", "target": 10 },
+        { "duration": "3m", "target": 10 },
+        { "duration": "1m", "target": 0 }
+      ]
+    },
+    "stress": {
+      "description": "High load stress test",
+      "stages": [
+        { "duration": "2m", "target": 50 },
+        { "duration": "5m", "target": 50 },
+        { "duration": "2m", "target": 100 },
+        { "duration": "3m", "target": 100 },
+        { "duration": "2m", "target": 0 }
+      ]
+    },
+    "spike": {
+      "description": "Sudden spike test",
+      "stages": [
+        { "duration": "10s", "target": 100 },
+        { "duration": "1m", "target": 100 },
+        { "duration": "10s", "target": 0 }
+      ]
+    }
+  },
+  "thresholds": {
+    "development": {
+      "http_req_duration": ["p(95)<1000", "p(99)<2000"],
+      "http_req_failed": ["rate<0.2"],
+      "errors": ["rate<0.2"]
+    },
+    "production": {
+      "http_req_duration": ["p(95)<500", "p(99)<1000"],
+      "http_req_failed": ["rate<0.05"],
+      "errors": ["rate<0.05"]
+    }
+  },
+  "endpoints": {
+    "health": "/api/health",
+    "projects": "/api/projects",
+    "dashboard": "/api/dashboard/widgets/project-summary",
+    "ncrs": "/api/ncrs",
+    "inspections": "/api/inspections"
+  }
+}
