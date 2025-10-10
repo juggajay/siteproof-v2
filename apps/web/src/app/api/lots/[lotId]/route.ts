@@ -168,7 +168,9 @@ export async function GET(
         )
       `
       )
-      .eq('lot_id', lotId);
+      .eq('lot_id', lotId)
+      .is('deleted_at', null) // Filter out soft-deleted ITPs
+      .eq('is_active', true); // Only return active instances
 
     return NextResponse.json({
       lot: {

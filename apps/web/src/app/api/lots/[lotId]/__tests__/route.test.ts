@@ -180,13 +180,19 @@ describe('/api/lots/[lotId] - GET', () => {
         };
       }
       if (table === 'itp_instances') {
-        return {
-          select: vi.fn().mockReturnThis(),
-          eq: vi.fn().mockResolvedValue({
-            data: mockItpInstances,
-            error: null,
+        const chain = {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              is: vi.fn().mockReturnValue({
+                eq: vi.fn().mockResolvedValue({
+                  data: mockItpInstances,
+                  error: null,
+                }),
+              }),
+            }),
           }),
         };
+        return chain;
       }
       return {
         select: vi.fn().mockReturnThis(),

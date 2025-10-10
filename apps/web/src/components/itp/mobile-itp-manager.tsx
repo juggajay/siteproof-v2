@@ -45,7 +45,14 @@ export function MobileItpManager({ projectId, lotId }: MobileItpManagerProps) {
 
   const loadItpInstances = useCallback(async () => {
     try {
-      const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp`);
+      const response = await fetch(`/api/projects/${projectId}/lots/${lotId}/itp`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      });
       if (response.ok) {
         const data = await response.json();
 

@@ -80,7 +80,16 @@ export async function GET(
 
     // Return instances in the format expected by the frontend
     // Template data is already included via the join
-    return NextResponse.json({ instances: cleanedInstances });
+    return NextResponse.json(
+      { instances: cleanedInstances },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          Pragma: 'no-cache',
+          Expires: '0',
+        },
+      }
+    );
   } catch (error) {
     console.error('[ITP API] Unexpected error:', error);
     console.error('[ITP API] Error stack:', error instanceof Error ? error.stack : 'No stack');

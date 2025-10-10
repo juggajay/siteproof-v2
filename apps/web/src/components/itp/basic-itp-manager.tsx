@@ -91,7 +91,14 @@ export function BasicItpManager({ projectId, lotId }: BasicItpManagerProps) {
   // Load function
   const loadItps = () => {
     setLoading(true);
-    fetch(`/api/projects/${projectId}/lots/${lotId}/itp`)
+    fetch(`/api/projects/${projectId}/lots/${lotId}/itp`, {
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        Pragma: 'no-cache',
+        Expires: '0',
+      },
+    })
       .then((res) => res.json())
       .then((data) => {
         console.log('ITP Data received:', data); // Debug log

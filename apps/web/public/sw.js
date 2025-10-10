@@ -75,6 +75,39 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Handle DELETE requests for ITP - invalidate cache
+  if (request.method === 'DELETE' && url.pathname.includes('/itp/')) {
+    event.respondWith(
+      fetch(request).then(async (response) => {
+        if (response.ok) {
+          // Extract lot ID from URL pattern: /api/projects/[projectId]/lots/[lotId]/itp/[itpId]
+          const lotIdMatch = url.pathname.match(/\/lots\/([^/]+)\//);
+          if (lotIdMatch) {
+            const lotId = lotIdMatch[1];
+            const cache = await caches.open(DYNAMIC_CACHE);
+            const keys = await cache.keys();
+
+            // Delete all cached ITP list requests for this lot
+            await Promise.all(
+              keys
+                .filter(key => {
+                  const keyUrl = new URL(key.url);
+                  return keyUrl.pathname.includes(`/lots/${lotId}/itp`) &&
+                         !keyUrl.pathname.match(/\/itp\/[^/]+$/); // Don't match individual ITP endpoints
+                })
+                .map(key => {
+                  console.log('[SW] Invalidating cache for:', key.url);
+                  return cache.delete(key);
+                })
+            );
+          }
+        }
+        return response;
+      })
+    );
+    return;
+  }
+
   // Skip non-GET requests
   if (request.method !== 'GET') {
     return;

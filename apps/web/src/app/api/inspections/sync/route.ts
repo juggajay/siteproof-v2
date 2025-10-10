@@ -98,6 +98,17 @@ export async function POST(request: NextRequest) {
           .single();
 
         if (existingInspection) {
+          // Check if the instance was deleted
+          if (existingInspection.deleted_at !== null) {
+            // Instance was deleted on server - don't sync
+            syncResults.inspections.conflicts.push({
+              client: inspection,
+              server: existingInspection,
+              conflict_type: 'instance_deleted',
+            });
+            continue; // Skip to next inspection
+          }
+
           // Check for conflicts (server updated since client's last sync)
           const serverUpdatedAt = new Date(existingInspection.updated_at);
           const clientUpdatedAt = new Date(inspection.updated_at);

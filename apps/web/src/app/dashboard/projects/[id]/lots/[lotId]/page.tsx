@@ -116,6 +116,7 @@ export default async function LotDetailPage({ params }: PageProps) {
       `
       )
       .eq('lot_id', lotId)
+      .is('deleted_at', null) // Filter out soft-deleted ITPs
       .eq('is_active', true)
       .order('created_at', { ascending: false });
 
