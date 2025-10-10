@@ -14,16 +14,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user's organization
-    const { data: member, error: memberError } = await supabase
+    // Get user's organizations (support multi-org users)
+    const { data: memberships, error: memberError } = await supabase
       .from('organization_members')
       .select('organization_id')
-      .eq('user_id', user.id)
-      .single();
+      .eq('user_id', user.id);
 
-    if (memberError || !member) {
+    if (memberError || !memberships || memberships.length === 0) {
       return NextResponse.json({ error: 'No organization found' }, { status: 404 });
     }
+
+    // Extract organization IDs
+    const orgIds = memberships.map((m) => m.organization_id);
+
+    console.log('[GET /api/reports] User organizations:', orgIds);
 
     // Parse query parameters
     const limit = parseInt(searchParams?.get('limit') || '10');
@@ -35,7 +39,7 @@ export async function GET(request: Request) {
     const start_date = searchParams?.get('start_date');
     const end_date = searchParams?.get('end_date');
 
-    // Build query
+    // Build query - include reports from ALL user's organizations
     let query = supabase
       .from('report_queue')
       .select(
@@ -44,7 +48,7 @@ export async function GET(request: Request) {
         requested_by:users!report_queue_requested_by_fkey(id, email, full_name)
       `
       )
-      .eq('organization_id', member.organization_id)
+      .in('organization_id', orgIds)
       .order('requested_at', { ascending: false })
       .limit(limit);
 
@@ -106,14 +110,12 @@ export async function GET(request: Request) {
     let filteredReports = reports || [];
 
     if (project_id) {
-      filteredReports = filteredReports.filter(
-        (report) => {
-          const params = (report.parameters as Record<string, any> | null) || {};
-          const parameterProjectId =
-            params.project_id ?? params.projectId ?? params.project?.id ?? null;
-          return parameterProjectId === project_id;
-        }
-      );
+      filteredReports = filteredReports.filter((report) => {
+        const params = (report.parameters as Record<string, any> | null) || {};
+        const parameterProjectId =
+          params.project_id ?? params.projectId ?? params.project?.id ?? null;
+        return parameterProjectId === project_id;
+      });
     }
 
     if (diary_date) {
