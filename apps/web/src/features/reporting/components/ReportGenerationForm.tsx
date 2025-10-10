@@ -1,19 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { 
-  FileText, 
-  Calendar, 
-  Download, 
+import {
+  FileText,
+  Calendar,
+  Download,
   Loader2,
   ChevronDown,
   AlertCircle,
   FileSpreadsheet,
   FileJson,
-  FileType
+  FileType,
 } from 'lucide-react';
 import { Button } from '@siteproof/design-system';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -52,36 +52,36 @@ interface ReportGenerationFormProps {
 }
 
 const reportTypes = [
-  { 
-    value: 'project_summary', 
+  {
+    value: 'project_summary',
     label: 'Project Summary',
     description: 'Overall project status, progress, and key metrics',
     icon: FileText,
     requiredRole: null,
   },
-  { 
-    value: 'daily_diary_export', 
+  {
+    value: 'daily_diary_export',
     label: 'Daily Diary Export',
     description: 'Export daily diaries for a date range',
     icon: Calendar,
     requiredRole: null,
   },
-  { 
-    value: 'inspection_summary', 
+  {
+    value: 'inspection_summary',
     label: 'Inspection Summary',
     description: 'Summary of all inspections with pass/fail rates',
     icon: FileText,
     requiredRole: null,
   },
-  { 
-    value: 'ncr_report', 
+  {
+    value: 'ncr_report',
     label: 'NCR Report',
     description: 'Non-conformance reports with status tracking',
     icon: AlertCircle,
     requiredRole: null,
   },
-  { 
-    value: 'financial_summary', 
+  {
+    value: 'financial_summary',
     label: 'Financial Summary',
     description: 'Cost analysis and financial metrics',
     icon: FileSpreadsheet,
@@ -96,6 +96,37 @@ const formatOptions = [
   { value: 'json', label: 'JSON', icon: FileJson },
 ];
 
+const formatDateLabel = (value?: string) => {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+  return parsed.toLocaleDateString();
+};
+
+const buildReportName = (
+  typeValue?: string | null,
+  range?: { start?: string; end?: string }
+): string => {
+  if (!typeValue) {
+    return '';
+  }
+
+  const typeLabel = reportTypes.find((r) => r.value === typeValue)?.label || 'Report';
+  const startLabel = formatDateLabel(range?.start);
+  const endLabel = formatDateLabel(range?.end);
+
+  if (startLabel && endLabel) {
+    return `${typeLabel} – ${startLabel} to ${endLabel}`;
+  }
+  if (startLabel || endLabel) {
+    return `${typeLabel} – ${startLabel || endLabel}`;
+  }
+
+  return typeLabel;
+};
+
 export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFormProps) {
   useSession(); // For auth state
   const { data: role } = useOrganizationRole();
@@ -105,7 +136,9 @@ export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFo
     register,
     handleSubmit,
     watch,
-    formState: { errors, isSubmitting },
+    setValue,
+    getValues,
+    formState: { errors, isSubmitting, dirtyFields },
   } = useForm<ReportFormData>({
     resolver: zodResolver(reportGenerationSchema),
     defaultValues: {
@@ -120,7 +153,7 @@ export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFo
   });
 
   // Fetch projects
-  const { data: projects } = useQuery({
+  const { data: projects, isLoading: isProjectsLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
       const response = await fetch('/api/projects');
@@ -169,112 +202,212 @@ export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFo
     if (data.include_signatures) parameters.include_signatures = true;
     if (data.group_by) parameters.group_by = data.group_by;
 
+    const fallbackName = buildReportName(data.report_type, data.date_range);
+
     generateReport.mutate({
       ...data,
-      report_name: data.report_name || `${reportTypes.find(r => r.value === data.report_type)?.label} - ${new Date().toLocaleDateString()}`,
+      report_name: (data.report_name || '').trim() || fallbackName,
     });
   };
 
   const selectedReportType = watch('report_type');
   const selectedFormat = watch('format');
+  const projectId = watch('project_id');
+  const dateRange = watch('date_range');
+  const projectSelected = Boolean(projectId);
+  const autoNameRef = useRef<string>('');
+
+  // Automatically generate report name based on type and date range
+  useEffect(() => {
+    if (!selectedReportType) {
+      if (!dirtyFields.report_name) {
+        setValue('report_name', '', { shouldDirty: false });
+        autoNameRef.current = '';
+      }
+      return;
+    }
+
+    const autoName = buildReportName(selectedReportType, dateRange);
+    const currentName = getValues('report_name');
+
+    if (!dirtyFields.report_name || currentName === autoNameRef.current) {
+      setValue('report_name', autoName, { shouldDirty: false });
+      autoNameRef.current = autoName;
+    }
+  }, [
+    dateRange?.end,
+    dateRange?.start,
+    dirtyFields.report_name,
+    getValues,
+    selectedReportType,
+    setValue,
+  ]);
 
   // Filter report types based on user role
-  const availableReportTypes = reportTypes.filter(type => {
+  const availableReportTypes = reportTypes.filter((type) => {
     if (!type.requiredRole) return true;
     return type.requiredRole.includes(role?.role || '');
   });
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Project Selection */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
+        <p className="text-sm text-gray-500 mb-2">
+          Choose the project this report belongs to. Report options unlock after selecting a
+          project.
+        </p>
+        <select
+          {...register('project_id')}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
+          disabled={isProjectsLoading}
+        >
+          <option value="">{isProjectsLoading ? 'Loading projects...' : 'Select a project'}</option>
+          {projects?.map((project: any) => (
+            <option key={project.id} value={project.id}>
+              {project.name}
+              {project.client_name ? ` — ${project.client_name}` : ''}
+            </option>
+          ))}
+        </select>
+        {!isProjectsLoading && (!projects || projects.length === 0) && (
+          <p className="mt-2 text-sm text-gray-500">
+            No projects found. Create a project to start generating reports.
+          </p>
+        )}
+        {errors.project_id && (
+          <p className="mt-1 text-sm text-red-600">{errors.project_id.message}</p>
+        )}
+      </div>
+
       {/* Report Type Selection */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Report Type
-        </label>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {availableReportTypes.map((type) => {
-            const Icon = type.icon;
-            return (
-              <label
-                key={type.value}
-                className={`relative flex items-start p-4 border rounded-lg cursor-pointer transition-all ${
-                  selectedReportType === type.value
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  {...register('report_type')}
-                  value={type.value}
-                  className="sr-only"
-                />
-                <div className="flex items-start gap-3">
-                  <Icon className={`w-5 h-5 mt-0.5 ${
-                    selectedReportType === type.value ? 'text-blue-600' : 'text-gray-400'
-                  }`} />
-                  <div>
-                    <p className={`font-medium ${
-                      selectedReportType === type.value ? 'text-blue-900' : 'text-gray-900'
-                    }`}>
-                      {type.label}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-1">
-                      {type.description}
-                    </p>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
+        <p className="text-sm text-gray-500 mb-3">
+          Select the type of report you want to generate. Scroll to see all available options.
+        </p>
+        <div className="relative">
+          {!projectSelected && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-lg bg-white/80 px-4 text-center backdrop-blur-sm">
+              <p className="text-sm text-gray-600">
+                Select a project to choose from the available report types.
+              </p>
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-1">
+            {availableReportTypes.map((type) => {
+              const Icon = type.icon;
+              const isSelected = selectedReportType === type.value;
+              const disabled = !projectSelected;
+
+              return (
+                <label
+                  key={type.value}
+                  className={`relative flex items-start p-4 border rounded-lg transition-all ${
+                    isSelected
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <input
+                    type="radio"
+                    {...register('report_type')}
+                    value={type.value}
+                    disabled={disabled}
+                    className="sr-only"
+                  />
+                  <div className="flex items-start gap-3">
+                    <Icon
+                      className={`w-5 h-5 mt-0.5 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`}
+                    />
+                    <div>
+                      <p
+                        className={`font-medium ${isSelected ? 'text-blue-900' : 'text-gray-900'}`}
+                      >
+                        {type.label}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-1">{type.description}</p>
+                    </div>
                   </div>
-                </div>
-              </label>
-            );
-          })}
+                </label>
+              );
+            })}
+          </div>
         </div>
         {errors.report_type && (
           <p className="mt-1 text-sm text-red-600">{errors.report_type.message}</p>
         )}
+        {!availableReportTypes.length && projectSelected && (
+          <p className="mt-2 text-sm text-gray-500">
+            You don&rsquo;t have access to any report types yet. Contact an administrator for
+            access.
+          </p>
+        )}
       </div>
 
-      {/* Basic Configuration */}
+      {/* Report Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Report Name
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Report Name</label>
           <input
             {...register('report_name')}
-            placeholder="Enter a name for this report"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Daily Diary – 1 Jan to 7 Jan"
+            disabled={!selectedReportType}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 disabled:text-gray-500"
           />
+          <p className="mt-1 text-xs text-gray-500">
+            Auto-generated from the selected report type and date range. You can edit it if needed.
+          </p>
           {errors.report_name && (
             <p className="mt-1 text-sm text-red-600">{errors.report_name.message}</p>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Project
-          </label>
-          <select
-            {...register('project_id')}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Select a project</option>
-            {projects?.map((project: any) => (
-              <option key={project.id} value={project.id}>
-                {project.name} - {project.client_name}
-              </option>
-            ))}
-          </select>
-          {errors.project_id && (
-            <p className="mt-1 text-sm text-red-600">{errors.project_id.message}</p>
-          )}
+          <label className="block text-sm font-medium text-gray-700 mb-2">Export Format</label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {formatOptions.map((format) => {
+              const Icon = format.icon;
+              const isSelected = selectedFormat === format.value;
+              const disabled = !selectedReportType;
+
+              return (
+                <label
+                  key={format.value}
+                  className={`relative flex items-center justify-center p-3 border rounded-lg transition-all ${
+                    isSelected
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <input
+                    type="radio"
+                    {...register('format')}
+                    value={format.value}
+                    disabled={disabled}
+                    className="sr-only"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Icon className={`w-4 h-4 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`} />
+                    <span
+                      className={`text-sm font-medium ${
+                        isSelected ? 'text-blue-900' : 'text-gray-700'
+                      }`}
+                    >
+                      {format.label}
+                    </span>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Date Range */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Date Range
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <input
@@ -299,45 +432,6 @@ export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFo
         </div>
       </div>
 
-      {/* Format Selection */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Export Format
-        </label>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {formatOptions.map((format) => {
-            const Icon = format.icon;
-            return (
-              <label
-                key={format.value}
-                className={`relative flex items-center justify-center p-3 border rounded-lg cursor-pointer transition-all ${
-                  selectedFormat === format.value
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  {...register('format')}
-                  value={format.value}
-                  className="sr-only"
-                />
-                <div className="flex items-center gap-2">
-                  <Icon className={`w-4 h-4 ${
-                    selectedFormat === format.value ? 'text-blue-600' : 'text-gray-400'
-                  }`} />
-                  <span className={`text-sm font-medium ${
-                    selectedFormat === format.value ? 'text-blue-900' : 'text-gray-700'
-                  }`}>
-                    {format.label}
-                  </span>
-                </div>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Advanced Options */}
       <div className="border-t pt-4">
         <button
@@ -345,9 +439,9 @@ export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFo
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
         >
-          <ChevronDown className={`w-4 h-4 transition-transform ${
-            showAdvanced ? 'rotate-180' : ''
-          }`} />
+          <ChevronDown
+            className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+          />
           Advanced Options
         </button>
 
@@ -389,18 +483,11 @@ export function ReportGenerationForm({ onSuccess, onCancel }: ReportGenerationFo
       {/* Actions */}
       <div className="flex items-center justify-end gap-3 pt-4 border-t">
         {onCancel && (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onCancel}
-          >
+          <Button type="button" variant="secondary" onClick={onCancel}>
             Cancel
           </Button>
         )}
-        <Button
-          type="submit"
-          disabled={isSubmitting}
-        >
+        <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
