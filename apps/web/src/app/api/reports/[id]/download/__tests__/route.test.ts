@@ -298,7 +298,7 @@ describe('/api/reports/[id]/download - GET', () => {
         return {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({
+          maybeSingle: vi.fn().mockResolvedValue({
             data: mockReport,
             error: null,
           }),
