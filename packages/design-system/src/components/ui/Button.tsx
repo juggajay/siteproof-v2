@@ -4,7 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence, HTMLMotionProps } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 
-export interface ButtonProps extends Omit<HTMLMotionProps<"button">, 'size'> {
+export interface ButtonProps extends Omit<HTMLMotionProps<'button'>, 'size'> {
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
   loading?: boolean;
@@ -17,8 +17,10 @@ export interface ButtonProps extends Omit<HTMLMotionProps<"button">, 'size'> {
 const variantStyles = {
   primary: 'btn-primary',
   secondary: 'btn-secondary',
-  ghost: 'bg-transparent text-primary-charcoal hover:bg-secondary-light-gray focus:ring-primary-blue rounded-lg px-4 py-2 transition-all duration-200',
-  danger: 'bg-error text-white hover:bg-error-dark focus:ring-error shadow-button rounded-lg px-6 py-3 min-h-[48px] transition-all duration-200',
+  ghost:
+    'bg-transparent text-primary-charcoal hover:bg-secondary-light-gray focus:ring-primary-blue rounded-lg px-4 py-2 transition-all duration-200',
+  danger:
+    'bg-error text-white hover:bg-error-dark focus:ring-error shadow-button rounded-lg px-6 py-3 min-h-[48px] transition-all duration-200',
 };
 
 const sizeStyles = {
@@ -50,6 +52,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={isDisabled}
         className={`
+          relative
           ${variantStyles[variant]}
           ${sizeStyles[size]}
           ${fullWidth ? 'w-full' : ''}
@@ -66,7 +69,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 flex items-center justify-center"
+              className="absolute inset-0 flex items-center justify-center pointer-events-none"
             >
               <Loader2 className="w-4 h-4 animate-spin" />
             </motion.div>

@@ -169,36 +169,50 @@ export function DiaryForm({
 
   const createDiary = useMutation({
     mutationFn: async (data: DiaryFormData) => {
+      console.log('[DiaryForm] createDiary mutation started with data:', data);
+
       // Ensure project.id exists
       if (!project?.id) {
+        console.error('[DiaryForm] Project ID missing in mutation');
         throw new Error('Project ID is required');
       }
+
+      const payload = {
+        ...data,
+        project_id: project.id,
+        labour_entries: labourEntries,
+        plant_entries: plantEntries,
+        material_entries: materialEntries,
+      };
+
+      console.log('[DiaryForm] Sending POST request to /api/diaries with payload:', payload);
 
       const response = await fetch('/api/diaries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          project_id: project.id,
-          labour_entries: labourEntries,
-          plant_entries: plantEntries,
-          material_entries: materialEntries,
-        }),
+        body: JSON.stringify(payload),
       });
+
+      console.log('[DiaryForm] Response status:', response.status);
+      console.log('[DiaryForm] Response ok:', response.ok);
 
       if (!response.ok) {
         const error = await response.json();
-        console.error('Diary creation error:', error);
+        console.error('[DiaryForm] Diary creation error:', error);
         throw new Error(error.message || error.error || 'Failed to create diary');
       }
 
-      return response.json();
+      const result = await response.json();
+      console.log('[DiaryForm] Diary created successfully:', result);
+      return result;
     },
     onSuccess: (data) => {
+      console.log('[DiaryForm] createDiary onSuccess called with data:', data);
       toast.success('Daily diary created successfully');
       onSuccess?.(data.diary.id);
     },
     onError: (error) => {
+      console.error('[DiaryForm] createDiary onError called with error:', error);
       toast.error(error.message);
     },
   });
@@ -233,8 +247,15 @@ export function DiaryForm({
   });
 
   const onSubmit = (data: DiaryFormData) => {
+    console.log('[DiaryForm] onSubmit called with data:', data);
+    console.log('[DiaryForm] Form errors:', errors);
+    console.log('[DiaryForm] isSubmitting:', isSubmitting);
+    console.log('[DiaryForm] createDiary.isPending:', createDiary.isPending);
+    console.log('[DiaryForm] updateDiary.isPending:', updateDiary.isPending);
+
     // Validate that project exists
     if (!project?.id) {
+      console.error('[DiaryForm] Project ID missing:', project);
       toast.error('Project information is missing. Please refresh the page.');
       return;
     }
@@ -257,9 +278,13 @@ export function DiaryForm({
       milestones_achieved: [],
     };
 
+    console.log('[DiaryForm] Submitting complete data:', completeData);
+
     if (diary) {
+      console.log('[DiaryForm] Updating existing diary:', diary.id);
       updateDiary.mutate(completeData);
     } else {
+      console.log('[DiaryForm] Creating new diary');
       createDiary.mutate(completeData);
     }
   };
@@ -416,6 +441,17 @@ export function DiaryForm({
           type="submit"
           loading={isSubmitting || createDiary.isPending || updateDiary.isPending}
           disabled={isSubmitting || createDiary.isPending || updateDiary.isPending}
+          onClick={(e) => {
+            console.log('[DiaryForm] Save button clicked');
+            console.log(
+              '[DiaryForm] Button disabled?',
+              isSubmitting || createDiary.isPending || updateDiary.isPending
+            );
+            console.log('[DiaryForm] Form errors:', errors);
+            console.log('[DiaryForm] isSubmitting:', isSubmitting);
+            console.log('[DiaryForm] createDiary.isPending:', createDiary.isPending);
+            console.log('[DiaryForm] updateDiary.isPending:', updateDiary.isPending);
+          }}
         >
           <Save className="w-4 h-4 mr-2" />
           {diary ? 'Update' : 'Save'} Daily Diary
