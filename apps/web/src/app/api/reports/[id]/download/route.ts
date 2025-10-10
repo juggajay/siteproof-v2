@@ -30,19 +30,15 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       .from('report_queue')
       .select('*, organization:organizations(name)')
       .eq('id', reportId)
-      .single();
+      .maybeSingle();
 
-    if (reportError || !report) {
-      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    if (reportError) {
+      log.error('Failed to fetch report for download', reportError, { reportId });
+      return NextResponse.json({ error: 'Failed to fetch report' }, { status: 500 });
     }
 
-    // SECURITY: Verify user belongs to the same organization as the report
-    const userOrgId = user.user_metadata?.organization_id;
-    if (!userOrgId || report.organization_id !== userOrgId) {
-      return NextResponse.json(
-        { error: 'Forbidden: Access denied to this report' },
-        { status: 403 }
-      );
+    if (!report) {
+      return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
     // Use format override from query parameter if provided
