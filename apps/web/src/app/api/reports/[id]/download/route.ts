@@ -7,15 +7,39 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { log } from '@/lib/logger';
 import type { ReportQueueEntry, ReportGenerationData } from '@/types/database';
 
+// Supported report formats
+const SUPPORTED_FORMATS = ['pdf', 'excel', 'csv', 'json'] as const;
+type ReportFormat = (typeof SUPPORTED_FORMATS)[number];
+
+// Type guard for format validation
+function isValidFormat(format: string | null): format is ReportFormat {
+  return format !== null && SUPPORTED_FORMATS.includes(format as ReportFormat);
+}
+
 // GET /api/reports/[id]/download - Generate and download report directly
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+): Promise<NextResponse> {
   try {
     const { id: reportId } = params;
     const supabase = await createClient();
 
     // Get format from query parameter if provided
     const { searchParams } = new URL(request.url);
-    const formatOverride = searchParams.get('format') as 'pdf' | 'excel' | 'csv' | 'json' | null;
+    const formatParam = searchParams.get('format');
+
+    // Validate format parameter if provided
+    if (formatParam && !isValidFormat(formatParam)) {
+      return NextResponse.json(
+        {
+          error: `Unsupported format: ${formatParam}. Supported formats: ${SUPPORTED_FORMATS.join(', ')}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const formatOverride = formatParam as ReportFormat | null;
 
     // Get current user
     const {
@@ -25,10 +49,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get the report details with organization
+    // Get the report details without organization join to avoid RLS issues
     const { data: report, error: reportError } = await supabase
       .from('report_queue')
-      .select('*, organization:organizations(name)')
+      .select('*')
       .eq('id', reportId)
       .maybeSingle();
 
@@ -41,7 +65,24 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
 
-    // Use format override from query parameter if provided
+    // Fetch organization separately to avoid RLS JOIN issues
+    let organizationName = 'Unknown';
+    if (report.organization_id) {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('name')
+        .eq('id', report.organization_id)
+        .single();
+
+      if (org) {
+        organizationName = org.name;
+      }
+    }
+
+    // Add organization name to report object for compatibility
+    report.organization = { name: organizationName };
+
+    // Use format override from query parameter if provided, otherwise use report's format
     const finalFormat = formatOverride || report.format;
     log.debug('Report download started', {
       reportId,
@@ -50,11 +91,6 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       formatOverride,
       finalFormat,
     });
-
-    // Temporarily override the format for this request
-    if (formatOverride) {
-      report.format = formatOverride;
-    }
 
     // If the report is still being processed, inform the caller
     if (report.status === 'queued' || report.status === 'processing') {
@@ -140,7 +176,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     let fileName: string;
     let mimeType: string;
 
-    switch (report.format) {
+    switch (finalFormat) {
       case 'pdf':
         fileBuffer = await generateSimplePDF({
           project,

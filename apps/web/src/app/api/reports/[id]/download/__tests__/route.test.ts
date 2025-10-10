@@ -168,6 +168,16 @@ describe('/api/reports/[id]/download - GET', () => {
           update: vi.fn().mockReturnThis(),
         };
       }
+      if (table === 'organizations') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({
+            data: { name: 'Test Org' },
+            error: null,
+          }),
+        };
+      }
       return {
         select: vi.fn().mockReturnThis(),
       };
@@ -230,6 +240,16 @@ describe('/api/reports/[id]/download - GET', () => {
           eq: vi.fn().mockReturnThis(),
           maybeSingle: vi.fn().mockResolvedValue({
             data: mockReport,
+            error: null,
+          }),
+        };
+      }
+      if (table === 'organizations') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({
+            data: { name: 'Test Org' },
             error: null,
           }),
         };
@@ -304,6 +324,16 @@ describe('/api/reports/[id]/download - GET', () => {
           }),
         };
       }
+      if (table === 'organizations') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({
+            data: { name: 'Test Org' },
+            error: null,
+          }),
+        };
+      }
       if (table === 'projects') {
         return {
           select: vi.fn().mockReturnThis(),
@@ -341,6 +371,39 @@ describe('/api/reports/[id]/download - GET', () => {
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Type')).toBe('application/pdf');
     expect(response.headers.get('Content-Disposition')).toContain('Test Report.pdf');
+  });
+
+  it('should return 400 for invalid format parameter', async () => {
+    const mockSupabase = createMockSupabaseClient({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: {
+              id: 'user-123',
+              email: 'test@example.com',
+              user_metadata: { organization_id: 'org-123' },
+            },
+          },
+          error: null,
+        }),
+      },
+    });
+
+    const { createClient } = await import('@/lib/supabase/server');
+    vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+
+    const request = createMockRequest({
+      url: 'http://localhost:3000/api/reports/123/download?format=invalid',
+    });
+    const params = createMockParams({ id: '123' });
+
+    const response = await GET(request, params);
+    const text = await response.text();
+    const data = JSON.parse(text);
+
+    expect(response.status).toBe(400);
+    expect(data.error).toContain('Unsupported format');
+    expect(data.error).toContain('invalid');
   });
 
   it('should support format override via query parameter', async () => {
@@ -390,6 +453,16 @@ describe('/api/reports/[id]/download - GET', () => {
           eq: vi.fn().mockReturnThis(),
           maybeSingle: vi.fn().mockResolvedValue({
             data: mockReport,
+            error: null,
+          }),
+        };
+      }
+      if (table === 'organizations') {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({
+            data: { name: 'Test Org' },
             error: null,
           }),
         };
