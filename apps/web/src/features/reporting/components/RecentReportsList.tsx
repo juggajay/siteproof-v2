@@ -483,24 +483,35 @@ export function RecentReportsList({
 
     try {
       console.log('Deleting report:', reportId);
+      toast.loading('Deleting report...', { id: `delete-${reportId}` });
 
       const response = await fetch(`/api/reports/${reportId}`, {
         method: 'DELETE',
         credentials: 'include',
       });
 
+      console.log('Delete response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Delete failed with error data:', errorData);
         throw new Error(errorData.error || 'Failed to delete report');
       }
 
-      toast.success('Report deleted successfully');
+      const result = await response.json();
+      console.log('Delete result:', result);
+
+      toast.success('Report deleted successfully', { id: `delete-${reportId}` });
 
       // Invalidate all report queries to force refetch
-      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      await queryClient.invalidateQueries({ queryKey: ['reports'] });
+
+      // Also force an immediate refetch to update the UI
+      await refetch();
     } catch (error) {
       console.error('Delete error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to delete report');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete report';
+      toast.error(errorMessage, { id: `delete-${reportId}` });
     } finally {
       setDeletingReportId((current) => (current === reportId ? null : current));
     }

@@ -56,16 +56,25 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     }
 
     // Delete the report
-    console.log('Attempting to delete report:', reportId);
+    // Note: We only need to filter by ID - RLS policies will enforce permissions
+    console.log('Attempting to delete report:', reportId, 'for user:', user.id);
+    console.log('Report organization_id:', report.organization_id);
+    console.log('User can delete:', canDelete);
+
     const { data: deletedData, error: deleteError } = await supabase
       .from('report_queue')
       .delete()
       .eq('id', reportId)
-      .eq('organization_id', report.organization_id)
       .select();
 
+    // Log detailed error information
     if (deleteError) {
-      console.error('Error deleting report:', deleteError);
+      console.error('Delete error details:', {
+        message: deleteError.message,
+        details: deleteError.details,
+        hint: deleteError.hint,
+        code: deleteError.code,
+      });
       return NextResponse.json(
         { error: `Failed to delete report: ${deleteError.message}` },
         { status: 500 }
@@ -75,22 +84,31 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     // Check if any rows were actually deleted
     if (!deletedData || deletedData.length === 0) {
       console.error('No rows deleted for report:', reportId);
-      // This might be due to RLS policies, so let's try with a more specific query
+      console.error('This usually means RLS policy denied the deletion');
 
-      // Check if the report still exists
-      const { data: checkReport } = await supabase
+      // Verify the report still exists
+      const { data: checkReport, error: checkError } = await supabase
         .from('report_queue')
-        .select('id')
+        .select('id, requested_by, organization_id')
         .eq('id', reportId)
-        .single();
+        .maybeSingle();
+
+      console.log('Post-delete check:', { checkReport, checkError });
 
       if (checkReport) {
+        // Report exists but wasn't deleted - RLS policy issue
         return NextResponse.json(
           {
             error:
-              'Failed to delete report - it may be protected by database policies. Please contact support.',
+              'Failed to delete report. You may not have permission or there may be a database policy issue.',
+            debug: {
+              reportExists: true,
+              userId: user.id,
+              reportRequestedBy: checkReport.requested_by,
+              reportOrgId: checkReport.organization_id,
+            },
           },
-          { status: 500 }
+          { status: 403 }
         );
       }
 
