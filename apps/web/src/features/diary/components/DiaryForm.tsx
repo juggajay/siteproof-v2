@@ -441,7 +441,7 @@ export function DiaryForm({
           type="submit"
           loading={isSubmitting || createDiary.isPending || updateDiary.isPending}
           disabled={isSubmitting || createDiary.isPending || updateDiary.isPending}
-          onClick={(e) => {
+          onClick={() => {
             console.log('[DiaryForm] Save button clicked');
             console.log(
               '[DiaryForm] Button disabled?',
