@@ -16,6 +16,23 @@ function isValidFormat(format: string | null): format is ReportFormat {
   return format !== null && SUPPORTED_FORMATS.includes(format as ReportFormat);
 }
 
+function coerceDateValue(value: unknown): string | null {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  const parsed = new Date(value as string);
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed.toISOString();
+}
+
 // GET /api/reports/[id]/download - Generate and download report directly
 export async function GET(
   request: NextRequest,
@@ -138,13 +155,42 @@ export async function GET(
         format: finalFormat,
       });
     }
-    // Get project data for the report
-    const { project_id, date_range } = report.parameters;
+    // Normalize parameters to support legacy payloads
+    const parameters = report.parameters ?? {};
+    const projectId = parameters.project_id ?? parameters.projectId;
+    const rawDateRange = parameters.date_range ?? parameters.dateRange;
+    const rawStart = rawDateRange?.start ?? rawDateRange?.from ?? rawDateRange?.date ?? null;
+    const rawEnd =
+      rawDateRange?.end ?? rawDateRange?.to ?? rawDateRange?.date ?? rawStart ?? null;
+    const normalizedStart = coerceDateValue(rawStart);
+    const normalizedEnd = coerceDateValue(rawEnd) ?? normalizedStart;
+    const normalizedDateRange = normalizedStart
+      ? {
+          start: normalizedStart,
+          end: normalizedEnd ?? normalizedStart,
+        }
+      : null;
+
+    if (!projectId) {
+      log.error('Report download missing project_id parameter', { reportId, parameters });
+      return NextResponse.json(
+        { error: 'Report is missing required project information' },
+        { status: 400 }
+      );
+    }
+
+    if (!normalizedDateRange?.start) {
+      log.error('Report download missing date_range.start parameter', { reportId, parameters });
+      return NextResponse.json(
+        { error: 'Report is missing required date range information' },
+        { status: 400 }
+      );
+    }
 
     const { data: project } = await supabase
       .from('projects')
       .select('*')
-      .eq('id', project_id)
+      .eq('id', projectId)
       .single();
 
     if (!project) {
@@ -156,23 +202,23 @@ export async function GET(
       supabase
         .from('daily_diaries')
         .select('*')
-        .eq('project_id', project_id)
-        .gte('diary_date', date_range.start)
-        .lte('diary_date', date_range.end),
+        .eq('project_id', projectId)
+        .gte('diary_date', normalizedDateRange.start)
+        .lte('diary_date', normalizedDateRange.end),
 
       supabase
         .from('inspections')
         .select('*')
-        .eq('project_id', project_id)
-        .gte('created_at', date_range.start)
-        .lte('created_at', date_range.end),
+        .eq('project_id', projectId)
+        .gte('created_at', normalizedDateRange.start)
+        .lte('created_at', normalizedDateRange.end),
 
       supabase
         .from('ncrs')
         .select('*')
-        .eq('project_id', project_id)
-        .gte('created_at', date_range.start)
-        .lte('created_at', date_range.end),
+        .eq('project_id', projectId)
+        .gte('created_at', normalizedDateRange.start)
+        .lte('created_at', normalizedDateRange.end),
     ]);
 
     const diaries = diariesResult.data || [];
@@ -189,7 +235,7 @@ export async function GET(
         fileBuffer = await generateSimplePDF({
           project,
           organization: report.organization?.name || 'Unknown',
-          dateRange: date_range,
+          dateRange: normalizedDateRange,
           diaries,
           inspections,
           ncrs,
@@ -202,7 +248,7 @@ export async function GET(
         fileBuffer = generateExcel({
           project,
           organization: report.organization?.name || 'Unknown',
-          dateRange: date_range,
+          dateRange: normalizedDateRange,
           diaries,
           inspections,
           ncrs,
@@ -645,7 +691,7 @@ async function generateITPReport(
 async function downloadDailyDiaryEntry(report: ReportQueueEntry, supabase: SupabaseClient) {
   try {
     const diaryId = report.parameters?.diary_id;
-    const projectId = report.parameters?.project_id;
+    const projectId = report.parameters?.project_id ?? (report.parameters as any)?.projectId;
     const projectName = report.parameters?.project_name || 'Unknown Project';
 
     if (!diaryId || !projectId) {
@@ -1286,12 +1332,18 @@ async function downloadFinancialSummaryReport({
   try {
     const parameters = (report.parameters || {}) as {
       project_id?: string;
-      date_range?: { start?: string; end?: string };
+      projectId?: string;
+      date_range?: { start?: string; end?: string; from?: string; to?: string; date?: string };
+      dateRange?: { start?: string; end?: string; from?: string; to?: string; date?: string };
     };
 
-    const projectId = parameters.project_id;
-    const startDate = parameters.date_range?.start;
-    const endDate = parameters.date_range?.end;
+    const projectId = parameters.project_id ?? parameters.projectId;
+    const rawDateRange = parameters.date_range ?? parameters.dateRange;
+    const rawStart = rawDateRange?.start ?? rawDateRange?.from ?? rawDateRange?.date ?? null;
+    const rawEnd =
+      rawDateRange?.end ?? rawDateRange?.to ?? rawDateRange?.date ?? rawStart ?? null;
+    const startDate = coerceDateValue(rawStart);
+    const endDate = coerceDateValue(rawEnd) ?? startDate;
 
     if (!projectId || !startDate || !endDate) {
       return NextResponse.json(

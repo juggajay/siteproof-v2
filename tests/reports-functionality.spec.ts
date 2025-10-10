@@ -173,6 +173,39 @@ test.describe('Reports Functionality', () => {
         await page.waitForTimeout(500);
       }
     }
+
+    const projectFilter = page.locator('select[name="project-filter"]');
+    await expect(projectFilter).toBeVisible();
+    const projectOptionCount = await projectFilter.locator('option').count();
+    if (projectOptionCount > 1) {
+      const firstProjectValue = await projectFilter.locator('option').nth(1).getAttribute('value');
+      if (firstProjectValue) {
+        await projectFilter.selectOption(firstProjectValue);
+        await page.waitForTimeout(300);
+      }
+    }
+
+    const reportTypeFilter = page.locator('select[name="report-type-filter"]');
+    await expect(reportTypeFilter).toBeVisible();
+    const hasProjectSummaryOption = await reportTypeFilter
+      .locator('option[value="project_summary"]')
+      .count();
+    if (hasProjectSummaryOption) {
+      await reportTypeFilter.selectOption('project_summary');
+      await page.waitForTimeout(300);
+    }
+
+    const dateFilter = page.locator('input[name="report-date-filter"]');
+    await expect(dateFilter).toBeVisible();
+    const targetDate = format(new Date(), 'yyyy-MM-dd');
+    await dateFilter.fill(targetDate);
+    await page.waitForTimeout(300);
+
+    const clearFiltersButton = page.locator('button:has-text("Clear filters")');
+    await expect(clearFiltersButton).toBeVisible();
+    await clearFiltersButton.click();
+    await page.waitForTimeout(300);
+    await expect(dateFilter).toHaveValue('');
   });
 
   test('should handle report actions (download, cancel, retry)', async ({ page }) => {

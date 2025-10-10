@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   FileText,
   Download,
@@ -86,6 +86,18 @@ const formatConfig = {
   json: { icon: FileJson, label: 'JSON' },
 };
 
+const reportTypeOptions = [
+  { value: '', label: 'All report types' },
+  { value: 'project_summary', label: 'Project Summary' },
+  { value: 'daily_diary_export', label: 'Daily Diary Export' },
+  { value: 'inspection_summary', label: 'Inspection Summary' },
+  { value: 'ncr_report', label: 'NCR Report' },
+  { value: 'financial_summary', label: 'Financial Summary' },
+  { value: 'safety_report', label: 'Safety Report' },
+  { value: 'quality_report', label: 'Quality Report' },
+  { value: 'itp_report', label: 'ITP Report' },
+];
+
 interface RecentReportsListProps {
   limit?: number;
   showFilters?: boolean;
@@ -108,6 +120,56 @@ export function RecentReportsList({
   const [filter, setFilter] = useState<'all' | 'my' | 'processing'>('all');
   const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
   const [deletingReportId, setDeletingReportId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>('');
+  const [selectedReportType, setSelectedReportType] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+
+  const reportQueryKey = useMemo(
+    () =>
+      [
+        'reports',
+        {
+          filter,
+          limit,
+          projectId: selectedProjectId || null,
+          reportType: selectedReportType || null,
+          date: selectedDate || null,
+        },
+      ] as const,
+    [filter, limit, selectedProjectId, selectedReportType, selectedDate]
+  );
+
+  const {
+    data: projectOptions = [],
+    isLoading: isProjectsLoading,
+    error: projectsError,
+  } = useQuery({
+    queryKey: ['reports-projects', user?.id],
+    queryFn: async () => {
+      if (!user) {
+        return [];
+      }
+
+      const response = await fetch('/api/projects', {
+        credentials: 'include',
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        console.error('Project fetch failed:', response.status, message);
+        throw new Error('Failed to load projects');
+      }
+
+      const data = await response.json();
+      return (data.projects as Array<{ id: string; name: string; client_name?: string }>) || [];
+    },
+    enabled: showFilters && !!user,
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Fetch recent reports
   const {
@@ -116,17 +178,24 @@ export function RecentReportsList({
     error,
     refetch,
   } = useQuery({
-    queryKey: ['reports', filter, limit],
+    queryKey: reportQueryKey,
     queryFn: async () => {
       if (!user) {
         console.log('No user available, skipping reports fetch');
         return [];
       }
 
-      let url = `/api/reports?limit=${limit}`;
-      if (filter === 'my') url += `&requested_by=${user.id}`;
-      if (filter === 'processing') url += `&status=processing`;
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (filter === 'my') params.set('requested_by', user.id);
+      if (filter === 'processing') params.set('status', 'processing');
+      if (selectedReportType) params.set('report_type', selectedReportType);
+      if (selectedProjectId) params.set('project_id', selectedProjectId);
+      if (selectedDate) {
+        params.set('start_date', selectedDate);
+        params.set('end_date', selectedDate);
+      }
 
+      const url = `/api/reports?${params.toString()}`;
       console.log('Fetching reports from:', url);
 
       const response = await fetch(url, {
@@ -486,14 +555,11 @@ export function RecentReportsList({
 
     setDeletingReportId(reportId);
 
-    // Store the current query key for this specific query
-    const currentQueryKey = ['reports', filter, limit];
-
     // Optimistically update the cache to remove the report immediately
-    const previousReports = queryClient.getQueryData<Report[]>(currentQueryKey);
+    const previousReports = queryClient.getQueryData<Report[]>(reportQueryKey);
 
     // Immediately remove the report from the UI (optimistic update)
-    queryClient.setQueryData<Report[]>(currentQueryKey, (oldData) => {
+    queryClient.setQueryData<Report[]>(reportQueryKey, (oldData) => {
       if (!oldData) return oldData;
       return oldData.filter((report) => report.id !== reportId);
     });
@@ -567,7 +633,7 @@ export function RecentReportsList({
 
       // Rollback the optimistic update on error
       if (previousReports) {
-        queryClient.setQueryData<Report[]>(currentQueryKey, previousReports);
+        queryClient.setQueryData<Report[]>(reportQueryKey, previousReports);
       }
     } finally {
       setDeletingReportId((current) => (current === reportId ? null : current));
@@ -584,41 +650,112 @@ export function RecentReportsList({
     <div className="space-y-4">
       {/* Filters */}
       {showFilters && (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setFilter('all')}
-            className={cn(
-              'px-3 py-1 text-sm font-medium rounded-full transition-colors',
-              filter === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900'
-            )}
-          >
-            All Reports
-          </button>
-          <button
-            onClick={() => setFilter('my')}
-            className={cn(
-              'px-3 py-1 text-sm font-medium rounded-full transition-colors',
-              filter === 'my' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900'
-            )}
-          >
-            My Reports
-          </button>
-          <button
-            onClick={() => setFilter('processing')}
-            className={cn(
-              'px-3 py-1 text-sm font-medium rounded-full transition-colors',
-              filter === 'processing'
-                ? 'bg-blue-100 text-blue-700'
-                : 'text-gray-600 hover:text-gray-900'
-            )}
-          >
-            In Progress
-          </button>
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setFilter('all')}
+              className={cn(
+                'px-3 py-1 text-sm font-medium rounded-full transition-colors',
+                filter === 'all'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:text-gray-900'
+              )}
+            >
+              All Reports
+            </button>
+            <button
+              onClick={() => setFilter('my')}
+              className={cn(
+                'px-3 py-1 text-sm font-medium rounded-full transition-colors',
+                filter === 'my'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:text-gray-900'
+              )}
+            >
+              My Reports
+            </button>
+            <button
+              onClick={() => setFilter('processing')}
+              className={cn(
+                'px-3 py-1 text-sm font-medium rounded-full transition-colors',
+                filter === 'processing'
+                  ? 'bg-blue-100 text-blue-700'
+                  : 'text-gray-600 hover:text-gray-900'
+              )}
+            >
+              In Progress
+            </button>
 
-          <div className="ml-auto">
-            <Button variant="ghost" size="sm" onClick={() => refetch()}>
-              <RefreshCw className="w-4 h-4" />
-            </Button>
+            <div className="ml-auto flex items-center gap-2">
+              {(selectedProjectId || selectedReportType || selectedDate) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedProjectId('');
+                    setSelectedReportType('');
+                    setSelectedDate('');
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={() => refetch()}>
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Project</label>
+              <select
+                name="project-filter"
+                value={selectedProjectId}
+                onChange={(event) => setSelectedProjectId(event.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={isProjectsLoading}
+              >
+                <option value="">{isProjectsLoading ? 'Loading projects...' : 'All projects'}</option>
+                {projectOptions.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                    {project.client_name ? ` — ${project.client_name}` : ''}
+                  </option>
+                ))}
+              </select>
+              {projectsError instanceof Error && (
+                <p className="mt-1 text-xs text-red-600">{projectsError.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
+              <select
+                name="report-type-filter"
+                value={selectedReportType}
+                onChange={(event) => setSelectedReportType(event.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {reportTypeOptions.map((type) => (
+                  <option key={type.value || 'all'} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Report Date</label>
+              <input
+                type="date"
+                name="report-date-filter"
+                value={selectedDate}
+                onChange={(event) => setSelectedDate(event.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                max={today}
+              />
+            </div>
           </div>
         </div>
       )}

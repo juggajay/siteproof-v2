@@ -63,12 +63,19 @@ export async function GET(request: Request) {
 
     const parseReportDate = (report: any): number | undefined => {
       const params = (report?.parameters as Record<string, any> | null) || {};
+      const dateRange = params.date_range ?? params.dateRange;
+      const rangeStart = dateRange?.start ?? dateRange?.from ?? dateRange?.date;
+      const rangeEnd = dateRange?.end ?? dateRange?.to ?? dateRange?.date;
       const rawDate =
         params.diary_date ||
         params.inspection_date ||
+        params.report_date ||
+        rangeStart ||
+        rangeEnd ||
         params.date ||
         params.generated_at ||
-        params.created_at;
+        params.created_at ||
+        report.requested_at;
 
       if (!rawDate) {
         return undefined;
@@ -100,7 +107,12 @@ export async function GET(request: Request) {
 
     if (project_id) {
       filteredReports = filteredReports.filter(
-        (report) => report.parameters?.project_id === project_id
+        (report) => {
+          const params = (report.parameters as Record<string, any> | null) || {};
+          const parameterProjectId =
+            params.project_id ?? params.projectId ?? params.project?.id ?? null;
+          return parameterProjectId === project_id;
+        }
       );
     }
 

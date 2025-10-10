@@ -1,5 +1,5 @@
 // Service Worker for SiteProof v2
-const CACHE_VERSION = 'v2.1.0';
+const CACHE_VERSION = 'v2.2.0'; // Bumped for report deletion cache fix
 const CACHE_NAME = `siteproof-v2-cache-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `siteproof-v2-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `siteproof-v2-images-${CACHE_VERSION}`;
@@ -101,6 +101,37 @@ self.addEventListener('fetch', (event) => {
                 })
             );
           }
+        }
+        return response;
+      })
+    );
+    return;
+  }
+
+  // Handle DELETE requests for reports - invalidate cache
+  if (request.method === 'DELETE' && url.pathname.includes('/api/reports/')) {
+    event.respondWith(
+      fetch(request).then(async (response) => {
+        if (response.ok) {
+          console.log('[SW] Report deleted successfully, invalidating report caches');
+          const cache = await caches.open(DYNAMIC_CACHE);
+          const keys = await cache.keys();
+
+          // Delete all cached report list requests
+          // This ensures the UI shows the updated list without the deleted report
+          await Promise.all(
+            keys
+              .filter(key => {
+                const keyUrl = new URL(key.url);
+                // Match /api/reports but NOT /api/reports/[id] or /api/reports/[id]/download
+                return keyUrl.pathname === '/api/reports' ||
+                       (keyUrl.pathname.includes('/api/reports') && keyUrl.search.length > 0);
+              })
+              .map(key => {
+                console.log('[SW] Invalidating report cache for:', key.url);
+                return cache.delete(key);
+              })
+          );
         }
         return response;
       })
