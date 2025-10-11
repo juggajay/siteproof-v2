@@ -179,6 +179,8 @@ export function RecentReportsList({
     refetch,
   } = useQuery({
     queryKey: reportQueryKey,
+    staleTime: 0, // Always refetch - don't use stale data
+    gcTime: 0, // Don't cache query results
     queryFn: async () => {
       if (!user) {
         console.log('No user available, skipping reports fetch');
@@ -656,9 +658,7 @@ export function RecentReportsList({
               onClick={() => setFilter('all')}
               className={cn(
                 'px-3 py-1 text-sm font-medium rounded-full transition-colors',
-                filter === 'all'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:text-gray-900'
+                filter === 'all' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900'
               )}
             >
               All Reports
@@ -667,9 +667,7 @@ export function RecentReportsList({
               onClick={() => setFilter('my')}
               className={cn(
                 'px-3 py-1 text-sm font-medium rounded-full transition-colors',
-                filter === 'my'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'text-gray-600 hover:text-gray-900'
+                filter === 'my' ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900'
               )}
             >
               My Reports
@@ -716,7 +714,9 @@ export function RecentReportsList({
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={isProjectsLoading}
               >
-                <option value="">{isProjectsLoading ? 'Loading projects...' : 'All projects'}</option>
+                <option value="">
+                  {isProjectsLoading ? 'Loading projects...' : 'All projects'}
+                </option>
                 {projectOptions.map((project) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
