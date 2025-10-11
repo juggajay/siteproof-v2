@@ -397,6 +397,30 @@ export function RecentReportsList({
     try {
       console.log('Starting download for report:', report.id, 'with format:', selectedFormat);
 
+      const canUseExistingFileUrl =
+        (!format || format === report.format) &&
+        report.file_url &&
+        report.file_url !== 'on-demand' &&
+        !report.file_url.startsWith('internal:');
+
+      if (canUseExistingFileUrl) {
+        console.log('Using cached file_url for report:', report.id, report.file_url);
+
+        const link = document.createElement('a');
+        link.href = report.file_url!; // TypeScript: we already checked file_url exists in canUseExistingFileUrl
+        const safeName = report.report_name.replace(/[\\/:*?"<>|]/g, '-');
+        const extension = selectedFormat in formatConfig ? selectedFormat : report.format;
+        link.download = `${safeName}.${extension}`;
+        link.rel = 'noopener';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => document.body.removeChild(link), 0);
+        setDownloadingReportId(null);
+        toast.success('Report download started', { id: `download-${report.id}` });
+        return;
+      }
+
       // Show loading state
       toast.loading('Preparing download...', { id: `download-${report.id}` });
 
