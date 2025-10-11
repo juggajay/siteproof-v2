@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     console.log(
-      '[DELETE /api/reports/[id]] Request received - CODE VERSION: 2025-10-11-v5-rls-fixed'
+      '[DELETE /api/reports/[id]] Request received - CODE VERSION: 2025-10-11-v6-auth-refresh'
     );
     console.log('[DELETE /api/reports/[id]] Params:', params);
 
@@ -14,21 +14,25 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
 
     const supabase = await createClient();
 
-    // Get current user
+    // Refresh the session to ensure auth context is fresh
     const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+      data: { session: refreshedSession },
+      error: sessionError,
+    } = await supabase.auth.refreshSession();
 
-    console.log('[DELETE /api/reports/[id]] User lookup result:', {
-      userId: user?.id,
-      userError: userError?.message,
+    console.log('[DELETE /api/reports/[id]] Session refresh result:', {
+      hasSession: !!refreshedSession,
+      sessionUserId: refreshedSession?.user?.id,
+      accessToken: refreshedSession?.access_token ? 'present' : 'missing',
+      error: sessionError?.message,
     });
 
-    if (userError || !user) {
-      console.log('[DELETE /api/reports/[id]] Unauthorized - returning 401');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (sessionError || !refreshedSession) {
+      console.log('[DELETE /api/reports/[id]] Session refresh failed - returning 401');
+      return NextResponse.json({ error: 'Unauthorized - session invalid' }, { status: 401 });
     }
+
+    const user = refreshedSession.user;
 
     console.log(
       '[DELETE /api/reports/[id]] Attempting to delete report:',
@@ -61,15 +65,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
     const orgIds = memberships.map((m) => m.organization_id);
     console.log('[DELETE /api/reports/[id]] User belongs to organizations:', orgIds);
 
-    console.log('[DELETE /api/reports/[id]] Attempting deletion, RLS will enforce permissions');
-
-    // Verify auth session before deletion
-    const { data: session } = await supabase.auth.getSession();
-    console.log('[DELETE /api/reports/[id]] Auth session check:', {
-      hasSession: !!session.session,
-      sessionUserId: session.session?.user?.id,
-      accessToken: session.session?.access_token ? 'present' : 'missing',
-    });
+    console.log('[DELETE /api/reports/[id]] Attempting deletion with refreshed auth session');
 
     // Delete the report directly - RLS policies enforce permissions automatically
     // This approach matches the GET endpoint pattern and trusts the RLS policies
