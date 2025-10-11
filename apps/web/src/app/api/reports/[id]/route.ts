@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     console.log(
-      '[DELETE /api/reports/[id]] Request received - CODE VERSION: 2025-10-11-v4-rls-trust'
+      '[DELETE /api/reports/[id]] Request received - CODE VERSION: 2025-10-11-v5-rls-fixed'
     );
     console.log('[DELETE /api/reports/[id]] Params:', params);
 
