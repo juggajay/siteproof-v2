@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     console.log(
-      '[DELETE /api/reports/[id]] Request received - CODE VERSION: 2025-10-11-v6-auth-refresh'
+      '[DELETE /api/reports/[id]] Request received - CODE VERSION: 2025-10-11-v7-explicit-check'
     );
     console.log('[DELETE /api/reports/[id]] Params:', params);
 
@@ -67,9 +67,55 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
 
     console.log('[DELETE /api/reports/[id]] Attempting deletion with refreshed auth session');
 
-    // Delete the report directly - RLS policies enforce permissions automatically
-    // This approach matches the GET endpoint pattern and trusts the RLS policies
-    // which are proven to work correctly (SELECT and DELETE policies are identical)
+    // First, verify the report exists and user has access using SELECT
+    // This helps us understand if the issue is with SELECT vs DELETE RLS
+    const { data: reportCheck, error: checkError } = await supabase
+      .from('report_queue')
+      .select('id, organization_id, requested_by')
+      .eq('id', reportId)
+      .maybeSingle();
+
+    console.log('[DELETE /api/reports/[id]] Report access check:', {
+      found: !!reportCheck,
+      checkError: checkError?.message,
+      reportOrg: reportCheck?.organization_id,
+      reportRequestedBy: reportCheck?.requested_by,
+      userOrgs: orgIds,
+    });
+
+    if (checkError) {
+      return NextResponse.json(
+        { error: 'Failed to verify report access', details: checkError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!reportCheck) {
+      return NextResponse.json(
+        { error: 'Report not found or you do not have permission to access it' },
+        { status: 404 }
+      );
+    }
+
+    // Verify user has permission to delete
+    const canDelete =
+      reportCheck.requested_by === user.id || orgIds.includes(reportCheck.organization_id);
+
+    console.log('[DELETE /api/reports/[id]] Permission check:', {
+      canDelete,
+      reason: canDelete
+        ? 'User requested report or is in same org'
+        : 'User did not request and not in same org',
+    });
+
+    if (!canDelete) {
+      return NextResponse.json(
+        { error: 'You do not have permission to delete this report' },
+        { status: 403 }
+      );
+    }
+
+    // Delete the report - RLS should allow this since we verified access above
     const { error: deleteError, count: deleteCount } = await supabase
       .from('report_queue')
       .delete({ count: 'exact' })
