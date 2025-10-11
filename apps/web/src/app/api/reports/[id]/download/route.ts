@@ -390,6 +390,11 @@ export async function GET(
       reportId,
       reportType: reportRecord?.report_type,
     });
+    console.error('REPORT_DOWNLOAD_ERROR', {
+      reportId,
+      reportType: reportRecord?.report_type,
+      error,
+    });
     const message = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error';
     const stack = error instanceof Error ? error.stack : undefined;
     return NextResponse.json(
