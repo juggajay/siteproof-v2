@@ -70,6 +70,21 @@ function sanitizeFileName(value: string | null | undefined, fallback = 'report')
   return safe.length > 200 ? safe.slice(0, 200) : safe;
 }
 
+function sanitizePdfText(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+
+  const str = String(value)
+    // Normalise common punctuation to ASCII equivalents
+    .replace(/[\u2012\u2013\u2014\u2015\u2212]/g, '-')
+    .replace(/\u2022/g, '*')
+    .replace(/\u00A0/g, ' ');
+
+  // Replace unsupported characters with a fallback
+  return str.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, '?');
+}
+
 // GET /api/reports/[id]/download - Generate and download report directly
 export async function GET(
   request: NextRequest,
@@ -390,8 +405,12 @@ async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
 
   let y = height - 50;
 
+  const drawTextSafe = (text: string, options: Parameters<typeof page.drawText>[1]) => {
+    page.drawText(sanitizePdfText(text), options);
+  };
+
   // Title
-  page.drawText('Project Summary Report', {
+  drawTextSafe('Project Summary Report', {
     x: 50,
     y,
     size: 24,
@@ -401,7 +420,7 @@ async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
   y -= 40;
 
   // Project info
-  page.drawText(`Project: ${data.project.name}`, {
+  drawTextSafe(`Project: ${sanitizePdfText(data.project.name)}`, {
     x: 50,
     y,
     size: 14,
@@ -410,7 +429,7 @@ async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
   });
   y -= 20;
 
-  page.drawText(`Organization: ${data.organization}`, {
+  drawTextSafe(`Organization: ${sanitizePdfText(data.organization)}`, {
     x: 50,
     y,
     size: 12,
@@ -422,7 +441,7 @@ async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
   const periodLabel = `${formatDateSafe(data.dateRange.start)} to ${formatDateSafe(
     data.dateRange.end
   )}`;
-  page.drawText(`Period: ${periodLabel}`, {
+  drawTextSafe(`Period: ${periodLabel}`, {
     x: 50,
     y,
     size: 12,
@@ -441,7 +460,7 @@ async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
   y -= 30;
 
   // Statistics
-  page.drawText('Statistics', {
+  drawTextSafe('Statistics', {
     x: 50,
     y,
     size: 16,
@@ -457,7 +476,7 @@ async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
   ];
 
   for (const stat of stats) {
-    page.drawText(stat, {
+    drawTextSafe(stat, {
       x: 70,
       y,
       size: 12,
@@ -470,7 +489,7 @@ async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
   // Recent Daily Diaries
   if (data.diaries.length > 0) {
     y -= 20;
-    page.drawText('Recent Daily Diaries', {
+    drawTextSafe('Recent Daily Diaries', {
       x: 50,
       y,
       size: 16,
@@ -481,11 +500,10 @@ async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
 
     const recentDiaries = data.diaries.slice(0, 5);
     for (const diary of recentDiaries) {
-      page.drawText(
-        `• ${formatDateSafe(diary.diary_date)} - ${diary.activities || 'No activities'}`.substring(
-          0,
-          80
-        ),
+      drawTextSafe(
+        `* ${formatDateSafe(diary.diary_date)} - ${sanitizePdfText(
+          diary.activities || 'No activities'
+        )}`.substring(0, 80),
         {
           x: 70,
           y,
@@ -499,7 +517,7 @@ async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
   }
 
   // Footer
-  page.drawText(`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, {
+  drawTextSafe(`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, {
     x: 50,
     y: 30,
     size: 9,
@@ -615,8 +633,12 @@ async function generateITPReport(
 
     let y = height - 50;
 
+    const drawTextSafe = (text: string, options: Parameters<typeof page.drawText>[1]) => {
+      page.drawText(sanitizePdfText(text), options);
+    };
+
     // Title
-    page.drawText('ITP Report', {
+    drawTextSafe('ITP Report', {
       x: 50,
       y,
       size: 24,
@@ -626,7 +648,7 @@ async function generateITPReport(
     y -= 40;
 
     // Project and Lot info
-    page.drawText(`Project: ${project_name || 'Unknown'}`, {
+    drawTextSafe(`Project: ${project_name || 'Unknown'}`, {
       x: 50,
       y,
       size: 14,
@@ -635,7 +657,7 @@ async function generateITPReport(
     });
     y -= 25;
 
-    page.drawText(`Lot Number: ${lot_number || 'N/A'}`, {
+    drawTextSafe(`Lot Number: ${lot_number || 'N/A'}`, {
       x: 50,
       y,
       size: 12,
@@ -644,7 +666,7 @@ async function generateITPReport(
     });
     y -= 20;
 
-    page.drawText(`Organization: ${organization_name || 'Unknown'}`, {
+    drawTextSafe(`Organization: ${organization_name || 'Unknown'}`, {
       x: 50,
       y,
       size: 12,
@@ -663,7 +685,7 @@ async function generateITPReport(
     y -= 30;
 
     // ITP Summary
-    page.drawText('Inspection Summary', {
+    drawTextSafe('Inspection Summary', {
       x: 50,
       y,
       size: 16,
@@ -673,7 +695,7 @@ async function generateITPReport(
     y -= 25;
 
     if (itp_instances && itp_instances.length > 0) {
-      page.drawText(`Total Inspections: ${itp_instances.length}`, {
+      drawTextSafe(`Total Inspections: ${itp_instances.length}`, {
         x: 70,
         y,
         size: 12,
@@ -685,7 +707,7 @@ async function generateITPReport(
       const completed = itp_instances.filter(
         (i: any) => i.inspection_status === 'completed'
       ).length;
-      page.drawText(`Completed: ${completed}`, {
+      drawTextSafe(`Completed: ${completed}`, {
         x: 70,
         y,
         size: 12,
@@ -695,7 +717,7 @@ async function generateITPReport(
       y -= 30;
 
       // List ITPs
-      page.drawText('Inspection Details:', {
+      drawTextSafe('Inspection Details:', {
         x: 50,
         y,
         size: 14,
@@ -710,7 +732,7 @@ async function generateITPReport(
         const name = itp.template_name || 'Unnamed Inspection';
         const status = itp.inspection_status || 'pending';
 
-        page.drawText(`• ${name}`, {
+        drawTextSafe(`* ${name}`, {
           x: 70,
           y,
           size: 11,
@@ -719,7 +741,7 @@ async function generateITPReport(
         });
         y -= 18;
 
-        page.drawText(`  Date: ${date} | Status: ${status}`, {
+        drawTextSafe(`  Date: ${date} | Status: ${status}`, {
           x: 70,
           y,
           size: 10,
@@ -731,7 +753,7 @@ async function generateITPReport(
         if (y < 100) break; // Stop if running out of space
       }
     } else {
-      page.drawText('No inspection data available', {
+      drawTextSafe('No inspection data available', {
         x: 70,
         y,
         size: 12,
@@ -741,7 +763,7 @@ async function generateITPReport(
     }
 
     // Footer
-    page.drawText(`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, {
+    drawTextSafe(`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, {
       x: 50,
       y: 30,
       size: 9,
@@ -901,7 +923,7 @@ async function downloadDailyDiaryEntry(report: ReportQueueEntry, supabase: Supab
     };
 
     const drawText = (text: string, options: any) => {
-      currentPage.drawText(text, { ...options, y });
+      currentPage.drawText(sanitizePdfText(text), { ...options, y });
     };
 
     const drawLine = () => {
@@ -1292,14 +1314,14 @@ async function downloadDailyDiaryEntry(report: ReportQueueEntry, supabase: Supab
     // Footer on every page
     const pages = pdfDoc.getPages();
     pages.forEach((page, index) => {
-      page.drawText(`Page ${index + 1} of ${pages.length}`, {
+      page.drawText(sanitizePdfText(`Page ${index + 1} of ${pages.length}`), {
         x: width / 2 - 30,
         y: 30,
         size: 9,
         font,
         color: rgb(0.5, 0.5, 0.5),
       });
-      page.drawText(`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, {
+      page.drawText(sanitizePdfText(`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`), {
         x: 50,
         y: 30,
         size: 9,
@@ -2119,7 +2141,7 @@ async function generateFinancialSummaryPDF(data: FinancialSummaryData): Promise<
   const startNewPage = () => {
     page = pdfDoc.addPage(pageSize);
     cursorY = pageHeight - 60;
-    page.drawText('Financial Summary Report (cont.)', {
+    page.drawText(sanitizePdfText('Financial Summary Report (cont.)'), {
       x: 50,
       y: cursorY,
       size: 12,
@@ -2140,7 +2162,7 @@ async function generateFinancialSummaryPDF(data: FinancialSummaryData): Promise<
     options: { size?: number; font?: any; color?: ReturnType<typeof rgb> } = {}
   ) => {
     ensureSpace();
-    page.drawText(text, {
+    page.drawText(sanitizePdfText(text), {
       x: 50,
       y: cursorY,
       size: options.size ?? 11,
@@ -2150,7 +2172,7 @@ async function generateFinancialSummaryPDF(data: FinancialSummaryData): Promise<
     cursorY -= lineHeight;
   };
 
-  page.drawText('Financial Summary Report', {
+  page.drawText(sanitizePdfText('Financial Summary Report'), {
     x: 50,
     y: cursorY,
     size: 22,
