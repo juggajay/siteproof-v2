@@ -375,7 +375,8 @@ export async function GET(
       reportId,
       reportType: reportRecord?.report_type,
     });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const message = error instanceof Error ? `${error.name}: ${error.message}` : 'Unknown error';
+    return NextResponse.json({ error: 'Internal server error', detail: message }, { status: 500 });
   }
 }
 
