@@ -63,6 +63,14 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
 
     console.log('[DELETE /api/reports/[id]] Attempting deletion, RLS will enforce permissions');
 
+    // Verify auth session before deletion
+    const { data: session } = await supabase.auth.getSession();
+    console.log('[DELETE /api/reports/[id]] Auth session check:', {
+      hasSession: !!session.session,
+      sessionUserId: session.session?.user?.id,
+      accessToken: session.session?.access_token ? 'present' : 'missing',
+    });
+
     // Delete the report directly - RLS policies enforce permissions automatically
     // This approach matches the GET endpoint pattern and trusts the RLS policies
     // which are proven to work correctly (SELECT and DELETE policies are identical)
