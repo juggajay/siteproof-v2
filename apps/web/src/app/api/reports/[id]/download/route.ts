@@ -33,11 +33,50 @@ function coerceDateValue(value: unknown): string | null {
   return parsed.toISOString();
 }
 
+function formatDateSafe(
+  value: string | Date | null | undefined,
+  pattern = 'dd/MM/yyyy',
+  fallback = 'N/A'
+): string {
+  if (!value) {
+    return fallback;
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return fallback;
+  }
+
+  try {
+    return format(date, pattern);
+  } catch {
+    return fallback;
+  }
+}
+
+function sanitizeFileName(value: string | null | undefined, fallback = 'report'): string {
+  const base = (value || '').trim();
+  const filtered = base
+    // Replace non-ASCII characters with hyphen
+    .replace(/[^\x20-\x7E]/g, '-')
+    // Collapse spaces
+    .replace(/\s+/g, ' ')
+    // Remove characters not allowed in filenames
+    .replace(/[\\/:*?"<>|]/g, '-')
+    .trim();
+
+  const safe = filtered || fallback;
+  // Limit length to avoid header issues
+  return safe.length > 200 ? safe.slice(0, 200) : safe;
+}
+
 // GET /api/reports/[id]/download - Generate and download report directly
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
+  let reportRecord: ReportQueueEntry | null = null;
+
   try {
     const { id: reportId } = params;
     const supabase = await createClient();
@@ -81,6 +120,8 @@ export async function GET(
     if (!report) {
       return NextResponse.json({ error: 'Report not found' }, { status: 404 });
     }
+
+    reportRecord = report as ReportQueueEntry;
 
     // Fetch organization separately to avoid RLS JOIN issues
     let organizationName = 'Unknown';
@@ -160,8 +201,7 @@ export async function GET(
     const projectId = parameters.project_id ?? parameters.projectId;
     const rawDateRange = parameters.date_range ?? parameters.dateRange;
     const rawStart = rawDateRange?.start ?? rawDateRange?.from ?? rawDateRange?.date ?? null;
-    const rawEnd =
-      rawDateRange?.end ?? rawDateRange?.to ?? rawDateRange?.date ?? rawStart ?? null;
+    const rawEnd = rawDateRange?.end ?? rawDateRange?.to ?? rawDateRange?.date ?? rawStart ?? null;
     const normalizedStart = coerceDateValue(rawStart);
     const normalizedEnd = coerceDateValue(rawEnd) ?? normalizedStart;
     const normalizedDateRange = normalizedStart
@@ -225,10 +265,39 @@ export async function GET(
     const inspections = inspectionsResult.data || [];
     const ncrs = ncrsResult.data || [];
 
+    if (diariesResult.error || inspectionsResult.error || ncrsResult.error) {
+      log.error('Failed to load report source data', {
+        reportId,
+        projectId,
+        diaryError: diariesResult.error,
+        inspectionError: inspectionsResult.error,
+        ncrError: ncrsResult.error,
+      });
+      return NextResponse.json(
+        { error: 'Failed to load project data for report' },
+        { status: 500 }
+      );
+    }
+
+    log.debug('Report download source data loaded', {
+      reportId,
+      projectId,
+      diaryCount: diaries.length,
+      inspectionCount: inspections.length,
+      ncrCount: ncrs.length,
+      normalizedDateRange,
+    });
+
     // Generate report based on format
     let fileBuffer: Buffer;
     let fileName: string;
     let mimeType: string;
+    const extensionMap: Record<ReportFormat, string> = {
+      pdf: 'pdf',
+      excel: 'xlsx',
+      csv: 'csv',
+      json: 'json',
+    };
 
     switch (finalFormat) {
       case 'pdf':
@@ -289,17 +358,23 @@ export async function GET(
         return NextResponse.json({ error: 'Unsupported format' }, { status: 400 });
     }
 
+    const safeReportName = sanitizeFileName(report.report_name);
+    const fileExtension = extensionMap[finalFormat] ?? finalFormat;
+    fileName = `${safeReportName}.${fileExtension}`;
     // Return the file directly as a response
     return new NextResponse(new Uint8Array(fileBuffer), {
       status: 200,
       headers: {
         'Content-Type': mimeType,
-        'Content-Disposition': `attachment; filename="${fileName}"`,
+        'Content-Disposition': `attachment; filename="${sanitizeFileName(fileName, fileName)}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
         'Content-Length': fileBuffer.length.toString(),
       },
     });
   } catch (error) {
-    console.error('Error generating report:', error);
+    log.error('Error generating report download', error, {
+      reportId,
+      reportType: reportRecord?.report_type,
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -343,7 +418,10 @@ async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
   });
   y -= 20;
 
-  page.drawText(`Period: ${data.dateRange.start} to ${data.dateRange.end}`, {
+  const periodLabel = `${formatDateSafe(data.dateRange.start)} to ${formatDateSafe(
+    data.dateRange.end
+  )}`;
+  page.drawText(`Period: ${periodLabel}`, {
     x: 50,
     y,
     size: 12,
@@ -403,7 +481,7 @@ async function generateSimplePDF(data: ReportGenerationData): Promise<Buffer> {
     const recentDiaries = data.diaries.slice(0, 5);
     for (const diary of recentDiaries) {
       page.drawText(
-        `• ${format(new Date(diary.diary_date), 'dd/MM/yyyy')} - ${diary.activities || 'No activities'}`.substring(
+        `• ${formatDateSafe(diary.diary_date)} - ${diary.activities || 'No activities'}`.substring(
           0,
           80
         ),
@@ -441,7 +519,7 @@ function generateExcel(data: ReportGenerationData): Buffer {
     [],
     ['Project:', data.project.name],
     ['Organization:', data.organization],
-    ['Period:', `${data.dateRange.start} to ${data.dateRange.end}`],
+    ['Period:', `${formatDateSafe(data.dateRange.start)} to ${formatDateSafe(data.dateRange.end)}`],
     [],
     ['Statistics'],
     ['Daily Diaries:', data.diaries.length],
@@ -455,7 +533,7 @@ function generateExcel(data: ReportGenerationData): Buffer {
   if (data.diaries.length > 0) {
     const diarySheet = XLSX.utils.json_to_sheet(
       data.diaries.map((d: any) => ({
-        Date: format(new Date(d.diary_date), 'dd/MM/yyyy'),
+        Date: formatDateSafe(d.diary_date),
         Activities: d.activities || 'N/A',
         Workers: d.workforce_count || 0,
       }))
@@ -467,7 +545,7 @@ function generateExcel(data: ReportGenerationData): Buffer {
   if (data.inspections.length > 0) {
     const inspectionSheet = XLSX.utils.json_to_sheet(
       data.inspections.map((i: any) => ({
-        Date: format(new Date(i.created_at), 'dd/MM/yyyy'),
+        Date: formatDateSafe(i.created_at),
         Status: i.status,
         Result: i.result || 'N/A',
       }))
@@ -483,7 +561,7 @@ function generateExcel(data: ReportGenerationData): Buffer {
         Title: n.title,
         Status: n.status,
         Severity: n.severity,
-        'Created Date': format(new Date(n.created_at), 'dd/MM/yyyy'),
+        'Created Date': formatDateSafe(n.created_at),
       }))
     );
     XLSX.utils.book_append_sheet(workbook, ncrSheet, 'NCRs');
@@ -510,7 +588,7 @@ function generateCSV(data: Omit<ReportGenerationData, 'organization' | 'dateRang
     rows.push('Daily Diaries');
     rows.push('Date,Activities,Workers');
     data.diaries.forEach((d: any) => {
-      const date = format(new Date(d.diary_date), 'dd/MM/yyyy');
+      const date = formatDateSafe(d.diary_date);
       const activities = (d.activities || 'N/A').replace(/,/g, ';');
       rows.push(`${date},"${activities}",${d.workforce_count || 0}`);
     });
@@ -627,9 +705,7 @@ async function generateITPReport(
 
       for (const itp of itp_instances.slice(0, 10)) {
         // Show first 10
-        const date = itp.inspection_date
-          ? format(new Date(itp.inspection_date), 'dd/MM/yyyy')
-          : 'N/A';
+        const date = formatDateSafe(itp.inspection_date);
         const name = itp.template_name || 'Unnamed Inspection';
         const status = itp.inspection_status || 'pending';
 
@@ -853,9 +929,7 @@ async function downloadDailyDiaryEntry(report: ReportQueueEntry, supabase: Supab
     });
     y -= 25;
 
-    const diaryDate = diary.diary_date
-      ? format(new Date(diary.diary_date), 'EEEE, dd MMMM yyyy')
-      : 'N/A';
+    const diaryDate = formatDateSafe(diary.diary_date, 'EEEE, dd MMMM yyyy');
     drawText(`Date: ${diaryDate}`, {
       x: 50,
       size: 12,
@@ -1340,8 +1414,7 @@ async function downloadFinancialSummaryReport({
     const projectId = parameters.project_id ?? parameters.projectId;
     const rawDateRange = parameters.date_range ?? parameters.dateRange;
     const rawStart = rawDateRange?.start ?? rawDateRange?.from ?? rawDateRange?.date ?? null;
-    const rawEnd =
-      rawDateRange?.end ?? rawDateRange?.to ?? rawDateRange?.date ?? rawStart ?? null;
+    const rawEnd = rawDateRange?.end ?? rawDateRange?.to ?? rawDateRange?.date ?? rawStart ?? null;
     const startDate = coerceDateValue(rawStart);
     const endDate = coerceDateValue(rawEnd) ?? startDate;
 
