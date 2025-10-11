@@ -241,7 +241,7 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-3xl rounded-lg bg-white shadow-xl">
+      <div className="flex w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-xl max-h-[90vh]">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
           <h2 className="text-xl font-semibold">Create New Lot</h2>
           <button
@@ -254,8 +254,8 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-6">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden">
+          <div className="space-y-4 overflow-y-auto px-6 py-6">
             <div>
               <Input
                 label="Lot Name"
@@ -437,7 +437,7 @@ export function CreateLotModal({ projectId, onClose, onSuccess }: CreateLotModal
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-end gap-3 border-t border-gray-100 px-6 py-4">
             <Button type="button" variant="secondary" onClick={onClose} disabled={isSubmitting}>
               Cancel
             </Button>
