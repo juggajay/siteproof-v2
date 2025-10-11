@@ -75,10 +75,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ): Promise<NextResponse> {
+  const { id: reportId } = params;
   let reportRecord: ReportQueueEntry | null = null;
 
   try {
-    const { id: reportId } = params;
     const supabase = await createClient();
 
     // Get format from query parameter if provided
@@ -359,7 +359,7 @@ export async function GET(
     }
 
     const safeReportName = sanitizeFileName(report.report_name);
-    const fileExtension = extensionMap[finalFormat] ?? finalFormat;
+    const fileExtension = extensionMap[finalFormat as ReportFormat];
     fileName = `${safeReportName}.${fileExtension}`;
     // Return the file directly as a response
     return new NextResponse(new Uint8Array(fileBuffer), {
