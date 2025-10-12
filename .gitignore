@@ -56,6 +56,8 @@ logs/
 coverage/
 .nyc_output/
 *.lcov
+test-results/
+playwright-report/
 
 # TypeScript
 *.tsbuildinfo
@@ -93,6 +95,9 @@ temp/
 *.backup
 *.bak
 *.orig
+*-backup.tsx
+*-backup.ts
+*-backup.js
 
 # Lock files (keep pnpm-lock.yaml)
 package-lock.json
